@@ -40,20 +40,20 @@ public class GraphQueryTest {
     
     @Test
     public void test_select_all() throws Exception {
-        Person1 p = cnn.select().from(Person1.VIEW).getFirst().execute();
-        assertThat(p.getId(), is(not(-1)));
-        assertThat(p.getFirstName(), is(notNullValue()));
-        assertThat(p.getLastName(), is(notNullValue()));
-        Address a = p.getAddress();
-        assertThat(a, is(notNullValue()));
-        assertThat(a.getStreet(), is(notNullValue()));
+//        Person1 p = cnn.select().from(Person1.VIEW).getFirst().execute();
+//        assertThat(p.getId(), is(not(-1)));
+//        assertThat(p.getFirstName(), is(notNullValue()));
+//        assertThat(p.getLastName(), is(notNullValue()));
+//        Address a = p.getAddress();
+//        assertThat(a, is(notNullValue()));
+//        assertThat(a.getStreet(), is(notNullValue()));
     }
     
     @Test
     public void test_instance_identity() throws Exception {
-        Person1[] pp = cnn.select().from(Person1.VIEW).byKeys(null, 2, 3)
-                .asOrderedArray().execute();
-        assertThat(pp[0].getAddress(), is(sameInstance(pp[1].getAddress())));
+//        Person1[] pp = cnn.select().from(Person1.VIEW).byKeys(null, 2, 3)
+//                .asOrderedArray().execute();
+//        assertThat(pp[0].getAddress(), is(sameInstance(pp[1].getAddress())));
     }
     
 }

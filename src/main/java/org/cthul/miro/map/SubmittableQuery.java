@@ -6,35 +6,35 @@ import java.sql.SQLException;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.MiFuture;
 import org.cthul.miro.MiFutureAction;
-import org.cthul.miro.map.ResultBuilder.EntityFactory;
+import org.cthul.miro.result.*;
 
 /**
  * A query ready to be executed or submitted.
- * @param <R> 
+ * @param <Result> 
  */
-public class SubmittableQuery<R> {
+public class SubmittableQuery<Result> {
 
     private final MiConnection cnn;
     private final MappedStatement<?> stmt;
-    private final RA<R, ?> ra;
+    private final RB<Result, ?> ra;
 
-    public <E> SubmittableQuery(MiConnection cnn, MappedStatement<E> stmt,
-            ResultBuilder<R, E> ra, EntityFactory<E> ef) {
+    public <Entity> SubmittableQuery(MiConnection cnn, MappedStatement<Entity> stmt,
+            ResultBuilder<Result, Entity> builder, EntityType<Entity> type) {
         this.cnn = cnn;
         this.stmt = stmt;
-        this.ra = new RA<>(stmt, ra, ef);
+        this.ra = new RB<>(stmt, builder, type);
     }
 
-    public R execute(MiConnection cnn) throws SQLException {
+    public Result execute(MiConnection cnn) throws SQLException {
         ResultSet rs = stmt.runQuery(cnn);
-        return ra.adapt(rs, cnn);
+        return ra.build(rs, cnn);
     }
 
-    public R execute() throws SQLException {
+    public Result execute() throws SQLException {
         return execute(cnn);
     }
 
-    public R _execute(MiConnection cnn) {
+    public Result _execute(MiConnection cnn) {
         try {
             return execute(cnn);
         } catch (SQLException e) {
@@ -42,7 +42,7 @@ public class SubmittableQuery<R> {
         }
     }
 
-    public R _execute() {
+    public Result _execute() {
         try {
             return execute();
         } catch (SQLException e) {
@@ -50,21 +50,21 @@ public class SubmittableQuery<R> {
         }
     }
 
-    public MiFuture<R> submit(final MiConnection cnn) throws SQLException {
+    public MiFuture<Result> submit(final MiConnection cnn) throws SQLException {
         MiFuture<ResultSet> rs = stmt.submitQuery(cnn);
-        return rs.onComplete(new MiFutureAction<MiFuture<ResultSet>, R>() {
+        return rs.onComplete(new MiFutureAction<MiFuture<ResultSet>, Result>() {
             @Override
-            public R call(MiFuture<ResultSet> result) throws Exception {
-                return ra.adapt(result.get(), cnn);
+            public Result call(MiFuture<ResultSet> result) throws Exception {
+                return ra.build(result.get(), cnn);
             }
         });
     }
 
-    public MiFuture<R> submit() throws SQLException {
+    public MiFuture<Result> submit() throws SQLException {
         return submit(cnn);
     }
 
-    public MiFuture<R> _submit(MiConnection cnn) {
+    public MiFuture<Result> _submit(MiConnection cnn) {
         try {
             return submit(cnn);
         } catch (SQLException e) {
@@ -72,7 +72,7 @@ public class SubmittableQuery<R> {
         }
     }
 
-    public MiFuture<R> _submit() {
+    public MiFuture<Result> _submit() {
         try {
             return submit();
         } catch (SQLException e) {
@@ -80,20 +80,19 @@ public class SubmittableQuery<R> {
         }
     }
 
-    private static class RA<R, E> {
-
+    private static class RB<R, E> {
         private final MappedStatement<E> stmt;
-        private final ResultBuilder<R, E> rb;
-        private final EntityFactory<E> ef;
+        private final ResultBuilder<R, E> builder;
+        private final EntityType<E> type;
 
-        public RA(MappedStatement<E> stmt, ResultBuilder<R, E> ra, EntityFactory<E> ef) {
+        public RB(MappedStatement<E> stmt, ResultBuilder<R, E> builder, EntityType<E> type) {
             this.stmt = stmt;
-            this.rb = ra;
-            this.ef = ef;
+            this.builder = builder;
+            this.type = type;
         }
 
-        public R adapt(ResultSet rs, MiConnection cnn) throws SQLException {
-            return rb.adapt(rs, ef, stmt.buildValueAdapter(cnn));
+        public R build(ResultSet rs, MiConnection cnn) throws SQLException {
+            return builder.build(rs, type, stmt.getSetup(cnn));
         }
     }
 }

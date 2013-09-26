@@ -4,7 +4,6 @@ import java.util.List;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.test.TestDB;
 import org.cthul.miro.test.model.Address;
-import org.cthul.miro.util.MappedQuery;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -42,13 +41,11 @@ public class MappedStatementTest {
         assertThat(a.getCity(), is("City"));
     }
 
-    public class MappedStatementImpl extends MappedQuery<Address> {
+    public class MappedStatementImpl extends MappedQueryString<Address> {
 
         public MappedStatementImpl(Object... args) {
-            super(null, Address.MAPPING,
-                    "SELECT * FROM Addresses WHERE street = ?",
-                    new String[]{"id", "street", "city"},
-                    args);
+            super(null, Address.MAPPING, "SELECT * FROM Addresses WHERE street = ?", "id", "street", "city");
+            put("", args);
         }
     }
 }

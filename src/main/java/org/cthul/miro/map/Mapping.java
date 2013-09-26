@@ -8,8 +8,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.cthul.miro.cursor.ResultCursor;
-import org.cthul.miro.map.ResultBuilder.EntityFactory;
-import org.cthul.miro.map.ResultBuilder.ValueAdapter;
+import org.cthul.miro.result.*;
 
 /**
  * Maps the result of a query to instances of a class. Provides a
@@ -18,7 +17,7 @@ import org.cthul.miro.map.ResultBuilder.ValueAdapter;
  *
  * @param <Entity>
  */
-public abstract class Mapping<Entity> {
+public abstract class Mapping<Entity> implements EntityType<Entity> {
 
     private final Class<Entity> entityClass;
     private ResultBuilder<Entity[], Entity> arrayResultBuilder = null;
@@ -31,7 +30,7 @@ public abstract class Mapping<Entity> {
         throw new UnsupportedOperationException("Records not supported");
     }
 
-    protected Entity newCursorValue(ResultCursor<Entity> cursor) {
+    protected Entity newCursorValue(ResultCursor<? super Entity> cursor) {
         throw new UnsupportedOperationException("Cursor not supported");
     }
 
@@ -72,7 +71,7 @@ public abstract class Mapping<Entity> {
         }
     }
 
-    public void setField(Entity record, String field, Object value) throws SQLException {
+    protected void setField(Entity record, String field, Object value) throws SQLException {
         throw new IllegalArgumentException(
                 "Cannot set field " + field + " of " + entityClass.getSimpleName());
     }
@@ -84,16 +83,17 @@ public abstract class Mapping<Entity> {
         }
     }
 
-    public ValueAdapter<Entity> newValueAdapter(String... fields) {
-        return new FieldValueAdapter(fields);
+    @Override
+    public EntityFactory<Entity> newFactory(ResultSet rs) throws SQLException {
+        return new MappedEntityFactory(rs);
     }
 
-    public ValueAdapter<Entity> newValueAdapter(List<String> fields) {
-        return new FieldValueAdapter(fields);
+    public EntitySetup<Entity> newSetup(List<String> fields) {
+        return new FieldValuesSetup(fields);
     }
-
-    public EntityFactory<Entity> newEntityFactory() {
-        return new MappedEntityFactory();
+    
+    public EntitySetup<Entity> newSetup(String... fields) {
+        return new FieldValuesSetup(fields);
     }
     
     public Entity[] newArray(int length) {
@@ -131,66 +131,47 @@ public abstract class Mapping<Entity> {
         return null;
     }
 
-    /**
-     * Sets fields from result set.
-     */
-    protected class FieldValueAdapter extends ValueAdapterBase<Entity> {
-
+    protected class FieldValuesSetup extends AbstractEntitySetup<Entity> {        
         private final String[] fields;
-        private ResultSet rs = null;
-        private int[] fieldIndices = null;
 
-        public FieldValueAdapter(String[] fields) {
-            this.fields = fields;
+        public FieldValuesSetup(Collection<String> fields) {
+            this.fields = fields.toArray(new String[fields.size()]);
         }
         
-        public FieldValueAdapter(List<String> fields) {
-            this(fields.toArray(new String[fields.size()]));
+        public FieldValuesSetup(String[] fields) {
+            this.fields = fields;
         }
 
         @Override
-        public void initialize(ResultSet rs) throws SQLException {
-            this.rs = rs;
-            this.fieldIndices = getFieldIndices(rs, fields);
+        protected String[] getColumns() {
+            return fields;
         }
 
         @Override
-        public void apply(Entity entity) throws SQLException {
-            int len = fieldIndices.length;
-            for (int i = 0; i < len; i++) {
-                setField(entity, fields[i], rs, fieldIndices[i]);
-            }
+        protected void setColumn(Entity entity, int colIndex, ResultSet rs, int index) throws SQLException {
+            setField(entity, fields[colIndex], rs, index);
         }
-
-        @Override
-        public void complete() throws SQLException {
-        }
-
-        @Override
-        public void close() throws SQLException {
-        }
-    };
-
+    }
+    
     /**
      * Creates new instances, using constructor arguments from result set.
      * @see #getConstructorParameters()
      */
-    protected class MappedEntityFactory implements EntityFactory<Entity> {
+    protected class MappedEntityFactory extends EntityBuilderBase implements EntityFactory<Entity> {
 
-        protected ResultSet rs = null;
-        private int[] argColumns = null;
-        private Object[] argsBuf = null;
+        protected final ResultSet rs;
+        private final int[] argColumns;
+        private final Object[] argsBuf;
 
-        @Override
-        public void initialize(ResultSet rs) throws SQLException {
+        public MappedEntityFactory(ResultSet rs) throws SQLException {
             this.rs = rs;
             String[] params = getConstructorParameters();
             if (params != null) {
-                argColumns = new int[params.length];
-                for (int i = 0; i < params.length; i++) {
-                    argColumns[i] = rs.findColumn(params[i]);
-                }
+                argColumns = getFieldIndices(rs, params);
                 argsBuf = new Object[params.length];
+            } else {
+                argColumns = null;
+                argsBuf = null;
             }
         }
 
@@ -205,7 +186,7 @@ public abstract class Mapping<Entity> {
         }
 
         @Override
-        public Entity newCursorValue(ResultCursor<Entity> rc) throws SQLException {
+        public Entity newCursorValue(ResultCursor<? super Entity> rc) throws SQLException {
             return Mapping.this.newCursorValue(rc);
         }
 

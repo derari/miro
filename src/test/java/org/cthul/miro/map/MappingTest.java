@@ -1,6 +1,7 @@
 package org.cthul.miro.map;
 
 import java.sql.ResultSet;
+import org.cthul.miro.result.*;
 import org.cthul.miro.test.TestDB;
 import org.cthul.miro.test.model.Address;
 import org.junit.*;
@@ -29,7 +30,7 @@ public class MappingTest {
     
     @Test
     public void test_newEntityFactory() throws Exception {
-        ResultBuilder.EntityFactory<Address> ef = Address.MAPPING.newEntityFactory();
+        EntityFactory<Address> ef = Address.MAPPING.newFactory(null);
         Address a = ef.newEntity();
         assertThat(a, is(notNullValue()));
     }
@@ -47,11 +48,11 @@ public class MappingTest {
         try (ResultSet rs = TestDB.getConnection().createStatement()
                         .executeQuery(
                         "SELECT * FROM Addresses WHERE street = 'Street 1'")) {
-            ResultBuilder.ValueAdapter va = Address.MAPPING.newValueAdapter("street");
-            va.initialize(rs);
+            EntitySetup<Address> setup = Address.MAPPING.newSetup("street");
+            EntityInitializer<Address> init = setup.newInitializer(rs);
             rs.next();
-            va.apply(a);
-            va.complete();
+            init.apply(a);
+            init.complete();
         }
         
         assertThat(a.getStreet(), is("Street 1"));
@@ -63,11 +64,11 @@ public class MappingTest {
         try (ResultSet rs = TestDB.getConnection().createStatement()
                         .executeQuery(
                         "SELECT * FROM Addresses WHERE street = 'Street 1'")) {
-            ResultBuilder.ValueAdapter va = Address.MAPPING.newValueAdapter("id", "street", "city");
-            va.initialize(rs);
+            EntitySetup<Address> setup = Address.MAPPING.newSetup("id", "street", "city");
+            EntityInitializer<Address> init = setup.newInitializer(rs);
             rs.next();
-            va.apply(a);
-            va.complete();
+            init.apply(a);
+            init.complete();
         }
         
         assertThat(a.getId(), is(0));

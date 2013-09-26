@@ -1,6 +1,11 @@
 package org.cthul.miro.dsl;
 
+import java.util.Arrays;
+import java.util.List;
 import org.cthul.miro.MiConnection;
+import org.cthul.miro.map.MappedQueryString;
+import org.cthul.miro.map.MappedStatement;
+import org.cthul.miro.map.Mapping;
 
 public class Select {
 
@@ -35,5 +40,15 @@ public class Select {
 
     public <Qry> Qry from(View<Qry> view) {
         return view.select(cnn, fields);
+    }
+    
+    public <T> MappedStatement<T> fromQuery(Mapping<T> mapping, String query, Object... args) {
+        String[] select = fields;
+        if (select.length == 0 || 
+                (select.length == 1 && select[0].equals("*"))) {
+            return new MappedQueryString<>(cnn, mapping, null, query, args);
+        } else {
+            return new MappedQueryString<>(cnn, mapping, Arrays.asList(select), query, args);
+        }
     }
 }

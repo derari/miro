@@ -8,5 +8,7 @@ import org.cthul.miro.MiConnection;
  */
 public interface View<Qry> {
 
-    Qry select(MiConnection cnn, String[] fields);
+    Qry select(MiConnection cnn, String... fields);
+    
+    Qry select(String... fields);
 }

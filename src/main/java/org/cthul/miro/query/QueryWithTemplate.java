@@ -1,77 +1,59 @@
-package org.cthul.miro.dsl;
+package org.cthul.miro.query;
 
 import java.util.List;
-import org.cthul.miro.MiConnection;
-import org.cthul.miro.dsl.QueryTemplate.PartTemplate;
-import org.cthul.miro.map.Mapping;
+import org.cthul.miro.query.QueryTemplate.PartTemplate;
 
 /**
  *
  */
-public class QueryWithTemplate<Entity> extends QueryBuilder<Entity> {
+public class QueryWithTemplate extends ParsingQueryBuilder {
     
-    private final QueryTemplate<Entity> template;
+    private final QueryTemplate template;
 
-    public QueryWithTemplate(MiConnection cnn, Mapping<Entity> mapping, QueryTemplate<Entity> template) {
-        super(cnn, mapping);
+    public QueryWithTemplate(QueryTemplate template) {
         this.template = template;
         ensureDependencies(template.getAlwaysRequired());
     }
     
-    protected void select_key(String... keys) {
-        select_keys(keys);
+    protected void selectAll() {
+        put("*");
     }
     
-    protected void select_keys(String... keys) {
+    protected void selectAllOptional() {
+        put("**");
+    }
+    
+    protected void select(String... keys) {
         if (keys == null) {
-            put("*");
+            selectAll();
         } else {
-            for (String k: keys) {
-                put(k);
-            }
+            putAll(keys);
         }
     }
     
-    protected void where_key(String key, Object... args) {
+    protected void where(String key, Object... args) {
         put(key, args);
     }
     
-    protected void groupBy_key(String key) {
+    protected void groupBy(String key) {
         put(key);
     }
     
-    protected void groupBy_key(String... key) {
-        groupBy_keys(key);
+    protected void groupBy(String... keys) {
+        putAll(keys);
     }
     
-    protected void groupBy_keys(String... key) {
-        for (String k: key) {
-            put(k);
-        }
-    }
-    
-    protected void having_key(String key, Object... args) {
+    protected void having(String key, Object... args) {
         put(key, args);
     }
     
-    private void putAll(List<String> keys, String subKey, Object[] args) {
-        for (String k: keys) {
-            put(k, subKey, args);
-        }
-    }
     
-    protected void orderBy_key(String key) {
+    protected void orderBy(String key) {
         put(key);
     }
     
-    protected void orderBy_key(String... key) {
-        groupBy_keys(key);
-    }
-    
-    protected void orderBy_keys(String... key) {
-        for (String k: key) {
-            put(k);
-        }
+    protected void orderBy(String... key) {
+        putAll(key);
     }
     
     @Override
@@ -89,6 +71,18 @@ public class QueryWithTemplate<Entity> extends QueryBuilder<Entity> {
         }
     }
     
+    private void putAll(String... keys) {
+        for (String k: keys) {
+            put(k);
+        }
+    }
+    
+    private void putAll(List<String> keys, String subKey, Object[] args) {
+        for (String k: keys) {
+            put(k, subKey, args);
+        }
+    }
+    
     private void ensureDependencies(String[] required) {
         for (String key: required) {
             ensurePart(key);
@@ -102,7 +96,7 @@ public class QueryWithTemplate<Entity> extends QueryBuilder<Entity> {
     }
     
     private void ensurePart(String key) {
-        if (!parts.containsKey(key)) {
+        if (!parts().containsKey(key)) {
             addPart(key);
         }
     }
@@ -121,5 +115,4 @@ public class QueryWithTemplate<Entity> extends QueryBuilder<Entity> {
         addPart(qp);
         return qp;
     }
-
 }

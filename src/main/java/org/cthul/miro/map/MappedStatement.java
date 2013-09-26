@@ -1,11 +1,13 @@
 package org.cthul.miro.map;
 
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import org.cthul.miro.*;
 import org.cthul.miro.cursor.ResultCursor;
-import org.cthul.miro.map.ResultBuilder.ValueAdapter;
+import org.cthul.miro.result.*;
 
 /**
  * A statement with an entity mapping.
@@ -20,39 +22,36 @@ public abstract class MappedStatement<Entity> {
         this.cnn = cnn;
         this.mapping = mapping;
     }
-
-    protected abstract String[] selectedFields();
+    
+    protected abstract List<String> selectedFields();
 
     protected abstract String queryString();
 
     protected abstract Object[] arguments();
     
-    public void put(String key) {
-        put(key, (Object[]) null);
-    }
+    public abstract void put(String key);
     
-    public void put(String key, Object... args) {
-        String subKey;
-        int dot = key.indexOf('.');
-        if (dot < 0) {
-            subKey = null;
-        } else {
-            subKey = key.substring(dot+1);
-            key = key.substring(0, dot);
-        }
-        put(key, subKey, args);
-    }
+    public abstract void put(String key, Object... args);
     
     public abstract void put(String key, String subKey, Object... args);
 
-    /* SubmittableQuery */
-    protected ValueAdapter<? super Entity> buildValueAdapter(MiConnection cnn) {
-        ValueAdapter<Entity> va = mapping.newValueAdapter(selectedFields());
-        return moreValueAdapters(cnn, va);
+    public EntitySetup<? super Entity> getSetup(MiConnection cnn) {
+        final List<EntitySetup<? super Entity>> setups = new ArrayList<>();
+        setups.add(getMappingSetup(cnn));
+        addMoreSetups(cnn, setups);
+        return CombinedEntitySetup.combine(setups);
     }
-
-    protected ValueAdapter<? super Entity> moreValueAdapters(MiConnection cnn, ValueAdapter<? super Entity> entityAdapter) {
-        return entityAdapter;
+    
+    protected EntitySetup<? super Entity> getMappingSetup(MiConnection cnn) {
+        List<String> selected = selectedFields();
+        if (selected == null) {
+            return new SelectAll();
+        } else {
+            return mapping.newSetup(selectedFields());
+        }
+    }
+    
+    protected void addMoreSetups(MiConnection cnn, List<EntitySetup<? super Entity>> setups) {
     }
 
     public ResultSet runQuery() throws SQLException {
@@ -74,7 +73,7 @@ public abstract class MappedStatement<Entity> {
     }
 
     public <R> SubmittableQuery<R> as(ResultBuilder<R, Entity> rb) {
-        return new SubmittableQuery<>(cnn, this, rb, mapping.newEntityFactory());
+        return new SubmittableQuery<>(cnn, this, rb, mapping);
     }
 
     public SubmittableQuery<Entity[]> asArray() {
@@ -95,5 +94,24 @@ public abstract class MappedStatement<Entity> {
 
     public SubmittableQuery<Entity> getFirst() {
         return as(mapping.getFirst());
+    }
+    
+    public static interface SetupProvider<Entity> {
+        
+        EntitySetup<Entity> getSetup(MiConnection cnn, Mapping<? extends Entity> mapping);
+    }
+    
+    protected class SelectAll implements EntitySetup<Entity> {
+
+        @Override
+        public EntityInitializer<Entity> newInitializer(ResultSet rs) throws SQLException {
+            ResultSetMetaData meta = rs.getMetaData();
+            int c = meta.getColumnCount();
+            String[] columns = new String[c];
+            for (int i = 0; i < c; i++) {
+                columns[i] = meta.getColumnLabel(i);
+            }
+            return mapping.newSetup(columns).newInitializer(rs);
+        }
     }
 }

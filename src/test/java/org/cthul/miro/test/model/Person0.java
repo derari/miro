@@ -1,12 +1,10 @@
 package org.cthul.miro.test.model;
 
 import org.cthul.miro.MiConnection;
-import org.cthul.miro.dsl.QueryTemplate;
-import org.cthul.miro.dsl.QueryWithTemplate;
 import org.cthul.miro.dsl.View;
 import org.cthul.miro.map.Mapping;
-import org.cthul.miro.util.QueryFactoryView;
-import org.cthul.miro.util.ReflectiveMapping;
+import org.cthul.miro.dsl.QueryFactoryView;
+import org.cthul.miro.map.*;
 
 public class Person0 {
 
@@ -40,7 +38,7 @@ public class Person0 {
     
     private static final Mapping<Person0> MAPPING = new ReflectiveMapping<>(Person0.class);
     
-    private static final QueryTemplate<Person0> TEMPLATE = new QueryTemplate<Person0>() {{
+    private static final MappedTemplate<Person0> TEMPLATE = new MappedTemplate<Person0>() {{
         select("p.id", "firstName", "lastName",
                "a.street", "a.city"); // should autodetect 'a' required
         from("People p");
@@ -50,11 +48,11 @@ public class Person0 {
             .where("city_EQ", "a.city = ?");
     }};
     
-    public static class Query extends QueryWithTemplate<Person0> {
+    public static class Query extends MappedTemplateQuery<Person0> {
 
         public Query(MiConnection cnn, String[] select) {
             super(cnn, MAPPING, TEMPLATE);
-            select_keys(select);
+            query().select(select);
         }
         
         public String getQueryString() {
@@ -73,10 +71,8 @@ public class Person0 {
         }
         
         public Query inCity(String city) {
-            where_key("city_EQ", city);
+            query().where("city_EQ", city);
             return this;
         }
-        
     }
-    
 }

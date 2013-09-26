@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.cthul.miro.dsl.*;
-import org.cthul.miro.dsl.QueryBuilder.QueryPart;
+import org.cthul.miro.map.MappedTemplate;
+import org.cthul.miro.query.QueryBuilder.QueryPart;
+import org.cthul.miro.query.QueryTemplate.PartTemplate;
 
 /**
  *
  */
-public class GraphQueryTemplate<Entity> extends QueryTemplate<Entity> {
+public class GraphQueryTemplate<Entity> extends MappedTemplate<Entity> {
     
     private final List<String> keys = new ArrayList<>();
     
@@ -30,23 +32,24 @@ public class GraphQueryTemplate<Entity> extends QueryTemplate<Entity> {
     }
     
     protected void relation(String key, View<? extends SelectByKey<?>> view, String... keyFields) {
-        PartTemplate<Entity> pt = new RelationTemplate<>(key, keyFields, view);
-        addPart(pt);
-        byDefault(key);
+//        PartTemplate<Entity> pt = new RelationTemplate<>(key, keyFields, view);
+//        addPart(pt);
+//        byDefault(key);
     }
 
     protected static class RelationTemplate<Entity> extends PartTemplate<Entity> {
         
         private final View<? extends SelectByKey<?>> view;
         
-        public RelationTemplate(String key, String[] required, View<? extends SelectByKey<?>> view) {
-            super(key, required);
+        public RelationTemplate(String key, String[] required, Include include, View<? extends SelectByKey<?>> view) {
+            super(key, include, required);
             this.view = view;
         }
 
         @Override
-        public QueryPart<Entity> createPart(String alias) {
-            return new GraphQuery.RelationPart<>(alias, view, required);
+        public QueryPart createPart(String alias) {
+            return null;
+//            return new GraphQuery.RelationPart<>(alias, view, required);
         }
     }
     
