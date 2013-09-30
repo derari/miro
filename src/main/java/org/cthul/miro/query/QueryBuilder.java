@@ -287,7 +287,9 @@ public abstract class QueryBuilder {
 
         public void put(String subKey, Object[] args) {
             if (subKey.isEmpty()) {
-                arguments = args;
+                if (args != null) {
+                    arguments = args;
+                }
             } else {
                 throw new IllegalArgumentException(
                         key + " has no sub-keys: " + subKey);

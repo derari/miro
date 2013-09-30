@@ -7,6 +7,7 @@ import org.cthul.miro.MiConnection;
 import org.cthul.miro.MiFuture;
 import org.cthul.miro.MiFutureAction;
 import org.cthul.miro.result.*;
+import org.cthul.miro.result.ResultBuilder;
 
 /**
  * A query ready to be executed or submitted.
@@ -51,6 +52,9 @@ public class SubmittableQuery<Result> {
     }
 
     public MiFuture<Result> submit(final MiConnection cnn) throws SQLException {
+        if (cnn == null) {
+            throw new IllegalArgumentException("No connection given");
+        }
         MiFuture<ResultSet> rs = stmt.submitQuery(cnn);
         return rs.onComplete(new MiFutureAction<MiFuture<ResultSet>, Result>() {
             @Override
@@ -92,7 +96,7 @@ public class SubmittableQuery<Result> {
         }
 
         public R build(ResultSet rs, MiConnection cnn) throws SQLException {
-            return builder.build(rs, type, stmt.getSetup(cnn));
+            return builder.build(rs, type, stmt.getConfiguration(cnn));
         }
     }
 }

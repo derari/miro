@@ -1,6 +1,8 @@
 package org.cthul.miro.test.model;
 
+import java.util.List;
 import org.cthul.miro.MiConnection;
+import org.cthul.miro.at.*;
 import org.cthul.miro.dsl.View;
 import org.cthul.miro.map.Mapping;
 import org.cthul.miro.dsl.QueryFactoryView;
@@ -34,13 +36,13 @@ public class Person0 {
         return city;
     }
     
-    public static View<Query> VIEW = new QueryFactoryView<>(Query.class);
+    public static View<TQuery> VIEW = new QueryFactoryView<>(TQuery.class);
     
     private static final Mapping<Person0> MAPPING = new ReflectiveMapping<>(Person0.class);
     
-    private static final MappedTemplate<Person0> TEMPLATE = new MappedTemplate<Person0>() {{
+    private static final MappedQueryTemplate<Person0> TEMPLATE = new MappedQueryTemplate<Person0>() {{
         select("p.id", "firstName", "lastName",
-               "a.street", "a.city"); // should autodetect 'a' required
+               "a.street", "a.city"); // should autodetect 'a' require
         from("People p");
         join("Addresses a ON p.addressId = a.id");
         where("lastName_LIKE", "lastName LIKE ?");
@@ -48,9 +50,9 @@ public class Person0 {
             .where("city_EQ", "a.city = ?");
     }};
     
-    public static class Query extends MappedTemplateQuery<Person0> {
+    public static class TQuery extends MappedTemplateQuery<Person0> {
 
-        public Query(MiConnection cnn, String[] select) {
+        public TQuery(MiConnection cnn, String[] select) {
             super(cnn, MAPPING, TEMPLATE);
             query().select(select);
         }
@@ -66,13 +68,36 @@ public class Person0 {
             return s;
         }
         
-        public Query where() {
+        public TQuery where() {
             return this;
         }
         
-        public Query inCity(String city) {
+        public TQuery inCity(String city) {
             query().where("city_EQ", city);
             return this;
         }
+    }
+    
+    public static final View<AtQuery> AT_VIEW = new AnnotatedView<>(AtQuery.class, MAPPING);
+    
+    @MiQuery(
+            select = "p.id, firstName, lastName, a.street, a.city",
+            from = "People p",
+            join = @Join("Addresses a ON p.addressId = a.id")
+            )
+    public static interface AtQuery extends AnnotatedStatement<Person1> {
+        
+        AtQuery where();
+        
+        @Where("lastName LIKE ?")
+        AtQuery lastNameLike(String name);
+        
+        @Using("a")
+        @Where("a.city = ?")
+        AtQuery inCity(String city);
+        
+        // --- for testing ---
+        String getQueryString();
+        List<Object> getArguments();
     }
 }

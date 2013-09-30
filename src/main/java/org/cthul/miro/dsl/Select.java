@@ -1,7 +1,6 @@
 package org.cthul.miro.dsl;
 
 import java.util.Arrays;
-import java.util.List;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.map.MappedQueryString;
 import org.cthul.miro.map.MappedStatement;

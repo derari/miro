@@ -4,16 +4,24 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.cthul.miro.dsl.*;
-import org.cthul.miro.map.MappedTemplate;
+import org.cthul.miro.map.MappedQueryTemplate;
+import org.cthul.miro.map.Mapping;
 import org.cthul.miro.query.QueryBuilder.QueryPart;
 import org.cthul.miro.query.QueryTemplate.PartTemplate;
 
 /**
  *
  */
-public class GraphQueryTemplate<Entity> extends MappedTemplate<Entity> {
+public class GraphQueryTemplate<Entity> extends MappedQueryTemplate<Entity> {
     
     private final List<String> keys = new ArrayList<>();
+
+    public GraphQueryTemplate(Mapping<Entity> mapping) {
+        super(mapping);
+    }
+
+    public GraphQueryTemplate() {
+    }
     
     public String[] getKeys() {
         if (keys.isEmpty()) {
@@ -37,7 +45,7 @@ public class GraphQueryTemplate<Entity> extends MappedTemplate<Entity> {
 //        byDefault(key);
     }
 
-    protected static class RelationTemplate<Entity> extends PartTemplate<Entity> {
+    protected static class RelationTemplate<Entity> extends PartTemplate {
         
         private final View<? extends SelectByKey<?>> view;
         

@@ -9,6 +9,8 @@ import java.util.List;
 
 import org.cthul.miro.cursor.ResultCursor;
 import org.cthul.miro.result.*;
+import org.cthul.miro.result.ResultBuilder;
+import org.cthul.miro.result.ResultBuilders;
 
 /**
  * Maps the result of a query to instances of a class. Provides a
@@ -88,11 +90,11 @@ public abstract class Mapping<Entity> implements EntityType<Entity> {
         return new MappedEntityFactory(rs);
     }
 
-    public EntitySetup<Entity> newSetup(List<String> fields) {
+    public EntityConfiguration<Entity> newSetup(List<String> fields) {
         return new FieldValuesSetup(fields);
     }
     
-    public EntitySetup<Entity> newSetup(String... fields) {
+    public EntityConfiguration<Entity> newSetup(String... fields) {
         return new FieldValuesSetup(fields);
     }
     

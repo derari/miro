@@ -36,11 +36,11 @@ public class ResultBuilders {
     public static class ListResult<Entity> implements ResultBuilder<List<Entity>, Entity> {
 
         @Override
-        public List<Entity> build(ResultSet rs, EntityType<Entity> type, EntitySetup<? super Entity> setup) throws SQLException {
+        public List<Entity> build(ResultSet rs, EntityType<Entity> type, EntityConfiguration<? super Entity> config) throws SQLException {
             final List<Entity> result = new ArrayList<>();
             try (ResultSet _ = rs;
                     EntityFactory<Entity> factory = type.newFactory(rs);
-                    EntityInitializer<? super Entity> init = setup.newInitializer(rs)) {
+                    EntityInitializer<? super Entity> init = config.newInitializer(rs)) {
                 while (rs.next()) {
                     final Entity record = factory.newEntity();
                     init.apply(record);
@@ -77,8 +77,8 @@ public class ResultBuilders {
         }
 
         @Override
-        public Entity[] build(ResultSet rs, EntityType<Entity> type, EntitySetup<? super Entity> setup) throws SQLException {
-            Collection<? extends Entity> result = listResult.build(rs, type, setup);
+        public Entity[] build(ResultSet rs, EntityType<Entity> type, EntityConfiguration<? super Entity> config) throws SQLException {
+            Collection<? extends Entity> result = listResult.build(rs, type, config);
             return result.toArray(arrayTemplate);
         }
     }
@@ -101,8 +101,8 @@ public class ResultBuilders {
     public static class CursorResult<Entity> implements ResultBuilder<ResultCursor<Entity>, Entity> {
 
         @Override
-        public ResultCursor<Entity> build(ResultSet rs, EntityType<Entity> type, EntitySetup<? super Entity> setup) throws SQLException {
-            return new MappedResultCursor<>(rs, type, setup);
+        public ResultCursor<Entity> build(ResultSet rs, EntityType<Entity> type, EntityConfiguration<? super Entity> config) throws SQLException {
+            return new MappedResultCursor<>(rs, type, config);
         }
     }
 
@@ -115,10 +115,10 @@ public class ResultBuilders {
         private boolean isAtNext = false;
 
         @SuppressWarnings("LeakingThisInConstructor")
-        public MappedResultCursor(ResultSet rs, EntityType<Entity> type, EntitySetup<? super Entity> setup) throws SQLException {
+        public MappedResultCursor(ResultSet rs, EntityType<Entity> type, EntityConfiguration<? super Entity> config) throws SQLException {
             this.rs = rs;
             this.factory = type.newFactory(rs);
-            this.init = setup.newInitializer(rs);
+            this.init = config.newInitializer(rs);
             setCursorValue(factory.newCursorValue(this));
         }
 
@@ -208,13 +208,13 @@ public class ResultBuilders {
         }
 
         @Override
-        public Entity build(ResultSet rs, EntityType<Entity> type, EntitySetup<? super Entity> setup) throws SQLException {
+        public Entity build(ResultSet rs, EntityType<Entity> type, EntityConfiguration<? super Entity> config) throws SQLException {
             if (!rs.next()) {
                 return null;
             }
             try (ResultSet _ = rs;
                     EntityFactory<Entity> factory = type.newFactory(rs);
-                    EntityInitializer<? super Entity> init = setup.newInitializer(rs)) {
+                    EntityInitializer<? super Entity> init = config.newInitializer(rs)) {
                 final Entity record = factory.newEntity();
                 init.apply(record);
                 if (forceSingle && rs.next()) {

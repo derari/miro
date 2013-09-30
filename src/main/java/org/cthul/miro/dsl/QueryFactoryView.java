@@ -17,16 +17,16 @@ public class QueryFactoryView<Qry> extends ViewBase<Qry> {
 
     public QueryFactoryView(Class<Qry> clazz) {
         Constructor<Qry> c;
-        boolean viewArg = false;
+        boolean viewArg;
         try {
-            c = clazz.getConstructor(MiConnection.class, String[].class);
+            c = clazz.getConstructor(MiConnection.class, String[].class, View.class);
+            viewArg = true;
         } catch (NoSuchMethodException e) {
             try {
-                c = clazz.getConstructor(MiConnection.class, String[].class, View.class);
-                viewArg = true;
+                c = clazz.getConstructor(MiConnection.class, String[].class);
+                viewArg = false;
             } catch (NoSuchMethodException e2) {
-                // throw first exception
-                throw new RuntimeException(e);
+                throw new RuntimeException(e2);
             }
         }
         newQuery = c;

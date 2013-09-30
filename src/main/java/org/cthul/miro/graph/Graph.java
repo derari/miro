@@ -25,6 +25,10 @@ public class Graph {
         }
         return es;
     }
+    
+    public Object peekObject(View<? extends SelectByKey<?>> view, Object key) {
+        return entitySet(view, key).peek(key);
+    }
 
     public List<Object> getObjects(View<? extends SelectByKey<?>> view, List<?> keys) throws SQLException {
         if (keys.isEmpty()) return Collections.emptyList();
@@ -58,6 +62,10 @@ public class Graph {
 
         private List<Object> getObjects(List<?> keys) throws SQLException {
             return Arrays.asList(map.getAll(keys.toArray()));
+        }
+
+        private Object peek(Object key) {
+            return map.peek(key);
         }
     }
     

@@ -4,12 +4,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
- * Creates a result, made of entities from a {@code java.sql.ResultSet}.
+ * Creates a result, made of entities from a {@code ResultSet}.
  * 
  * @param <Result>
  * @param <Entity> 
  */
 public interface ResultBuilder<Result, Entity> {
     
-    Result build(ResultSet rs, EntityType<Entity> type, EntitySetup<? super Entity> setup) throws SQLException;
+    Result build(ResultSet rs, EntityType<Entity> type, EntityConfiguration<? super Entity> config) throws SQLException;
 }

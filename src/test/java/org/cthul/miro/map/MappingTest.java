@@ -48,8 +48,8 @@ public class MappingTest {
         try (ResultSet rs = TestDB.getConnection().createStatement()
                         .executeQuery(
                         "SELECT * FROM Addresses WHERE street = 'Street 1'")) {
-            EntitySetup<Address> setup = Address.MAPPING.newSetup("street");
-            EntityInitializer<Address> init = setup.newInitializer(rs);
+            EntityConfiguration<Address> config = Address.MAPPING.newSetup("street");
+            EntityInitializer<Address> init = config.newInitializer(rs);
             rs.next();
             init.apply(a);
             init.complete();
@@ -64,8 +64,8 @@ public class MappingTest {
         try (ResultSet rs = TestDB.getConnection().createStatement()
                         .executeQuery(
                         "SELECT * FROM Addresses WHERE street = 'Street 1'")) {
-            EntitySetup<Address> setup = Address.MAPPING.newSetup("id", "street", "city");
-            EntityInitializer<Address> init = setup.newInitializer(rs);
+            EntityConfiguration<Address> config = Address.MAPPING.newSetup("id", "street", "city");
+            EntityInitializer<Address> init = config.newInitializer(rs);
             rs.next();
             init.apply(a);
             init.complete();

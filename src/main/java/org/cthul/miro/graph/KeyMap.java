@@ -15,6 +15,12 @@ public abstract class KeyMap<Key, InternKey, E extends Exception> {
         this.fetch = fetch;
     }
 
+    public Object peek(Key key) {
+        Object o = get(internKey(key));
+        if (o == NULL) return null;
+        return o;
+    }
+    
     /**
      * Returns objects for all keys.
      * @param keys

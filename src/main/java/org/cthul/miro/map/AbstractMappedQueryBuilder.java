@@ -29,7 +29,7 @@ public abstract class AbstractMappedQueryBuilder<Entity> extends MappedStatement
 
     @Override
     protected Object[] arguments() {
-        return queryBuilder().getAllParts().toArray();
+        return queryBuilder().getArguments().toArray();
     }
     
     @Override
@@ -48,12 +48,12 @@ public abstract class AbstractMappedQueryBuilder<Entity> extends MappedStatement
     }
 
     @Override
-    protected void addMoreSetups(MiConnection cnn, List<EntitySetup<? super Entity>> setups) {
-        super.addMoreSetups(cnn, setups);
+    protected void addMoreConfigs(MiConnection cnn, List<EntityConfiguration<? super Entity>> configs) {
+        super.addMoreConfigs(cnn, configs);
         for (QueryBuilder.QueryPart qp: queryBuilder().getAllParts()) {
-            if (qp instanceof SetupProvider) {
-                SetupProvider<? super Entity> sp = (SetupProvider<Entity>) qp;
-                setups.add(sp.getSetup(cnn, mapping));
+            if (qp instanceof ConfigurationPart) {
+                ConfigurationPart<? super Entity> sp = (ConfigurationPart<Entity>) qp;
+                configs.add(sp.getConfiguration(cnn, mapping));
             }
         }
     }

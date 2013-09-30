@@ -8,6 +8,7 @@ import java.util.List;
 import org.cthul.miro.*;
 import org.cthul.miro.cursor.ResultCursor;
 import org.cthul.miro.result.*;
+import org.cthul.miro.result.ResultBuilder;
 
 /**
  * A statement with an entity mapping.
@@ -35,14 +36,14 @@ public abstract class MappedStatement<Entity> {
     
     public abstract void put(String key, String subKey, Object... args);
 
-    public EntitySetup<? super Entity> getSetup(MiConnection cnn) {
-        final List<EntitySetup<? super Entity>> setups = new ArrayList<>();
-        setups.add(getMappingSetup(cnn));
-        addMoreSetups(cnn, setups);
-        return CombinedEntitySetup.combine(setups);
+    public EntityConfiguration<? super Entity> getConfiguration(MiConnection cnn) {
+        final List<EntityConfiguration<? super Entity>> configs = new ArrayList<>();
+        configs.add(getMappingConfig(cnn));
+        addMoreConfigs(cnn, configs);
+        return CombinedEntityConfig.combine(configs);
     }
     
-    protected EntitySetup<? super Entity> getMappingSetup(MiConnection cnn) {
+    protected EntityConfiguration<? super Entity> getMappingConfig(MiConnection cnn) {
         List<String> selected = selectedFields();
         if (selected == null) {
             return new SelectAll();
@@ -51,7 +52,11 @@ public abstract class MappedStatement<Entity> {
         }
     }
     
-    protected void addMoreSetups(MiConnection cnn, List<EntitySetup<? super Entity>> setups) {
+    protected EntityType<Entity> getEntityType() {
+        return mapping;
+    }
+    
+    protected void addMoreConfigs(MiConnection cnn, List<EntityConfiguration<? super Entity>> configs) {
     }
 
     public ResultSet runQuery() throws SQLException {
@@ -59,6 +64,9 @@ public abstract class MappedStatement<Entity> {
     }
 
     public ResultSet runQuery(MiConnection cnn) throws SQLException {
+        if (cnn == null) {
+            throw new IllegalArgumentException("No connection given");
+        }
         MiPreparedStatement ps = cnn.prepare(queryString());
         return ps.executeQuery(arguments());
     }
@@ -68,12 +76,15 @@ public abstract class MappedStatement<Entity> {
     }
 
     public MiFuture<ResultSet> submitQuery(MiConnection cnn) throws SQLException {
+        if (cnn == null) {
+            throw new IllegalArgumentException("No connection given");
+        }
         MiPreparedStatement ps = cnn.prepare(queryString());
         return ps.submitQuery(arguments());
     }
 
     public <R> SubmittableQuery<R> as(ResultBuilder<R, Entity> rb) {
-        return new SubmittableQuery<>(cnn, this, rb, mapping);
+        return new SubmittableQuery<>(cnn, this, rb, getEntityType());
     }
 
     public SubmittableQuery<Entity[]> asArray() {
@@ -96,12 +107,12 @@ public abstract class MappedStatement<Entity> {
         return as(mapping.getFirst());
     }
     
-    public static interface SetupProvider<Entity> {
+    public static interface ConfigurationPart<Entity> {
         
-        EntitySetup<Entity> getSetup(MiConnection cnn, Mapping<? extends Entity> mapping);
+        EntityConfiguration<Entity> getConfiguration(MiConnection cnn, Mapping<? extends Entity> mapping);
     }
     
-    protected class SelectAll implements EntitySetup<Entity> {
+    protected class SelectAll implements EntityConfiguration<Entity> {
 
         @Override
         public EntityInitializer<Entity> newInitializer(ResultSet rs) throws SQLException {

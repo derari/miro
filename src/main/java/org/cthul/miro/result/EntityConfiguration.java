@@ -8,7 +8,7 @@ import java.sql.SQLException;
  * 
  * @param <Entity> 
  */
-public interface EntitySetup<Entity> {
+public interface EntityConfiguration<Entity> {
     
     EntityInitializer<Entity> newInitializer(ResultSet rs) throws SQLException;
 }

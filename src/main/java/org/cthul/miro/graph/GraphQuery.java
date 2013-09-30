@@ -1,22 +1,120 @@
 package org.cthul.miro.graph;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import org.cthul.miro.MiConnection;
+import org.cthul.miro.cursor.ResultCursor;
+import org.cthul.miro.dsl.View;
 import org.cthul.miro.map.*;
-import org.cthul.miro.query.QueryTemplate;
+import org.cthul.miro.result.EntityBuilderBase;
+import org.cthul.miro.result.EntityFactory;
+import org.cthul.miro.result.EntityType;
 
 /**
  *
  */
 public class GraphQuery<Entity> extends MappedTemplateQuery<Entity> 
                                 implements SelectByKey<Entity> {
+    
+    private final GraphQueryTemplate<Entity> template;
+    private final View<? extends SelectByKey<?>> view;
+    private Graph graph = null;
+    private Object[] keys = null;
 
-    public GraphQuery(MiConnection cnn, MappedTemplate<Entity> template) {
+    public GraphQuery(MiConnection cnn, GraphQueryTemplate<Entity> template, View<? extends SelectByKey<?>> view) {
         super(cnn, template);
+        this.template = template;
+        this.view = view;
     }
 
-    public GraphQuery(MiConnection cnn, Mapping<Entity> mapping, QueryTemplate template) {
+    public GraphQuery(MiConnection cnn, Mapping<Entity> mapping, GraphQueryTemplate<Entity> template, View<? extends SelectByKey<?>> view) {
         super(cnn, mapping, template);
+        this.template = template;
+        this.view = view;
     }
+
+    @Override
+    public SubmittableQuery<Entity[]> asOrderedArray() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public SelectByKey<Entity> into(Graph graph, Entity... values) {
+        this.graph = graph;
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public SelectByKey<Entity> byKeys(Graph graph, Object... keys) {
+        this.graph = graph;
+        return this;
+    }
+    
+    @Override
+    protected EntityType<Entity> getEntityType() {
+        final EntityType<Entity> type = super.getEntityType();
+        if (graph == null) {
+            return type;
+        }
+        return new EntityType<Entity>() {
+            @Override
+            public EntityFactory<Entity> newFactory(ResultSet rs) throws SQLException {
+                return new KeyLookupFactory<>(view, template.getKeys(), graph, rs, type.newFactory(rs));
+            }
+        };
+    }
+    
+    protected static class KeyLookupFactory<Entity> extends EntityBuilderBase implements EntityFactory<Entity> {
+        
+        private final View<? extends SelectByKey<?>> view;
+        private final String[] keys;
+        private final Graph graph;
+        private final ResultSet rs;
+        private final EntityFactory<Entity> factory;
+        private final int[] keyIndices;
+        private final Object[] keyBuf;
+
+        public KeyLookupFactory(View<? extends SelectByKey<?>> view, String[] keys, Graph graph, ResultSet rs, EntityFactory<Entity> factory) throws SQLException {
+            this.view = view;
+            this.keys = keys;
+            this.graph = graph;
+            this.factory = factory;
+            this.rs = rs;
+            keyIndices = getFieldIndices(rs, keys);
+            keyBuf = new Object[keys.length];
+        }
+        
+        @Override
+        public Entity newEntity() throws SQLException {
+            for (int i = 0; i < keyIndices.length; i++) {
+                keyBuf[i] = rs.getObject(keyIndices[i]);
+            }
+            Object key = keyBuf.length == 1 ? keyBuf[0] : keyBuf;
+            Object o = graph.peekObject(view, key);
+            if (o != null) {
+                return (Entity) o;
+            }
+            return factory.newEntity();
+        }
+
+        @Override
+        public Entity newCursorValue(ResultCursor<? super Entity> rc) throws SQLException {
+            return factory.newCursorValue(rc);
+        }
+
+        @Override
+        public Entity copy(Entity e) throws SQLException {
+            return factory.copy(e);
+        }
+
+        @Override
+        public void close() throws SQLException {
+            factory.close();
+        }
+    }
+}
+    
+    
 //
 //    private final GraphQueryTemplate<Entity> t;
 //    private final View<? extends SelectByKey<?>> view;
@@ -302,19 +400,3 @@ public class GraphQuery<Entity> extends MappedTemplateQuery<Entity>
 //            }
 //        }
 //    }
-
-    @Override
-    public SubmittableQuery<Entity[]> asOrderedArray() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public SelectByKey<Entity> into(Graph graph, Entity... values) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public SelectByKey<Entity> byKeys(Graph graph, Object... keys) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-}

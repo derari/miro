@@ -73,7 +73,14 @@ public class QueryWithTemplate extends ParsingQueryBuilder {
     
     private void putAll(String... keys) {
         for (String k: keys) {
-            put(k);
+            if (k.contains(",")) {
+                String[] parts = k.split(",");
+                for (String p: parts) {
+                    put(p.trim());
+                }
+            } else {
+                put(k);
+            }
         }
     }
     

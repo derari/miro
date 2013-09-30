@@ -11,42 +11,42 @@ import org.cthul.miro.util.Closables;
 /**
  *
  */
-public final class CombinedEntitySetup<Entity> implements EntitySetup<Entity> {
+public final class CombinedEntityConfig<Entity> implements EntityConfiguration<Entity> {
     
-    public static <Entity> EntitySetup<Entity> combine(EntitySetup<? super Entity>... setups) {
-        return combine(Arrays.asList(setups));
+    public static <Entity> EntityConfiguration<Entity> combine(EntityConfiguration<? super Entity>... configs) {
+        return combine(Arrays.asList(configs));
     }
     
-    public static <Entity> EntitySetup<Entity> combine(Collection<? extends EntitySetup<? super Entity>> setups) {
-        if (setups.size() == 1) {
-            return (EntitySetup<Entity>) setups.iterator().next();
+    public static <Entity> EntityConfiguration<Entity> combine(Collection<? extends EntityConfiguration<? super Entity>> configs) {
+        if (configs.size() == 1) {
+            return (EntityConfiguration<Entity>) configs.iterator().next();
         }
-        final List<EntitySetup<? super Entity>> list = new ArrayList<>(setups.size());
-        for (EntitySetup<? super Entity> s: setups) {
+        final List<EntityConfiguration<? super Entity>> list = new ArrayList<>(configs.size());
+        for (EntityConfiguration<? super Entity> s: configs) {
             addTo(s, list);
         }
-        return new CombinedEntitySetup<>(list);
+        return new CombinedEntityConfig<>(list);
     }
     
-    private static <Entity> void addTo(EntitySetup<? super Entity> setup, List<EntitySetup<? super Entity>> list) {
-        if (setup instanceof CombinedEntitySetup) {
-            list.addAll(Arrays.asList(((CombinedEntitySetup<Entity>) setup).setups));
+    private static <Entity> void addTo(EntityConfiguration<? super Entity> config, List<EntityConfiguration<? super Entity>> list) {
+        if (config instanceof CombinedEntityConfig) {
+            list.addAll(Arrays.asList(((CombinedEntityConfig<Entity>) config).configs));
         } else {
-            list.add(setup);
+            list.add(config);
         }
     }
     
-    private final EntitySetup<? super Entity>[] setups;
+    private final EntityConfiguration<? super Entity>[] configs;
 
-    public CombinedEntitySetup(Collection<? extends EntitySetup<? super Entity>> setups) {
-        this.setups = setups.toArray(new EntitySetup[setups.size()]);
+    public CombinedEntityConfig(Collection<? extends EntityConfiguration<? super Entity>> configs) {
+        this.configs = configs.toArray(new EntityConfiguration[configs.size()]);
     }
 
     @Override
     public EntityInitializer<Entity> newInitializer(ResultSet rs) throws SQLException {
-        final EntityInitializer<? super Entity>[] inits = new EntityInitializer[setups.length];
+        final EntityInitializer<? super Entity>[] inits = new EntityInitializer[configs.length];
         for (int i = 0; i < inits.length; i++) {
-            inits[i] = setups[i].newInitializer(rs);
+            inits[i] = configs[i].newInitializer(rs);
         }
         return new CombinedInit<>(inits);
     }

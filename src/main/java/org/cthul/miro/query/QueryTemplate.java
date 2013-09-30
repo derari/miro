@@ -38,13 +38,14 @@ public class QueryTemplate {
         return parts.get(key);
     }
     
-    protected void addPart(PartTemplate pt) {
+    protected PartTemplate addPart(PartTemplate pt) {
         parts.put(pt.key, pt);
         if (pt.include == Include.ALWAYS) {
             alwaysRequired.add(pt.key);
         } else if (pt.include == Include.DEFAULT) {
             defaultFields.add(pt.key);
         }
+        return pt;
     }
     
     protected String[] copyDependencies(String[] source, int index) {
@@ -54,27 +55,32 @@ public class QueryTemplate {
         return Arrays.copyOfRange(source, index, source.length);
     }
     
-    protected void select(String... selectClause) {
-        select(AUTODETECT_DEPENDENCIES, selectClause);
+    protected List<PartTemplate> select(String... selectClause) {
+        return select(AUTODETECT_DEPENDENCIES, selectClause);
     }
     
-    protected void select(String selectClause) {
-        select(AUTODETECT_DEPENDENCIES, selectClause);
+    protected List<PartTemplate> select(String selectClause) {
+        return select(AUTODETECT_DEPENDENCIES, selectClause);
     }
     
-    protected void select(String[] required, String... selectClause) {
+    protected List<PartTemplate> select(String[] required, String... selectClause) {
+        final List<PartTemplate> list = new ArrayList<>();
         for (String s: selectClause) {
-            select(required, Include.DEFAULT, s);
+            list.addAll(select(required, Include.DEFAULT, s));
         }
+        return list;
     }
     
-    protected void select(String[] required, Include include, String... selectClause) {
+    protected List<PartTemplate> select(String[] required, Include include, String... selectClause) {
+        final List<PartTemplate> list = new ArrayList<>();
         for (String s: selectClause) {
-            select(required, include, s);
+            list.addAll(select(required, include, s));
         }
+        return list;
     }
     
-    protected void select(String[] required, Include include, String selectClause) {
+    protected List<PartTemplate> select(String[] required, Include include, String selectClause) {
+        final List<PartTemplate> list = new ArrayList<>();
         String[][] selParts = SqlUtils.parseSelectClause(selectClause);
         for (String[] part: selParts) {
             String[] req;
@@ -84,50 +90,74 @@ public class QueryTemplate {
                 req = required;
             }
             PartTemplate sp = new SimplePartTemplate(PartType.SELECT, part[0], include, part[1], req);
-            select(sp);
+            list.add(select(sp));
         }
+        return list;
     }
     
-    protected void select(PartTemplate... selectParts) {
+    protected PartTemplate select(String key, String[] required, String selectClause) {
+        String[][] selParts = SqlUtils.parseSelectClause(selectClause);
+        if (selParts.length != 1) {
+            throw new IllegalArgumentException("Expected one select: " + selectClause);
+        }
+        String[] part = selParts[0];
+        String[] req;
+        if (required == AUTODETECT_DEPENDENCIES) {
+            req = copyDependencies(part, 2);
+        } else {
+            req = required;
+        }
+        PartTemplate sp = new SimplePartTemplate(PartType.SELECT, key, Include.DEFAULT, part[1], req);
+        return select(sp);
+    }
+    
+    protected List<PartTemplate> select(PartTemplate... selectParts) {
+        final List<PartTemplate> list = new ArrayList<>();
         for (PartTemplate s: selectParts) {
-            select(s);
+            list.add(select(s));
         }
+        return list;
     }
     
-    protected void select(PartTemplate selectPart) {
+    protected PartTemplate select(PartTemplate selectPart) {
         selectableFields.add(selectPart.key);
-        addPart(selectPart);
+        return addPart(selectPart);
     }
     
-    protected void optional_select(String... selectClause) {
-        optional_select(AUTODETECT_DEPENDENCIES, selectClause);
+    protected List<PartTemplate> optional_select(String... selectClause) {
+        return optional_select(AUTODETECT_DEPENDENCIES, selectClause);
     }
     
-    protected void optional_select(String selectClause) {
-        optional_select(AUTODETECT_DEPENDENCIES, selectClause);
+    protected List<PartTemplate> optional_select(String selectClause) {
+        return optional_select(AUTODETECT_DEPENDENCIES, selectClause);
     }
     
-    protected void optional_select(String[] required, String... selectClause) {
+    protected List<PartTemplate> optional_select(String[] required, String... selectClause) {
+        final List<PartTemplate> list = new ArrayList<>();
         for (String s: selectClause) {
-            select(required, Include.OPTIONAL, s);
+            list.addAll(select(required, Include.OPTIONAL, s));
         }
+        return list;
     }
     
-    protected void internal_select(String... selectClause) {
-        internal_select(AUTODETECT_DEPENDENCIES, selectClause);
+    protected List<PartTemplate> internal_select(String... selectClause) {
+        return internal_select(AUTODETECT_DEPENDENCIES, selectClause);
     }
     
-    protected void internal_select(String selectClause) {
-        internal_select(AUTODETECT_DEPENDENCIES, selectClause);
+    protected List<PartTemplate> internal_select(String selectClause) {
+        return internal_select(AUTODETECT_DEPENDENCIES, selectClause);
     }
     
-    protected void internal_select(String[] required, String... selectClause) {
+    protected List<PartTemplate> internal_select(String[] required, String... selectClause) {
+        final List<PartTemplate> list = new ArrayList<>();
         for (String s: selectClause) {
-            internal_select(required, Include.OPTIONAL, s);
+            list.addAll(internal_select(required, Include.OPTIONAL, s));
         }
+        return list;
     }
     
-    protected void internal_select(String[] required, Include include, String selectClause) {
+    protected List<PartTemplate> internal_select(String[] required, Include include, String selectClause) {
+        final List<PartTemplate> list = new ArrayList<>();
         String[][] selParts = SqlUtils.parseSelectClause(selectClause);
         for (String[] part: selParts) {
             String[] req;
@@ -137,18 +167,21 @@ public class QueryTemplate {
                 req = required;
             }
             PartTemplate sp = new SimplePartTemplate(PartType.SELECT_INTERNAL, part[0], include, part[1], req);
-            internal_select(sp);
+            list.add(internal_select(sp));
         }
+        return list;
     }
     
-    protected void internal_select(PartTemplate... selectParts) {
+    protected List<PartTemplate> internal_select(PartTemplate... selectParts) {
+        final List<PartTemplate> list = new ArrayList<>();
         for (PartTemplate s: selectParts) {
-            internal_select(s);
+            list.add(internal_select(s));
         }
+        return list;
     }
     
-    protected void internal_select(PartTemplate selectPart) {
-        addPart(selectPart);
+    protected PartTemplate internal_select(PartTemplate selectPart) {
+        return addPart(selectPart);
     }
     
     protected void from(String from) {
@@ -161,87 +194,89 @@ public class QueryTemplate {
         addPart(fp);
     }
     
-    protected void join(String join) {
-        join(NO_DEPENDENCIES, join);
+    protected PartTemplate join(String join) {
+        return join(NO_DEPENDENCIES, join);
     }
     
-    protected void join(String key, String join) {
-        join(NO_DEPENDENCIES, key, join);
+    protected PartTemplate join(String key, String join) {
+        return join(NO_DEPENDENCIES, key, join);
     }
     
-    protected void join(String[] required, String join) {
-        join(required, Include.OPTIONAL, join);
+    protected PartTemplate join(String[] required, String join) {
+        return join(required, Include.OPTIONAL, join);
    }
 
-    protected void join(String[] required, Include include, String join) {
+    protected PartTemplate join(String[] required, Include include, String join) {
         String[] part = SqlUtils.parseJoinPart(join);
         if (required == AUTODETECT_DEPENDENCIES) {
             throw new UnsupportedOperationException("AUTODETECT DEPENDENCIES");
         }
-        join(required, part[0], include, part[1]);
+        return join(required, part[0], include, part[1]);
     }
     
-    protected void join(String[] required, String key, String join) {
-        join(required, key, Include.OPTIONAL, join);
+    protected PartTemplate join(String[] required, String key, String join) {
+        return join(required, key, Include.OPTIONAL, join);
     }
     
-    protected void join(String[] required, String key, Include include, String join) {
+    protected PartTemplate join(String[] required, String key, Include include, String join) {
         PartTemplate jp = new SimplePartTemplate(PartType.JOIN, key, include, join, required);
-        join(jp);
+        return join(jp);
     }
     
-    protected void join(PartTemplate jp) {
-        addPart(jp);
+    protected PartTemplate join(PartTemplate jp) {
+        return addPart(jp);
     }
     
-    protected void where(String where) {
-        where(NO_DEPENDENCIES, where);
+    protected PartTemplate where(String where) {
+        return where(NO_DEPENDENCIES, where);
     }
     
-    protected void where(String... definitions) {
-        where(NO_DEPENDENCIES, definitions);
+    protected List<PartTemplate> where(String... definitions) {
+        return where(NO_DEPENDENCIES, definitions);
     }
     
-    protected void where(String key, String where) {
-        where(NO_DEPENDENCIES, key, where);
+    protected PartTemplate where(String key, String where) {
+        return where(NO_DEPENDENCIES, key, where);
     }
     
-    protected void where(String[] required, String where) {
-        where(required, Include.OPTIONAL, where);
+    protected PartTemplate where(String[] required, String where) {
+        return where(required, Include.OPTIONAL, where);
    }
 
-    protected void where(String[] required, Include include, String where) {
+    protected PartTemplate where(String[] required, Include include, String where) {
         String id = "$$where" + parts.size();
-        where(required, id, include, where);
+        return where(required, id, include, where);
     }
     
-    protected void where(String[] required, String... definitions) {
-        where(required, Include.OPTIONAL, definitions);
+    protected List<PartTemplate> where(String[] required, String... definitions) {
+        return where(required, Include.OPTIONAL, definitions);
     }
     
-    protected void where(String[] required, Include include, String... definitions) {
+    protected List<PartTemplate> where(String[] required, Include include, String... definitions) {
         if (definitions.length % 2 != 0) {
             throw new IllegalArgumentException("Expected key-definition pairs");
         }
+        final List<PartTemplate> list = new ArrayList<>();
         for (int i = 0; i < definitions.length; i += 2) {
-            where(required, definitions[i], include, definitions[i+1]);
+            list.add(where(required, definitions[i], include, definitions[i+1]));
         }
+        return list;
     }
     
-    protected void where(String[] required, String key, String where) {
-        where(required, key, Include.OPTIONAL, where);
+    protected PartTemplate where(String[] required, String key, String where) {
+        return where(required, key, Include.OPTIONAL, where);
     }
     
-    protected void where(String[] required, String key, Include include, String where) {
-        PartTemplate jp = new SimplePartTemplate(PartType.WHERE, key, include, where, required);
+    protected PartTemplate where(String[] required, String key, Include include, String where) {
+        PartTemplate wp = new SimplePartTemplate(PartType.WHERE, key, include, where, required);
         if (required == AUTODETECT_DEPENDENCIES) {
             throw new UnsupportedOperationException("AUTODETECT DEPENDENCIES");
         }
-        where(jp);
+        return where(wp);
     }
     
-    protected void where(PartTemplate wp) {
-        addPart(wp);
+    protected PartTemplate where(PartTemplate wp) {
+        return addPart(wp);
     }
     
     protected void groupBy(String groupBy) {
@@ -337,17 +372,21 @@ public class QueryTemplate {
         addPart(gp);
     }
     
-    protected void virtualPart(String[] required, String key) {
-        virtualPart(required, Include.OPTIONAL, key);
+    protected PartTemplate virtualPart(String[] required) {
+        return virtualPart(required, Include.OPTIONAL);
     }
     
-    protected void virtualPart(String[] required, Include include, String key) {
+    protected PartTemplate virtualPart(String[] required, String key) {
+        return virtualPart(required, Include.OPTIONAL, key);
+    }
+    
+    protected PartTemplate virtualPart(String[] required, Include include) {
+        return virtualPart(required, include, "$$virtual" + parts.size());
+    }
+    
+    protected PartTemplate virtualPart(String[] required, Include include, String key) {
         PartTemplate pt = new SimplePartTemplate(PartType.VIRTUAL, key, include, "-virtual-part-", required);
-        addPart(pt);
-    }
-    
-    protected void virtualPart(String[] required, Include include) {
-        virtualPart(required, include, "$$virtual" + parts.size());
+        return addPart(pt);
     }
     
     protected Using always() {
@@ -488,7 +527,7 @@ public class QueryTemplate {
         }
     }
     
-    public static abstract class PartTemplate<Entity> {
+    public static abstract class PartTemplate {
         protected final String key;
         protected final Include include;
         protected final String[] required;
@@ -497,6 +536,10 @@ public class QueryTemplate {
             this.key = key;
             this.include = include;
             this.required = required;
+        }
+
+        public String getKey() {
+            return key;
         }
 
         public abstract QueryPart createPart(String alias);

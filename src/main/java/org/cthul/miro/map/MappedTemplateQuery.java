@@ -4,9 +4,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.cthul.miro.MiConnection;
+import org.cthul.miro.query.QueryBuilder.QueryPart;
 import org.cthul.miro.query.QueryTemplate;
 import org.cthul.miro.query.QueryWithTemplate;
-import org.cthul.miro.result.EntitySetup;
+import org.cthul.miro.result.EntityConfiguration;
 
 /**
  *
@@ -14,9 +15,9 @@ import org.cthul.miro.result.EntitySetup;
 public class MappedTemplateQuery<Entity> extends AbstractMappedQueryBuilder<Entity> {
     
     private final InternQueryWithTemplate query;
-    private List<EntitySetupFactory<? super Entity>> setups = null;
+    private List<EntityConfigFactory<? super Entity>> setups = null;
 
-    public MappedTemplateQuery(MiConnection cnn, MappedTemplate<Entity> template) {
+    public MappedTemplateQuery(MiConnection cnn, MappedQueryTemplate<Entity> template) {
         this(cnn, template.getMapping(), template);
     }
     
@@ -34,18 +35,18 @@ public class MappedTemplateQuery<Entity> extends AbstractMappedQueryBuilder<Enti
         return query;
     }
     
-    public void setup(EntitySetupFactory<? super Entity> setup) {
+    public void setup(EntityConfigFactory<? super Entity> setup) {
         if (setups == null) setups = new ArrayList<>();
         setups.add(setup);
     }
     
-    public void setup(EntitySetupFactory<? super Entity>... setups) {
+    public void setup(EntityConfigFactory<? super Entity>... setups) {
         if (this.setups == null) this.setups = new ArrayList<>();
         this.setups.addAll(Arrays.asList(setups));
     }
 
     public void setup(Object setup) {
-        setup(EntitySetupInstance.asFactory(setup));
+        setup(EntityConfigInstance.asFactory(setup));
     }
     
     public void setup(Object... setups) {
@@ -55,14 +56,134 @@ public class MappedTemplateQuery<Entity> extends AbstractMappedQueryBuilder<Enti
     }
     
     @Override
-    protected void addMoreSetups(MiConnection cnn, List<EntitySetup<? super Entity>> setups) {
-        super.addMoreSetups(cnn, setups);
+    protected void addMoreConfigs(MiConnection cnn, List<EntityConfiguration<? super Entity>> configs) {
+        super.addMoreConfigs(cnn, configs);
         List<String> selected = selectedFields();
-        if (setups != null) {
-            for (EntitySetupFactory<? super Entity> f: this.setups) {
-                setups.add(f.getSetup(cnn, mapping, selected));
+        if (this.setups != null) {
+            for (EntityConfigFactory<? super Entity> f: this.setups) {
+                configs.add(f.getConfiguration(cnn, mapping, selected));
             }
         }
+    }
+    
+    protected void selectAll() {
+        query().selectAll();
+    }
+
+    protected void selectAllOptional() {
+        query().selectAllOptional();
+    }
+
+    protected void select(String... keys) {
+        query().select(keys);
+    }
+
+    protected void where(String key, Object... args) {
+        query().where(key, args);
+    }
+
+    protected void groupBy(String key) {
+        query().groupBy(key);
+    }
+
+    protected void groupBy(String... keys) {
+        query().groupBy(keys);
+    }
+
+    protected void having(String key, Object... args) {
+        query().having(key, args);
+    }
+
+    protected void orderBy(String key) {
+        query().orderBy(key);
+    }
+
+    protected void orderBy(String... key) {
+        query().orderBy(key);
+    }
+
+    protected QueryPart addPart(String key) {
+        return query().addPart(key);
+    }
+
+    protected QueryPart addPartAs(String key, String alias) {
+        return query().addPartAs(key, alias);
+    }
+
+    protected void sql_select(String... selectClause) {
+        query().sql_select(selectClause);
+    }
+
+    protected void sql_select(String selectClause) {
+        query().sql_select(selectClause);
+    }
+
+    protected QueryPart sql_from(String from) {
+        return query().sql_from(from);
+    }
+
+    protected QueryPart sql_join(String join) {
+        return query().sql_join(join);
+    }
+
+    protected QueryPart sql_where(String where) {
+        return query().sql_where(where);
+    }
+
+    protected QueryPart sql_groupBy(String groupBy) {
+        return query().sql_groupBy(groupBy);
+    }
+
+    protected QueryPart sql_having(String having) {
+        return query().sql_having(having);
+    }
+
+    protected QueryPart sql_orderBy(String order) {
+        return query().sql_orderBy(order);
+    }
+
+    protected void select(QueryPart... selectParts) {
+        query().select(selectParts);
+    }
+
+    protected QueryPart select(QueryPart sp) {
+        return query().select(sp);
+    }
+
+    protected QueryPart internalSelect(QueryPart sp) {
+        return query().internalSelect(sp);
+    }
+
+    protected QueryPart from(QueryPart fp) {
+        return query().from(fp);
+    }
+
+    protected QueryPart join(QueryPart jp) {
+        return query().join(jp);
+    }
+
+    protected QueryPart where(QueryPart wp) {
+        return query().where(wp);
+    }
+
+    protected QueryPart groupBy(QueryPart gp) {
+        return query().groupBy(gp);
+    }
+
+    protected QueryPart having(QueryPart hp) {
+        return query().having(hp);
+    }
+
+    protected QueryPart orderBy(QueryPart op) {
+        return query().orderBy(op);
+    }
+
+    protected QueryPart other(QueryPart ap) {
+        return query().other(ap);
+    }
+
+    protected QueryPart addPart(QueryPart qp) throws IllegalArgumentException {
+        return query().addPart(qp);
     }
     
     protected static class InternQueryWithTemplate extends QueryWithTemplate {
@@ -114,11 +235,6 @@ public class MappedTemplateQuery<Entity> extends AbstractMappedQueryBuilder<Enti
         @Override
         public void orderBy(String... key) {
             super.orderBy(key);
-        }
-
-        @Override
-        public void putUnknownKey(String key, String subKey, Object[] args) {
-            super.putUnknownKey(key, subKey, args);
         }
 
         @Override
