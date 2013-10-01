@@ -8,7 +8,7 @@ import org.cthul.objects.instance.Arg;
 
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Setup {
+public @interface Config {
     
     String key() default "";
     
@@ -17,4 +17,6 @@ public @interface Setup {
     String factory() default "";
     
     Arg[] args() default {};
+    
+    int[] mapArgs() default {Integer.MIN_VALUE};
 }

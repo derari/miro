@@ -1,11 +1,17 @@
 package org.cthul.miro.at;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.util.*;
+import org.cthul.miro.MiConnection;
 import org.cthul.miro.graph.GraphQueryTemplate;
+import org.cthul.miro.map.ConfigurationProvider;
+import org.cthul.miro.map.ConfigurationInstance;
 import org.cthul.miro.map.Mapping;
+import org.cthul.miro.query.QueryBuilder;
+import org.cthul.miro.result.EntityConfiguration;
+import org.cthul.objects.instance.Arg;
+import org.cthul.objects.instance.*;
 
 /**
  *
@@ -14,12 +20,17 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
     
     private final Map<Method, InvocationBuilder<Entity>> handlers = new HashMap<>();
     private final Set<Class<?>> interfaces = new HashSet<>();
+    private int generatedIDs = 0;
 
     public AnnotatedQueryTemplate(Mapping<Entity> mapping) {
         super(mapping);
     }
 
     public AnnotatedQueryTemplate() {
+    }
+    
+    protected String newKey(String name) {
+        return name + "$" + (generatedIDs++);
     }
     
     public Map<Method, InvocationHandler> getHandlers(AnnotatedQueryHandler<Entity> handler) {
@@ -53,6 +64,7 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
             
             readJoins(NO_DEPENDENCIES, query.join());
             readWhere(NO_DEPENDENCIES, query.where(), iface);
+            readConfig(NO_DEPENDENCIES, query.config());
             readMore(query.more(), iface);
         }
         for (Class<?> supI: iface.getInterfaces()) {
@@ -86,9 +98,13 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
     
     private void readWhere(String[] required, Where[] where, Class<?> iface) {
         for (Where w: where) {
-            if (!isDefaultArgsMapping(w.args())) {
+            if (!isDefaultArgsMapping(w.mapArgs())) {
                 throw new IllegalArgumentException(
                         "No args mapping in @Where allowed: " + iface);
+            }
+            if (w.args().length > 0) {
+                throw new IllegalArgumentException(
+                        "No args in @Where allowed: " + iface);
             }
             readWhere(required, w);
         }
@@ -118,7 +134,7 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
                 throw new IllegalArgumentException(
                         "No key for multiple clauses allowed: " + key);
             }
-            if (!isDefaultArgsMapping(atWhere.args())) {
+            if (!isDefaultArgsMapping(atWhere.mapArgs())) {
                 throw new IllegalArgumentException(
                         "Invalid args mapping in @Where, use @All instead: " + clauses[0]);
             }
@@ -126,8 +142,21 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         }
     }
     
-    private PartTemplate readSetup(String[] required, Setup atSetup) {
-        return null;
+    private List<PartTemplate> readConfig(String[] required, Config[] configs) {
+        List<PartTemplate> list = new ArrayList<>();
+        for (Config c: configs) {
+            list.add(readConfig(required, c));
+        }
+        return list;
+    }
+    
+    private PartTemplate readConfig(String[] required, Config atConfig) {
+        String key = atConfig.key();
+        if (key.isEmpty()) {
+            key = newKey("config");
+        }
+        PartTemplate cfgTemplate = new AtConfigPartTemplate(atConfig, key, Include.OPTIONAL, required);
+        return addPart(cfgTemplate);
     }
     
     private void readMore(More[] more, Class<?> iface) {
@@ -138,6 +167,7 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
             internal_select(required, m.int_select());
             readJoins(required, m.join());
             readWhere(required, m.where(), iface);
+            readConfig(required, m.config());
         }
     }
     
@@ -189,13 +219,18 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         readJoins(parts, required, joins);
         
         Where[] wheres = getAnnotations(m, Where.class, atAll.where());
+        Config[] configs = getAnnotations(m, Config.class, atAll.config());
         Put[] puts = getAnnotations(m, Put.class, atAll.put());
         List<PartTemplate> whereParts = null;
         if (wheres.length > 0) {
             whereParts = readWhere(required, wheres);
         }
-        if (wheres.length > 0 || puts.length > 0) {
-            invBuilder = buildInvocation(m, wheres, whereParts, puts);
+        List<PartTemplate> configParts = null;
+        if (configs.length > 0) {
+            configParts = readConfig(required, configs);
+        }
+        if (wheres.length > 0 || configs.length > 0 || puts.length > 0) {
+            invBuilder = buildInvocation(m, wheres, whereParts, configs, configParts, puts);
         }
         
         final String requiredKey;
@@ -247,53 +282,103 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         return all;
     }
     
-    private boolean isDefaultArgsMapping(int[] args) {
+    private static boolean isDefaultArgsMapping(int[] args) {
         return args.length == 1 && args[0] == Integer.MIN_VALUE;
     }
 
-    private InvocationBuilder<Entity> buildInvocation(Method m, Where[] wheres, List<PartTemplate> whereParts, Put[] puts) {
+    private InvocationBuilder<Entity> buildInvocation(Method m, Where[] wheres, List<PartTemplate> whereParts, Config[] configs, List<PartTemplate> configParts, Put[] puts) {
         final List<String> keys = new ArrayList<>();
-        final List<int[]> args = new ArrayList<>();
+        final List<int[]> maps = new ArrayList<>();
+        final List<Arg[]> args = new ArrayList<>();
         for (int i = 0; i < wheres.length; i++) {
             keys.add(whereParts.get(i).getKey());
+            maps.add(wheres[i].mapArgs());
             args.add(wheres[i].args());
+        }
+        for (int i = 0; i < configs.length; i++) {
+            keys.add(configParts.get(i).getKey());
+            maps.add(configs[i].mapArgs());
+            args.add(configs[i].args());
         }
         for (Put p: puts) {
             keys.add(p.value());
+            maps.add(p.mapArgs());
             args.add(p.args());
         }
-        int paramC = m.getParameterTypes().length;
-        collectArgIndices(paramC, args);
+//        int paramC = m.getParameterTypes().length;
+//        collectArgIndices(paramC, maps);
         return new CallPutTemplate<>(
                 keys.toArray(new String[keys.size()]),
-                args.toArray(new int[args.size()][]));
+                args.toArray(new Arg[args.size()][]),
+                maps.toArray(new int[maps.size()][]));
     }
     
-    private void collectArgIndices(int paramC, List<int[]> allArgs) {
-        int c = 0;
-        int len = allArgs.size();
-        for (int i = 0; i < len; i++) {
-            int[] args = allArgs.get(i);
-            if (args.length == 1) {
-                int a = args[0];
-                if (a == Integer.MIN_VALUE) {
-                    args = argsMap(c, paramC-c);
-                    c = paramC;
-                } else if (a < 0) {
-                    args = argsMap(c, -a);
-                    c -= a;
+//    private void collectArgIndices(int paramC, List<int[]> allArgs) {
+//        int c = 0;
+//        int len = allArgs.size();
+//        for (int i = 0; i < len; i++) {
+//            int[] args = allArgs.get(i);
+//            if (args.length == 1) {
+//                int a = args[0];
+//                if (a == Integer.MIN_VALUE) {
+//                    args = argsMap(c, paramC-c);
+//                    c = paramC;
+//                } else if (a < 0) {
+//                    args = argsMap(c, -a);
+//                    c -= a;
+//                }
+//                allArgs.set(i, args);
+//            }
+//        }
+//    }
+//    
+//    private int[] argsMap(int start, int len) {
+//        int[] ary = new int[len];
+//        for (int i = 0; i < len; i++) {
+//            ary[i] = start + i;
+//        }
+//        return ary;
+//    }
+    
+    private static Object[] getActualArgs(Arg[] args, int[] map, Object[] values, Object context) {
+        if (args != null && args.length > 0 && !isDefaultArgsMapping(map)) {
+            throw new IllegalArgumentException(
+                    "Specifying both args and index mapping not allowed."
+                    + "Use @Arg.key to map values instead: " + context);
+        }
+        if (args == null || args.length == 0) {
+            return getMappedArgs(map, values, context);
+        } else {
+            return getAnnotatedArgs(args, values);
+        }
+    }
+    
+    private static Object[] getMappedArgs(int[] map, Object[] values, Object context) {
+        if (map == null || isDefaultArgsMapping(map)) {
+            return values;
+        } else {
+            final List<Object> result = new ArrayList<>();
+            int p = 0;
+            for (int m: map) {
+                if (m < 0) {
+                    p -= m;
+                    for (int i = m; i < 0; i++) {
+                        result.add(values[p+i]);
+                    }
+                } else {
+                    p = m;
+                    result.add(values[m]);
                 }
-                allArgs.set(i, args);
             }
+            return result.toArray();
         }
     }
     
-    private int[] argsMap(int start, int len) {
-        int[] ary = new int[len];
-        for (int i = 0; i < len; i++) {
-            ary[i] = start + i;
-        }
-        return ary;
+    private static Object[] getAnnotatedArgs(Arg[] args, Object[] values) {
+        final Object[] result = new Object[args.length];
+        Class[] tmp = new Class[args.length];
+        Instances.fillArgs(null, args, result, tmp, values);
+        return result;
     }
     
     private static final All NO_ALL = new All() {
@@ -301,7 +386,7 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         private final Join[] join = {};
         private final Where[] where = {};
         private final Put[] put = {};
-        private final Setup[] setup = {};
+        private final Config[] config = {};
         @Override
         public Select[] select() { return select; }
         @Override
@@ -311,7 +396,7 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         @Override
         public Put[] put() { return put; }
         @Override
-        public Setup[] setup() { return setup; }
+        public Config[] config() { return config; }
         @Override
         public Class<? extends Annotation> annotationType() {
             return All.class;
@@ -325,20 +410,57 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         void setRequired(String key);
     }
     
+    private static class AtConfigPartTemplate extends PartTemplate {
+        private final Config config;
+
+        public AtConfigPartTemplate(Config config, String key, Include include, String[] required) {
+            super(key, include, required);
+            this.config = config;
+        }
+        
+        @Override
+        public QueryBuilder.QueryPart createPart(String alias) {
+            return new AtConfigQueryPart(config, alias);
+        }
+    }
+    
+    private static class AtConfigQueryPart<Entity> extends QueryBuilder.QueryPart implements ConfigurationProvider<Entity> {
+        private final Config config;
+
+        public AtConfigQueryPart(Config config, String key) {
+            super(key);
+            this.config = config;
+        }
+
+        @Override
+        public <E extends Entity> EntityConfiguration<? super E> getConfiguration(MiConnection cnn, Mapping<E> mapping) {
+            Class[] unknownTypes = null;
+            Object o = Instances.newInstance(config.impl(), config.factory(), unknownTypes, arguments);
+            return ConfigurationInstance.asConfiguration(o, cnn, mapping);
+        }
+
+        @Override
+        public QueryBuilder.PartType getPartType() {
+            return QueryBuilder.PartType.OTHER;
+        }
+    }
+    
     private static class CallPutTemplate<Entity> implements InvocationBuilder<Entity> {
         private final String[] keys;
-        private final int[][] args;
+        private final Arg[][] args;
+        private final int[][] argIndices;
         private String required = null;
 
         public CallPutTemplate() {
-            this(new String[0], null);
-        }
-        
-        public CallPutTemplate(String[] keys, int[][] args) {
-            this.keys = keys;
-            this.args = args;
+            this(new String[0], null, null);
         }
 
+        public CallPutTemplate(String[] keys, Arg[][] args, int[][] argIndices) {
+            this.keys = keys;
+            this.args = args;
+            this.argIndices = argIndices;
+        }
+        
         @Override
         public void setRequired(String required) {
             this.required = required;
@@ -352,29 +474,33 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
     
     private static class CallPut<Entity> implements InvocationHandler {
         private final String[] keys;
+        private final Arg[][] args;
         private final int[][] argIndices;
         private final String required;
         private final AnnotatedQueryHandler<Entity> handler;
 
         public CallPut(CallPutTemplate<Entity> template, AnnotatedQueryHandler<Entity> handler) {
             this.keys = template.keys;
-            this.argIndices = template.args;
+            this.args = template.args;
+            this.argIndices = template.argIndices;
             this.required = template.required;
             this.handler = handler;
         }
 
         @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        public Object invoke(Object proxy, Method method, Object[] callArgs) throws Throwable {
             if (required != null) {
                 handler.put(required, (Object[]) null);
             }
             for (int i = 0; i < keys.length; i++) {
-                int[] indices = argIndices[i];
-                Object[] values = new Object[indices.length];
-                for (int j = 0; j < indices.length; j++) {
-                    values[j] = args[indices[j]];
-                }
+                Object[] values = getActualArgs(args[i], argIndices[i], callArgs, method);
                 handler.put(keys[i], values);
+//                int[] indices = argIndices[i];
+//                Object[] values = new Object[indices.length];
+//                for (int j = 0; j < indices.length; j++) {
+//                    values[j] = args[indices[j]];
+//                }
+//                handler.put(keys[i], values);
             }
             return proxy;
         }

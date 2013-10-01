@@ -24,35 +24,35 @@ public class MappedQueryTemplate<Entity> extends QueryTemplate {
         return mapping;
     }
 
-    protected void setup(String[] required, String key, Include include, EntityConfigFactory<Entity> factory) {
-        addPart(new SetupPartTemplate(key, include, required, factory));
+    protected PartTemplate configure(String[] required, String key, Include include, ConfigurationProvider<Entity> factory) {
+        return addPart(new ConfigPartTemplate(key, include, required, factory));
     }
     
-    protected static class SetupPartTemplate<Entity> extends PartTemplate {
-        private final EntityConfigFactory<Entity> factory;
+    protected static class ConfigPartTemplate<Entity> extends PartTemplate {
+        private final ConfigurationProvider<Entity> factory;
 
-        public SetupPartTemplate(String key, Include include, String[] required, EntityConfigFactory<Entity> factory) {
+        public ConfigPartTemplate(String key, Include include, String[] required, ConfigurationProvider<Entity> factory) {
             super(key, include, required);
             this.factory = factory;
         }
 
         @Override
         public QueryBuilder.QueryPart createPart(String alias) {
-            return new SetupQueryPart(alias, factory);
+            return new ConfigQueryPart(alias, factory);
         }
     }
     
-    protected static class SetupQueryPart<Entity> extends QueryBuilder.CustomPart implements MappedStatement.ConfigurationPart<Entity> {
-        private final EntityConfigFactory<Entity> factory;
+    protected static class ConfigQueryPart<Entity> extends QueryBuilder.CustomPart implements ConfigurationProvider<Entity> {
+        private final ConfigurationProvider<Entity> factory;
 
-        public SetupQueryPart(String key, EntityConfigFactory<Entity> factory) {
+        public ConfigQueryPart(String key, ConfigurationProvider<Entity> factory) {
             super(key, QueryBuilder.PartType.OTHER, null);
             this.factory = factory;
         }
 
         @Override
-        public EntityConfiguration<Entity> getConfiguration(MiConnection cnn, Mapping<? extends Entity> mapping) {
-            return factory.getConfiguration(cnn, mapping, null);
+        public <E extends Entity> EntityConfiguration<? super E> getConfiguration(MiConnection cnn, Mapping<E> mapping) {
+            return factory.getConfiguration(cnn, mapping);
         }   
     }
 }

@@ -15,7 +15,7 @@ public @interface All {
     
     Where[] where() default {};
     
-    Setup[] setup() default {};
+    Config[] config() default {};
     
     Put[] put() default {};
 }

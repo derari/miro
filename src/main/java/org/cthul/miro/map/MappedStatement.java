@@ -107,11 +107,6 @@ public abstract class MappedStatement<Entity> {
         return as(mapping.getFirst());
     }
     
-    public static interface ConfigurationPart<Entity> {
-        
-        EntityConfiguration<Entity> getConfiguration(MiConnection cnn, Mapping<? extends Entity> mapping);
-    }
-    
     protected class SelectAll implements EntityConfiguration<Entity> {
 
         @Override

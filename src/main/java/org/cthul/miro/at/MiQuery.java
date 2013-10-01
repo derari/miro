@@ -25,7 +25,7 @@ public @interface MiQuery {
     
     Where[] where() default {};
     
-    Setup[] setup() default {};
+    Config[] config() default {};
     
     More[] more() default {};
 }

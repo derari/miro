@@ -15,7 +15,7 @@ import org.cthul.miro.result.EntityConfiguration;
 public class MappedTemplateQuery<Entity> extends AbstractMappedQueryBuilder<Entity> {
     
     private final InternQueryWithTemplate query;
-    private List<EntityConfigFactory<? super Entity>> setups = null;
+    private List<ConfigurationProvider<? super Entity>> configs = null;
 
     public MappedTemplateQuery(MiConnection cnn, MappedQueryTemplate<Entity> template) {
         this(cnn, template.getMapping(), template);
@@ -35,33 +35,32 @@ public class MappedTemplateQuery<Entity> extends AbstractMappedQueryBuilder<Enti
         return query;
     }
     
-    public void setup(EntityConfigFactory<? super Entity> setup) {
-        if (setups == null) setups = new ArrayList<>();
-        setups.add(setup);
+    public void configure(ConfigurationProvider<? super Entity> setup) {
+        if (configs == null) configs = new ArrayList<>();
+        configs.add(setup);
     }
     
-    public void setup(EntityConfigFactory<? super Entity>... setups) {
-        if (this.setups == null) this.setups = new ArrayList<>();
-        this.setups.addAll(Arrays.asList(setups));
+    public void setup(ConfigurationProvider<? super Entity>... setups) {
+        if (this.configs == null) this.configs = new ArrayList<>();
+        this.configs.addAll(Arrays.asList(setups));
     }
 
-    public void setup(Object setup) {
-        setup(EntityConfigInstance.asFactory(setup));
+    public void configure(Object setup) {
+        configure(ConfigurationInstance.asFactory(setup));
     }
     
-    public void setup(Object... setups) {
+    public void configure(Object... setups) {
         for (Object o: setups) {
-            setup(o);
+            configure(o);
         }
     }
     
     @Override
     protected void addMoreConfigs(MiConnection cnn, List<EntityConfiguration<? super Entity>> configs) {
         super.addMoreConfigs(cnn, configs);
-        List<String> selected = selectedFields();
-        if (this.setups != null) {
-            for (EntityConfigFactory<? super Entity> f: this.setups) {
-                configs.add(f.getConfiguration(cnn, mapping, selected));
+        if (this.configs != null) {
+            for (ConfigurationProvider<? super Entity> f: this.configs) {
+                configs.add(f.getConfiguration(cnn, mapping));
             }
         }
     }

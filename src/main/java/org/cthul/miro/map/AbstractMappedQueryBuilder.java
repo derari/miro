@@ -51,8 +51,8 @@ public abstract class AbstractMappedQueryBuilder<Entity> extends MappedStatement
     protected void addMoreConfigs(MiConnection cnn, List<EntityConfiguration<? super Entity>> configs) {
         super.addMoreConfigs(cnn, configs);
         for (QueryBuilder.QueryPart qp: queryBuilder().getAllParts()) {
-            if (qp instanceof ConfigurationPart) {
-                ConfigurationPart<? super Entity> sp = (ConfigurationPart<Entity>) qp;
+            if (qp instanceof ConfigurationProvider) {
+                ConfigurationProvider<? super Entity> sp = (ConfigurationProvider<Entity>) qp;
                 configs.add(sp.getConfiguration(cnn, mapping));
             }
         }

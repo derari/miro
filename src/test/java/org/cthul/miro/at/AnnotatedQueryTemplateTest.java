@@ -63,4 +63,16 @@ public class AnnotatedQueryTemplateTest {
         assertThat(qry.getArguments(), contains((Object) "City2"));
         assertThat(qry.asList()._execute(cnn), hasSize(3));
     }
+    
+    @Test
+    public void test_config_with_args() {
+        AtQuery qry = select("id, lastName")
+                .from(Persons)
+                .with().firstNameRedacted()
+                .where().id(1);
+        Person0 p = qry.getSingle()._execute(cnn);
+        assertThat(p.getId(), is(1));
+        assertThat(p.getLastName(), is("Doe"));
+        assertThat(p.getFirstName(), is("-redacted-"));
+    }
 }

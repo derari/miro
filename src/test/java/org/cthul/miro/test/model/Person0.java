@@ -7,6 +7,8 @@ import org.cthul.miro.dsl.View;
 import org.cthul.miro.map.Mapping;
 import org.cthul.miro.dsl.QueryFactoryView;
 import org.cthul.miro.map.*;
+import org.cthul.miro.util.CfgSetField;
+import org.cthul.objects.instance.Arg;
 
 public class Person0 {
 
@@ -85,9 +87,20 @@ public class Person0 {
             from = "People p",
             join = @Join("Addresses a ON p.addressId = a.id")
             )
-    public static interface AtQuery extends AnnotatedStatement<Person1> {
+    public static interface AtQuery extends AnnotatedStatement<Person0> {
+        
+        AtQuery with();
+        
+        @Config(impl=CfgSetField.class, args={@Arg(t="firstName"), @Arg(t="-redacted-")})
+        AtQuery firstNameRedacted();
+        
+        @Config(impl=CfgSetField.class, args={@Arg(t="firstName"), @Arg(key="0")})
+        AtQuery firstNameAs(String value);
         
         AtQuery where();
+        
+        @Where("p.id = ?")
+        AtQuery id(int i);
         
         @Where("lastName LIKE ?")
         AtQuery lastNameLike(String name);

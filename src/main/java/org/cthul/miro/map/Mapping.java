@@ -73,7 +73,7 @@ public abstract class Mapping<Entity> implements EntityType<Entity> {
         }
     }
 
-    protected void setField(Entity record, String field, Object value) throws SQLException {
+    public void setField(Entity record, String field, Object value) throws SQLException {
         throw new IllegalArgumentException(
                 "Cannot set field " + field + " of " + entityClass.getSimpleName());
     }

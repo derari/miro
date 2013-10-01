@@ -18,5 +18,5 @@ public @interface More {
     
     Where[] where() default {};
     
-    Setup[] setup() default {};
+    Config[] config() default {};
 }
