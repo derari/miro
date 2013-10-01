@@ -65,14 +65,14 @@ public class AnnotatedQueryTemplateTest {
     }
     
     @Test
-    public void test_config_with_args() {
+    public void test_config_with_misxed_args() {
         AtQuery qry = select("id, lastName")
                 .from(Persons)
-                .with().firstNameRedacted()
+                .with().firstNameAs("<unknown>")
                 .where().id(1);
         Person0 p = qry.getSingle()._execute(cnn);
         assertThat(p.getId(), is(1));
         assertThat(p.getLastName(), is("Doe"));
-        assertThat(p.getFirstName(), is("-redacted-"));
+        assertThat(p.getFirstName(), is("<unknown>"));
     }
 }
