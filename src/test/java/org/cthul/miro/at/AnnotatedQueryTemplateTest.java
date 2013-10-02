@@ -1,5 +1,6 @@
 package org.cthul.miro.at;
 
+import java.util.List;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.dsl.View;
 import org.cthul.miro.test.TestDB;
@@ -65,7 +66,7 @@ public class AnnotatedQueryTemplateTest {
     }
     
     @Test
-    public void test_config_with_misxed_args() {
+    public void test_config_with_mixed_args() {
         AtQuery qry = select("id, lastName")
                 .from(Persons)
                 .with().firstNameAs("<unknown>")
@@ -74,5 +75,15 @@ public class AnnotatedQueryTemplateTest {
         assertThat(p.getId(), is(1));
         assertThat(p.getLastName(), is("Doe"));
         assertThat(p.getFirstName(), is("<unknown>"));
+    }
+    
+    @Test
+    public void test_impl() {
+        AtQuery qry = select("id, lastName")
+                .from(Persons)
+                .where().inCity2("Street 2");
+        List<Person0> result = qry.asList()._execute(cnn);
+        assertThat(result, hasSize(2));
+        assertThat(Person0.lastAddress, is("City2, Street 2"));
     }
 }

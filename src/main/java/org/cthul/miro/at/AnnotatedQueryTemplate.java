@@ -12,6 +12,7 @@ import org.cthul.miro.query.QueryBuilder;
 import org.cthul.miro.result.EntityConfiguration;
 import org.cthul.objects.instance.Arg;
 import org.cthul.objects.instance.*;
+import org.cthul.objects.reflection.Signatures;
 
 /**
  *
@@ -49,13 +50,15 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         if (!interfaces.add(iface)) {
             return;
         }
-        MiQuery query = iface.getAnnotation(MiQuery.class);
+        MiQuery query = getClassQuery(iface);
         if (query != null) {
-            select(query.select());
-            optional_select(query.opt_select());
-            internal_select(query.int_select());
-            always(query.always());
-            byDefault(query.byDefault());
+            readSelects(AUTODETECT_DEPENDENCIES, query.select(), Include.DEFAULT);
+            readSelects(AUTODETECT_DEPENDENCIES, query.optional(), Include.OPTIONAL);
+            readInternalSelects(AUTODETECT_DEPENDENCIES, query.internal());
+            List<PartTemplate> always = readMore(query.always(), iface);
+            always(getPartKeys(always));
+            List<PartTemplate> byDefault = readMore(query.byDefault(), iface);
+            byDefault(getPartKeys(byDefault));
             
             String from = query.from();
             if (!from.isEmpty()) {
@@ -75,6 +78,58 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         }
     }
     
+    private void readSelects(String[] required, Select[] selects, Include include) {
+        for (Select s: selects) {
+            readSelect(required, s, include);
+        } 
+    }
+    
+    private void readSelects(List<PartTemplate> bag, String[] required, Select[] selects, Include include) {
+        for (Select s: selects) {
+            bag.addAll(readSelect(required, s, include));
+        } 
+    }
+    
+    private List<PartTemplate> readSelect(String[] required, Select select, Include include) {
+        String key = select.key();
+        if (key.isEmpty()) {
+            return select(required, include, select.value());
+        } else {
+            String[] selects = select.value();
+            if (selects.length != 1) {
+                throw new IllegalArgumentException(
+                        "Key given, expected exactly one select: " + key);
+            }
+            return Arrays.asList(select(key, required, include, selects[0]));
+        }
+    }
+    
+    private void readInternalSelects(String[] required, Select[] selects) {
+        for (Select s: selects) {
+            readInternalSelect(required, s);
+        } 
+    }
+    
+    private void readInternalSelects(List<PartTemplate> bag, String[] required, Select[] selects) {
+        for (Select s: selects) {
+            bag.addAll(readInternalSelect(required, s));
+        } 
+    }
+    
+    private List<PartTemplate> readInternalSelect(String[] required, Select select) {
+        String key = select.key();
+        if (key.isEmpty()) {
+            return internal_select(required, select.value());
+        } else {
+            String[] selects = select.value();
+            if (selects.length != 1) {
+                throw new IllegalArgumentException(
+                        "Key given, expected exactly one select: " + key);
+            }
+            return Arrays.asList(internal_select(key, required, selects[0]));
+        }
+    }
+    
     private void readJoins(String[] required, Join[] joins) {
         for (Join j: joins) {
             readJoin(required, j);
@@ -83,20 +138,34 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
     
     private void readJoins(List<PartTemplate> bag, String[] required, Join[] joins) {
         for (Join j: joins) {
-            bag.add(readJoin(required, j));
+            bag.addAll(readJoin(required, j));
         } 
     }
     
-    private PartTemplate readJoin(String[] required, Join join) {
+    private List<PartTemplate> readJoin(String[] required, Join join) {
         String key = join.key();
         if (key.isEmpty()) {
-            return join(required, join.value());
+            final List<PartTemplate> list = new ArrayList<>();
+            for (String j: join.value()) {
+                list.add(join(required, j));
+            }
+            return list;
         } else {
-            return join(required, key, join.value());
+            String[] joins = join.value();
+            KeyMapper km = DEFAULT_KEY;
+            if (joins.length != 1 || isKeyTemplate(key)) {
+                km = insertKey(key);
+            }
+            final List<PartTemplate> list = new ArrayList<>();
+            for (String j: join.value()) {
+                list.add(join(required, km, j));
+            }
+            return list;
         }
     }
     
-    private void readWhere(String[] required, Where[] where, Class<?> iface) {
+    private List<PartTemplate> readWhere(String[] required, Where[] where, Class<?> iface) {
+        List<PartTemplate> list = new ArrayList<>();
         for (Where w: where) {
             if (!isDefaultArgsMapping(w.mapArgs())) {
                 throw new IllegalArgumentException(
@@ -106,8 +175,9 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
                 throw new IllegalArgumentException(
                         "No args in @Where allowed: " + iface);
             }
-            readWhere(required, w);
+            list.addAll(readWhere(required, w));
         }
+        return list;
     }
     
     private List<PartTemplate> readWhere(String[] required, Where[] where) {
@@ -142,6 +212,37 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         }
     }
     
+    private List<PartTemplate> readOrderBy(String[] required, OrderBy[] orderBy) {
+        List<PartTemplate> list = new ArrayList<>();
+        for (OrderBy o: orderBy) {
+            list.addAll(readOrderBy(required, o));
+        }
+        return list;
+    }
+    
+    private List<PartTemplate> readOrderBy(String[] required, OrderBy atOrderBy) {
+        String key = atOrderBy.key();
+        String[] clauses = atOrderBy.value();
+        if (clauses.length == 1) {
+            if (key.isEmpty()) {
+                return Arrays.asList(orderBy(required, clauses[0]));
+            } else if (isKeyTemplate(key)) {
+                return Arrays.asList(orderBy(required, insertKey(key), clauses[0]));
+            } else {
+                return Arrays.asList(orderBy(required, key, clauses[0]));
+            }
+        } else if (clauses.length == 0) {
+            return Collections.emptyList();
+        } else {
+            if (key.isEmpty()) {
+                return orderBy(required, clauses);
+            } else {
+                KeyMapper km = insertKey(key);
+                return orderBy(required, km, clauses);
+            }
+        }
+    }
+    
     private List<PartTemplate> readConfig(String[] required, Config[] configs) {
         List<PartTemplate> list = new ArrayList<>();
         for (Config c: configs) {
@@ -159,16 +260,19 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         return addPart(cfgTemplate);
     }
     
-    private void readMore(More[] more, Class<?> iface) {
+    private List<PartTemplate> readMore(More[] more, Class<?> iface) {
+        final List<PartTemplate> list = new ArrayList<>();
         for (More m: more) {
-            String[] required = readRequired(m.using());
-            select(required, m.select());
-            optional_select(required, m.opt_select());
-            internal_select(required, m.int_select());
-            readJoins(required, m.join());
-            readWhere(required, m.where(), iface);
-            readConfig(required, m.config());
+            list.add(readMore(m, iface, null));
+//            String[] required = readRequired(m.using());
+//            select(required, m.select());
+//            optional_select(required, m.optional());
+//            internal_select(required, m.internal());
+//            readJoins(required, m.join());
+//            readWhere(required, m.where(), iface);
+//            readConfig(required, m.config());
         }
+        return list;
     }
     
     private String[] readRequired(String... required) {
@@ -192,79 +296,291 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
     }
     
     protected void readMethodAnnotations(Method m) {
+        More more = getMethodMore(m);
+        readMore(more, null, m);
+//        InvocationBuilder<Entity> invBuilder = null;
+//        List<PartTemplate> parts = new ArrayList<>();
+//        String[] required = NO_DEPENDENCIES;
+//        org.cthul.miro.at.Using atUsing = m.getAnnotation(org.cthul.miro.at.Using.class);
+//        if (atUsing != null) {
+//            required = readRequired(atUsing.value());
+//            PartTemplate pt = virtualPart(required);
+//            // make sure all query parts depend on `required`,
+//            // but it is also added by the method call
+//            parts.add(pt);
+//            required = new String[]{pt.getKey()};
+//        }
+//        All atAll = getAtAll(m);
+//        Select[] selects = getAnnotations(m, Select.class, atAll.select());
+//        for (Select atSelect: selects) {
+//            String key = atSelect.key();
+//            if (key.isEmpty()) {
+//                parts.addAll(select(required, atSelect.value()));
+//            } else {
+//                parts.add(select(key, required, atSelect.value()));
+//            }
+//        }
+//        
+//        Join[] joins = getAnnotations(m, Join.class, atAll.join());
+//        readJoins(parts, required, joins);
+//        
+//        Where[] wheres = getAnnotations(m, Where.class, atAll.where());
+//        Config[] configs = getAnnotations(m, Config.class, atAll.config());
+//        Put[] puts = getAnnotations(m, Put.class, atAll.put2());
+//        List<PartTemplate> whereParts = null;
+//        if (wheres.length > 0) {
+//            whereParts = readWhere(required, wheres);
+//        }
+//        List<PartTemplate> configParts = null;
+//        if (configs.length > 0) {
+//            configParts = readConfig(required, configs);
+//        }
+//        if (wheres.length > 0 || configs.length > 0 || puts.length > 0) {
+//            invBuilder = buildInvocation(m, wheres, whereParts, configs, configParts, puts);
+//        }
+//        
+//        final String requiredKey;
+//        if (parts.isEmpty()) {
+//            requiredKey = null;
+//        } else if (parts.size() == 1) {
+//            requiredKey = parts.get(0).getKey();
+//        } else {
+//            String[] keys = new String[parts.size()];
+//            int i = 0;
+//            for (PartTemplate pt: parts) {
+//                keys[i++] = pt.getKey();
+//            }
+//            requiredKey = virtualPart(keys).getKey();
+//        }
+//        
+//        if (requiredKey != null) {
+//            if (invBuilder == null) {
+//                invBuilder = new CallPutTemplate<>();
+//            }
+//            invBuilder.setRequired(requiredKey);
+//        }
+//        if (invBuilder != null) {
+//            handlers.put2(m, invBuilder);
+//        }
+    }
+    
+    protected PartTemplate readMore(More more, Class<?> iface, Method m) {
         InvocationBuilder<Entity> invBuilder = null;
         List<PartTemplate> parts = new ArrayList<>();
-        String[] required = NO_DEPENDENCIES;
-        org.cthul.miro.at.Using atUsing = m.getAnnotation(org.cthul.miro.at.Using.class);
-        if (atUsing != null) {
-            required = readRequired(atUsing.value());
+        String[] required = more.using();
+        if (required.length > 0) {
+            required = readRequired(required);
             PartTemplate pt = virtualPart(required);
             // make sure all query parts depend on `required`,
             // but it is also added by the method call
             parts.add(pt);
             required = new String[]{pt.getKey()};
         }
-        All atAll = getAtAll(m);
-        Select[] selects = getAnnotations(m, Select.class, atAll.select());
-        for (Select atSelect: selects) {
-            String key = atSelect.key();
-            if (key.isEmpty()) {
-                parts.addAll(select(required, atSelect.value()));
-            } else {
-                parts.add(select(key, required, atSelect.value()));
-            }
-        }
+
+        readSelects(parts, required, more.select(), Include.DEFAULT);
+        readSelects(parts, required, more.optional(), Include.OPTIONAL);
+        readInternalSelects(parts, required, more.internal());
         
-        Join[] joins = getAnnotations(m, Join.class, atAll.join());
-        readJoins(parts, required, joins);
         
-        Where[] wheres = getAnnotations(m, Where.class, atAll.where());
-        Config[] configs = getAnnotations(m, Config.class, atAll.config());
-        Put[] puts = getAnnotations(m, Put.class, atAll.put());
+        readJoins(parts, required, more.join());
+        
+        Where[] wheres = more.where();
+        Config[] configs = more.config();
+        Put[] puts = more.put();
         List<PartTemplate> whereParts = null;
         if (wheres.length > 0) {
-            whereParts = readWhere(required, wheres);
+            if (iface != null) {
+                readWhere(required, wheres, iface);
+            } else {
+                whereParts = readWhere(required, wheres);
+            }
         }
         List<PartTemplate> configParts = null;
         if (configs.length > 0) {
             configParts = readConfig(required, configs);
         }
-        if (wheres.length > 0 || configs.length > 0 || puts.length > 0) {
-            invBuilder = buildInvocation(m, wheres, whereParts, configs, configParts, puts);
+        if (m == null && puts.length > 0) {
+            throw new IllegalArgumentException("@Put not allowed at class");
+        }
+        if (m != null) {
+            Impl impl = m.getAnnotation(Impl.class);
+            if (wheres.length > 0 || configs.length > 0 || puts.length > 0) {
+                if (impl != null) {
+                    throw new IllegalArgumentException(
+                            "No other annotations supported with @Impl: " + m);
+                }
+                invBuilder = buildInvocation(m, wheres, whereParts, configs, configParts, puts);
+            } else if (impl != null) {
+                invBuilder = buildInvocation(m, impl);
+            }
         }
         
-        final String requiredKey;
+        final PartTemplate requiredPart;
         if (parts.isEmpty()) {
-            requiredKey = null;
+            requiredPart = null;
         } else if (parts.size() == 1) {
-            requiredKey = parts.get(0).getKey();
+            requiredPart = parts.get(0);
         } else {
-            String[] keys = new String[parts.size()];
-            int i = 0;
-            for (PartTemplate pt: parts) {
-                keys[i++] = pt.getKey();
-            }
-            requiredKey = virtualPart(keys).getKey();
+            String[] keys = getPartKeys(parts);
+            requiredPart = virtualPart(keys);
         }
         
-        if (requiredKey != null) {
-            if (invBuilder == null) {
-                invBuilder = new CallPutTemplate<>();
+        if (m != null) {
+            if (requiredPart != null) {
+                if (invBuilder == null) {
+                    invBuilder = new CallPutTemplate<>();
+                }
+                invBuilder.setRequired(requiredPart.getKey());
             }
-            invBuilder.setRequired(requiredKey);
+            if (invBuilder != null) {
+                handlers.put(m, invBuilder);
+            }
         }
-        if (invBuilder != null) {
-            handlers.put(m, invBuilder);
-        }
+        
+        return requiredPart;
     }
     
-    private All getAtAll(Method m) {
-        All atAll = m.getAnnotation(All.class);
-        if (atAll != null) {
-            return atAll;
-        } else {
-            return NO_ALL;
+    private boolean isKeyTemplate(String key) {
+        return key.contains("$1");
+    }
+    
+    private KeyMapper insertKey(final String template) {
+        if (!isKeyTemplate(template)) {
+            throw new IllegalArgumentException(
+                    "Expected key template containing '$1': " + template);
         }
+        return new KeyMapper() {
+            @Override
+            public String map(String key) {
+                return template.replace("$1", key);
+            }
+        };
+    }
+    
+    private MiQuery getClassQuery(final Class<?> c) {
+        MiQuery _q = c.getAnnotation(MiQuery.class);
+        final MiQuery query = _q != null ? _q : NO_QUERY;
+        return new MiQuery() {
+            @Override
+            public Select[] select() {
+                return getAnnotations(c, Select.class, query.select());
+            }
+            @Override
+            public Select[] optional() {
+                return query.optional();
+            }
+            @Override
+            public Select[] internal() {
+                return query.internal();
+            }
+            @Override
+            public String from() {
+                From atFrom = c.getAnnotation(From.class);
+                String from = query.from();
+                if (atFrom != null && !from.isEmpty()) {
+                    throw new IllegalArgumentException(
+                            "Expected only one of @From an @MiQuery.from: " + c);
+                }
+                if (atFrom != null) {
+                    return atFrom.value();
+                }
+                return from;
+            }
+            @Override
+            public More[] always() {
+                return query.always();
+            }
+            @Override
+            public More[] byDefault() {
+                return query.byDefault();
+            }
+            @Override
+            public Join[] join() {
+                return getAnnotations(c, Join.class, query.join());
+            }
+            @Override
+            public Where[] where() {
+                return getAnnotations(c, Where.class, query.where());
+            }
+            @Override
+            public OrderBy[] orderBy() {
+                return getAnnotations(c, OrderBy.class, query.orderBy());
+            }
+            @Override
+            public Config[] config() {
+                return getAnnotations(c, Config.class, query.config());
+            }
+            @Override
+            public More[] more() {
+                return getAnnotations(c, More.class, query.more()); 
+            }
+            @Override
+            public Class<? extends Annotation> annotationType() {
+                return MiQuery.class;
+            }
+        };
+    }
+    
+    private More getMethodMore(final Method m) {
+        More _m = m.getAnnotation(More.class);
+        final More more = _m != null ? _m : NO_MORE;
+        return new More() {
+            @Override
+            public String key() {
+                return more.key();
+            }
+            @Override
+            public String[] using() {
+                org.cthul.miro.at.Using atUsing = m.getAnnotation(org.cthul.miro.at.Using.class);
+                String[] using = more.using();
+                if (atUsing != null && using.length > 0) {
+                    throw new IllegalArgumentException(
+                    "Expected only one of @Using"
+                    + " and @More.using: " + m);
+                }
+                if (atUsing != null) {
+                    return atUsing.value();
+                } else {
+                    return using;
+                }
+            }
+            @Override
+            public Select[] select() {
+                return getAnnotations(m, Select.class, more.select());
+            }
+            @Override
+            public Select[] optional() {
+                return more.optional();
+            }
+            @Override
+            public Select[] internal() {
+                return more.internal();
+            }
+            @Override
+            public Join[] join() {
+                return getAnnotations(m, Join.class, more.join());
+            }
+            @Override
+            public Where[] where() {
+                return getAnnotations(m, Where.class, more.where());
+            }
+            @Override
+            public OrderBy[] orderBy() {
+                return getAnnotations(m, OrderBy.class, more.orderBy());
+            }
+            @Override
+            public Config[] config() {
+                return getAnnotations(m, Config.class, more.config());
+            }
+            @Override
+            public Put[] put() {
+                return getAnnotations(m, Put.class, more.put());
+            }
+            @Override
+            public Class<? extends Annotation> annotationType() {
+                return More.class;
+            }
+        };
     }
     
     private <T extends Annotation> T[] getAnnotations(Method m, Class<T> clazz, T[] all) {
@@ -273,7 +589,22 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
             String n = clazz.getSimpleName();
             throw new IllegalArgumentException(
                     "Expected only one of @" + n
-                    + " and @All." + n.toLowerCase() + ": " + m);
+                    + " and @More." + n.toLowerCase() + ": " + m);
+        }
+        if (at != null) {
+            all = Arrays.copyOf(all, 1);
+            all[0] = at;
+        }
+        return all;
+    }
+    
+    private <T extends Annotation> T[] getAnnotations(Class<?> iface, Class<T> clazz, T[] all) {
+        T at = iface.getAnnotation(clazz);
+        if (at != null && all.length > 0) {
+            String n = clazz.getSimpleName();
+            throw new IllegalArgumentException(
+                    "Expected only one of @" + n
+                    + " and @MiQuery." + n.toLowerCase() + ": " + iface);
         }
         if (at != null) {
             all = Arrays.copyOf(all, 1);
@@ -305,41 +636,16 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
             maps.add(p.mapArgs());
             args.add(p.args());
         }
-//        int paramC = m.getParameterTypes().length;
-//        collectArgIndices(paramC, maps);
         return new CallPutTemplate<>(
                 keys.toArray(new String[keys.size()]),
                 args.toArray(new Arg[args.size()][]),
                 maps.toArray(new int[maps.size()][]));
     }
     
-//    private void collectArgIndices(int paramC, List<int[]> allArgs) {
-//        int c = 0;
-//        int len = allArgs.size();
-//        for (int i = 0; i < len; i++) {
-//            int[] args = allArgs.get(i);
-//            if (args.length == 1) {
-//                int a = args[0];
-//                if (a == Integer.MIN_VALUE) {
-//                    args = argsMap(c, paramC-c);
-//                    c = paramC;
-//                } else if (a < 0) {
-//                    args = argsMap(c, -a);
-//                    c -= a;
-//                }
-//                allArgs.set(i, args);
-//            }
-//        }
-//    }
-//    
-//    private int[] argsMap(int start, int len) {
-//        int[] ary = new int[len];
-//        for (int i = 0; i < len; i++) {
-//            ary[i] = start + i;
-//        }
-//        return ary;
-//    }
-    
+    private InvocationBuilder<Entity> buildInvocation(Method m, Impl impl) {
+        return new CallImplTemplate<>(m, impl);
+    }
+        
     private static Object[] getActualArgs(Arg[] args, int[] map, Object[] values, Object context) {
         if (args != null && args.length > 0 && !isDefaultArgsMapping(map)) {
             throw new IllegalArgumentException(
@@ -381,27 +687,79 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         return result;
     }
     
-    private static final All NO_ALL = new All() {
-        private final Select[] select = {};
-        private final Join[] join = {};
-        private final Where[] where = {};
-        private final Put[] put = {};
-        private final Config[] config = {};
+    private static final String[] NO_STRINGS = {};
+    private static final Select[] NO_SELECTS = {};
+    private static final Join[] NO_JOINS = {};
+    private static final Where[] NO_WHERES = {};
+    private static final OrderBy[] NO_ORDERBY = {};
+    private static final Config[] NO_CONFIGS = {};
+    private static final Put[] NO_PUTS = {}; 
+    private static final More[] NO_MORES = {}; 
+
+    private static final More NO_MORE = new More() {
         @Override
-        public Select[] select() { return select; }
+        public String key() { return ""; }
         @Override
-        public Join[] join() { return join; }
+        public String[] using() { return NO_STRINGS; }
         @Override
-        public Where[] where() { return where; }
+        public Select[] select() { return NO_SELECTS; }
         @Override
-        public Put[] put() { return put; }
+        public Select[] optional() { return NO_SELECTS; }
         @Override
-        public Config[] config() { return config; }
+        public Select[] internal() { return NO_SELECTS; }
+        @Override
+        public Join[] join() { return NO_JOINS; }
+        @Override
+        public Where[] where() { return NO_WHERES; }
+        @Override
+        public OrderBy[] orderBy() { return NO_ORDERBY; }
+        @Override
+        public Config[] config() { return NO_CONFIGS; }
+        @Override
+        public Put[] put() { return NO_PUTS; }
         @Override
         public Class<? extends Annotation> annotationType() {
-            return All.class;
+            return More.class;
         }
     };
+    
+    private static final MiQuery NO_QUERY = new MiQuery() {
+        @Override
+        public Select[] select() { return NO_SELECTS; }
+        @Override
+        public Select[] optional() { return NO_SELECTS; }
+        @Override
+        public Select[] internal() { return NO_SELECTS; }
+        @Override
+        public String from() { return ""; }
+        @Override
+        public More[] always() { return NO_MORES; }
+        @Override
+        public More[] byDefault() { return NO_MORES; }
+        @Override
+        public Join[] join() { return NO_JOINS; }
+        @Override
+        public Where[] where() { return NO_WHERES; }
+        @Override
+        public OrderBy[] orderBy() { return NO_ORDERBY; }
+        @Override
+        public Config[] config() { return NO_CONFIGS; }
+        @Override
+        public More[] more() { return NO_MORES; }
+        @Override
+        public Class<? extends Annotation> annotationType() {
+            return MiQuery.class;
+        }
+    };
+
+    private String[] getPartKeys(List<PartTemplate> parts) {
+        String[] keys = new String[parts.size()];
+        int i = 0;
+        for (PartTemplate pt: parts) {
+            keys[i++] = pt.getKey();
+        }
+        return keys;
+    }
     
     protected interface InvocationBuilder<Entity> {
         
@@ -468,18 +826,18 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
 
         @Override
         public InvocationHandler build(AnnotatedQueryHandler<Entity> query) {
-            return new CallPut<>(this, query);
+            return new CallPut(this, query);
         }
     }
     
-    private static class CallPut<Entity> implements InvocationHandler {
+    private static class CallPut implements InvocationHandler {
         private final String[] keys;
         private final Arg[][] args;
         private final int[][] argIndices;
         private final String required;
-        private final AnnotatedQueryHandler<Entity> handler;
+        private final AnnotatedQueryHandler<?> handler;
 
-        public CallPut(CallPutTemplate<Entity> template, AnnotatedQueryHandler<Entity> handler) {
+        public CallPut(CallPutTemplate<?> template, AnnotatedQueryHandler<?> handler) {
             this.keys = template.keys;
             this.args = template.args;
             this.argIndices = template.argIndices;
@@ -495,35 +853,69 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
             for (int i = 0; i < keys.length; i++) {
                 Object[] values = getActualArgs(args[i], argIndices[i], callArgs, method);
                 handler.put(keys[i], values);
-//                int[] indices = argIndices[i];
-//                Object[] values = new Object[indices.length];
-//                for (int j = 0; j < indices.length; j++) {
-//                    values[j] = args[indices[j]];
-//                }
-//                handler.put(keys[i], values);
             }
             return proxy;
         }
     }
+    
+    private static class CallImplTemplate<Entity> implements InvocationBuilder<Entity> {
+        private final Class<?> impl;
+        private final Method[] methods;
+        private final Arg[] args;
+        private final int[] mapArgs;
+        private String required = null;
+
+        public CallImplTemplate(Method m, Impl impl) {
+            String m0 = impl.method();
+            if (m0.isEmpty()) {
+                m0 = m.getName();
+            }
+            this.impl = impl.value();
+            this.methods = Signatures.collectMethods(
+                    this.impl, m0, 
+                    Signatures.STATIC | Signatures.PUBLIC, 
+                    Signatures.NONE);
+            this.args = impl.args();
+            this.mapArgs = impl.mapArgs();
+        }
+
+        @Override
+        public InvocationHandler build(AnnotatedQueryHandler<Entity> query) {
+            return new CallImpl(this, query);
+        }
+
+        @Override
+        public void setRequired(String key) {
+            this.required = key;
+        }
+    }
+    
+    private static class CallImpl implements InvocationHandler {
+        private final CallImplTemplate<?> template;
+        private final AnnotatedQueryHandler<?> handler;
+
+        public CallImpl(CallImplTemplate<?> template, AnnotatedQueryHandler<?> handler) {
+            this.template = template;
+            this.handler = handler;
+        }
+        
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            args = getActualArgs(template.args, template.mapArgs, args, method);
+            Object[] actualArgs = new Object[args.length+1];
+            actualArgs[0] = handler;
+            System.arraycopy(args, 0, actualArgs, 1, args.length);
+            
+            Method m = Signatures.bestMethod(template.methods, actualArgs);
+            if (m == null) {
+                throw new RuntimeException(
+                        "Impl not found: " + method.getName() +
+                        "(" + Arrays.toString(actualArgs) + ")");
+            }
+            m.setAccessible(true);
+            m.invoke(null, actualArgs);
+            
+            return proxy;
+        }   
+    }
 }
-//    private int generatedIDs = 0;
-//    
-//    private String generateKey(Object owner) {
-//        if (owner instanceof Method) {
-//            return generateKey((Method) owner);
-//        } else if (owner instanceof Class) {
-//            return generateKey((Class) owner);
-//        } else {
-//            return "generated$" + (generatedIDs++);
-//        }
-//    }
-//    
-//    private String generateKey(Class c) {
-//        String n = c.getSimpleName();
-//        if (n == null || n.isEmpty()) n = "generated";
-//        return n + "$" + (generatedIDs++);
-//    }
-//    
-//    private String generateKey(Method m) {
-//        return m.getName() + "$" + (generatedIDs++);
-//    }

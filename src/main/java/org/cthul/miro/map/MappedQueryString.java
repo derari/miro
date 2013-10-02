@@ -1,8 +1,8 @@
 package org.cthul.miro.map;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import org.cthul.miro.MiConnection;
+import org.cthul.miro.result.EntityConfiguration;
 
 /**
  *
@@ -12,6 +12,7 @@ public class MappedQueryString<Entity> extends AbstractMappedStatement<Entity> {
     private final List<String> fields;
     private final String query;
     private Object[] arguments;
+    private List<Object> configs = null;
 
     public MappedQueryString(MiConnection cnn, Mapping<Entity> mapping, List<String> fields, String query, Object... arguments) {
         super(cnn, mapping);
@@ -33,6 +34,18 @@ public class MappedQueryString<Entity> extends AbstractMappedStatement<Entity> {
         this.query = query;
         this.arguments = null;
     }
+    
+    public MappedQueryString<Entity> configure(Object... configs) {
+        return configure(Arrays.asList(configs));
+    }
+    
+    public MappedQueryString<Entity> configure(Collection<?> configs) {
+        if (this.configs == null) {
+            this.configs = new ArrayList<>();
+        }
+        this.configs.addAll(configs);
+        return this;
+    }
 
     @Override
     protected List<String> selectedFields() {
@@ -50,7 +63,17 @@ public class MappedQueryString<Entity> extends AbstractMappedStatement<Entity> {
     }
 
     @Override
-    public void put(String key, String subKey, Object... args) {
+    protected void addMoreConfigs(MiConnection cnn, List<EntityConfiguration<? super Entity>> configs) {
+        super.addMoreConfigs(cnn, configs);
+        if (this.configs != null) {
+            for (Object o: this.configs) {
+                configs.add(ConfigurationInstance.asConfiguration(o, cnn, mapping));
+            }
+        }
+    }
+
+    @Override
+    public void put2(String key, String subKey, Object... args) {
         if (key != null && !key.isEmpty()) {
             throw new IllegalArgumentException("No key expected: " + key);
         }

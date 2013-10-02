@@ -7,6 +7,7 @@ import org.cthul.miro.dsl.View;
 import org.cthul.miro.map.Mapping;
 import org.cthul.miro.dsl.QueryFactoryView;
 import org.cthul.miro.map.*;
+import org.cthul.miro.query.QueryBuilder;
 import org.cthul.miro.util.CfgSetField;
 import org.cthul.objects.instance.Arg;
 
@@ -83,9 +84,11 @@ public class Person0 {
     public static final View<AtQuery> AT_VIEW = new AnnotatedView<>(AtQuery.class, MAPPING);
     
     @MiQuery(
-            select = "p.id, firstName, lastName, a.street, a.city",
+            select = @Select("p.id, firstName, lastName, a.street, a.city"),
             from = "People p",
-            join = @Join("Addresses a ON p.addressId = a.id")
+            join = @Join("Addresses a ON p.addressId = a.id"),
+            more = @More(using="a",
+                where = @Where(key="atAddress",value="a.city = ? AND a.street = ?"))
             )
     public static interface AtQuery extends AnnotatedStatement<Person0> {
         
@@ -109,8 +112,21 @@ public class Person0 {
         @Where("a.city = ?")
         AtQuery inCity(String city);
         
+        @Impl(value=AtQueryImpl.class, method="atAddress", args={@Arg(t="City2"),@Arg(key="0")})
+        AtQuery inCity2(String street);
+        
         // --- for testing ---
         String getQueryString();
         List<Object> getArguments();
+    }
+    
+    public static String lastAddress = "";
+    
+    private static class AtQueryImpl {
+        
+        public static void atAddress(MappedTemplateQuery qry, String city, String street) {
+            qry.put("atAddress", city, street);
+            lastAddress = city + ", " + street;
+        }
     }
 }

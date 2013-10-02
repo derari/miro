@@ -32,6 +32,12 @@ public abstract class AbstractMappedQueryBuilder<Entity> extends MappedStatement
         return queryBuilder().getArguments().toArray();
     }
     
+    public void require(String... keys) {
+        for (String k: keys) {
+            put(k);
+        }
+    }
+    
     @Override
     public void put(String key) {
         queryBuilder().put(key);
@@ -43,8 +49,8 @@ public abstract class AbstractMappedQueryBuilder<Entity> extends MappedStatement
     }
     
     @Override
-    public void put(String key, String subKey, Object... args) {
-        queryBuilder().put(key, subKey, args);
+    public void put2(String key, String subKey, Object... args) {
+        queryBuilder().put2(key, subKey, args);
     }
 
     @Override

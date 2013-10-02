@@ -86,7 +86,7 @@ public class QueryWithTemplate extends ParsingQueryBuilder {
     
     private void putAll(List<String> keys, String subKey, Object[] args) {
         for (String k: keys) {
-            put(k, subKey, args);
+            put2(k, subKey, args);
         }
     }
     

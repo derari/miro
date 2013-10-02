@@ -5,17 +5,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.METHOD)
+@Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface All {
+public @interface OrderBy {
     
-    Select[] select() default {};
+    String key() default "";
     
-    Join[] join() default {};
-    
-    Where[] where() default {};
-    
-    Config[] config() default {};
-    
-    Put[] put() default {};
+    String[] value();
 }

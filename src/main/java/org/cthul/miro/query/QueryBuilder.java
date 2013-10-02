@@ -203,10 +203,10 @@ public abstract class QueryBuilder {
             subKey = key.substring(dot+1);
             key = key.substring(0, dot);
         }
-        put(key, subKey, args);
+        put2(key, subKey, args);
     }
     
-    public void put(String key, String subKey, Object... args) {
+    public void put2(String key, String subKey, Object... args) {
         QueryPart qp = parts.get(key);
         if (qp == null) {
             putUnknownKey(key, subKey, args);
@@ -305,6 +305,11 @@ public abstract class QueryBuilder {
         public PartType getPartType() {
             return PartType.UNKNOWN;
         }
+
+        @Override
+        public String toString() {
+            return key + ": " + getPartType();
+        }
     }
     
     public static class CustomPart extends QueryPart {
@@ -329,6 +334,11 @@ public abstract class QueryBuilder {
         @Override
         public PartType getPartType() {
             return type;
+        }
+
+        @Override
+        public String toString() {
+            return super.toString() + " " + definition;
         }
     }
 

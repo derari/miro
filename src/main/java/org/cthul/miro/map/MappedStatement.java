@@ -34,7 +34,7 @@ public abstract class MappedStatement<Entity> {
     
     public abstract void put(String key, Object... args);
     
-    public abstract void put(String key, String subKey, Object... args);
+    public abstract void put2(String key, String subKey, Object... args);
 
     public EntityConfiguration<? super Entity> getConfiguration(MiConnection cnn) {
         final List<EntityConfiguration<? super Entity>> configs = new ArrayList<>();

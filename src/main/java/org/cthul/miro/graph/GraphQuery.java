@@ -141,7 +141,7 @@ public class GraphQuery<Entity> extends MappedTemplateQuery<Entity>
 //        graphAdapter().setGraph(graph);
 //        this.keys = keys;
 //        QueryPart<Entity> byKeyCondition = new ByKeyCondition<>(t.getKeys());
-//        byKeyCondition.put("", keys);
+//        byKeyCondition.put2("", keys);
 //        where(byKeyCondition);
 //        return this;
 //    }
@@ -205,7 +205,7 @@ public class GraphQuery<Entity> extends MappedTemplateQuery<Entity>
 //        }
 //
 //        @Override
-//        public void put(String subKey, Object[] args) {
+//        public void put2(String subKey, Object[] args) {
 //            switch (subKey) {
 //                // for now, the setter methods should be enough
 ////                case "graph":
@@ -217,7 +217,7 @@ public class GraphQuery<Entity> extends MappedTemplateQuery<Entity>
 ////                    }
 ////                    break;
 //                default:
-//                    super.put(subKey, args);
+//                    super.put2(subKey, args);
 //                    break;
 //            }
 //        }
@@ -355,7 +355,7 @@ public class GraphQuery<Entity> extends MappedTemplateQuery<Entity>
 //                Object key = keys[i];
 //                int hash = hash(key);
 //                while (result.containsKey(hash)) hash++;
-//                result.put(hash, i);
+//                result.put2(hash, i);
 //            }
 //            return result;
 //        }

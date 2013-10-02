@@ -31,7 +31,7 @@ public class SqlUtils {
     private static final char[] QUOTE = {'\'', '"', '`'};
     private static final char ESCAPE = '\\';
     
-    private static String P_String(String q) {
+    private static String QuotedString(String q) {
         return "q(?:[^q]|\\\\[\\\\q])*q".replace("q", q);
     }
     
@@ -44,8 +44,8 @@ public class SqlUtils {
     }
     
     private static final String P_IDENT = "(?:[_$a-zA-Z0-9]+|"
-            + P_String("'") + "|" + P_String("\"") + "|"
-            + P_String("`") + ")";
+            + QuotedString("'") + "|" + QuotedString("\"") + "|"
+            + QuotedString("`") + ")";
     
     private static final Pattern SELECT_PART_PATTERN = PartPattern(
             "((?:(IDENT)_\\._)?(IDENT)(_AS_(IDENT))?)"
@@ -116,10 +116,10 @@ public class SqlUtils {
         return new String[]{stripQuotes(key), from};
     }
     
-    public static String[] parseOrderPart(String from) {
-        Matcher m = ORDER_PART_PATTERN.matcher(from.trim());
+    public static String[] parseOrderPart(String orderBy) {
+        Matcher m = ORDER_PART_PATTERN.matcher(orderBy.trim());
         if (!m.matches()) {
-            throw new IllegalArgumentException("Cannot parse: " + from);
+            throw new IllegalArgumentException("Cannot parse: " + orderBy);
         }
         final String key;
         if (m.group(2) != null) {
@@ -127,7 +127,7 @@ public class SqlUtils {
         } else {
             throw new AssertionError(m.toString());
         }
-        return new String[]{stripQuotes(key), from};
+        return new String[]{stripQuotes(key), orderBy};
     }
     
     private static final Pattern FROM_PART_PATTERN = PartPattern(

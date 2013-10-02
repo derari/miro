@@ -96,6 +96,10 @@ public class QueryTemplate {
     }
     
     protected PartTemplate select(String key, String[] required, String selectClause) {
+        return select(key, required, Include.DEFAULT, selectClause);
+    }
+    
+    protected PartTemplate select(String key, String[] required, Include include, String selectClause) {
         String[][] selParts = SqlUtils.parseSelectClause(selectClause);
         if (selParts.length != 1) {
             throw new IllegalArgumentException("Expected one select: " + selectClause);
@@ -107,7 +111,7 @@ public class QueryTemplate {
         } else {
             req = required;
         }
-        PartTemplate sp = new SimplePartTemplate(PartType.SELECT, key, Include.DEFAULT, part[1], req);
+        PartTemplate sp = new SimplePartTemplate(PartType.SELECT, key, include, part[1], req);
         return select(sp);
     }
     
@@ -172,6 +176,26 @@ public class QueryTemplate {
         return list;
     }
     
+    protected PartTemplate internal_select(String key, String[] required, String selectClause) {
+        return internal_select(key, required, Include.OPTIONAL, selectClause);
+    }
+    
+    protected PartTemplate internal_select(String key, String[] required, Include include, String selectClause) {
+        String[][] selParts = SqlUtils.parseSelectClause(selectClause);
+        if (selParts.length != 1) {
+            throw new IllegalArgumentException("Expected one select: " + selectClause);
+        }
+        String[] part = selParts[0];
+        String[] req;
+        if (required == AUTODETECT_DEPENDENCIES) {
+            req = copyDependencies(part, 2);
+        } else {
+            req = required;
+        }
+        PartTemplate sp = new SimplePartTemplate(PartType.SELECT, key, include, part[1], req);
+        return internal_select(sp);
+    }
+    
     protected List<PartTemplate> internal_select(PartTemplate... selectParts) {
         final List<PartTemplate> list = new ArrayList<>();
         for (PartTemplate s: selectParts) {
@@ -207,11 +231,19 @@ public class QueryTemplate {
    }
 
     protected PartTemplate join(String[] required, Include include, String join) {
+        return join(required, DEFAULT_KEY, include, join);
+    }
+    
+    protected PartTemplate join(String[] required, KeyMapper key, String join) {
+        return join(required, key, Include.OPTIONAL, join);
+    }
+    
+    protected PartTemplate join(String[] required, KeyMapper key, Include include, String join) {
         String[] part = SqlUtils.parseJoinPart(join);
         if (required == AUTODETECT_DEPENDENCIES) {
             throw new UnsupportedOperationException("AUTODETECT DEPENDENCIES");
         }
-        return join(required, part[0], include, part[1]);
+        return join(required, key.map(part[0]), include, part[1]);
     }
     
     protected PartTemplate join(String[] required, String key, String join) {
@@ -342,34 +374,60 @@ public class QueryTemplate {
         addPart(hp);
     }
 
-    protected void orderBy(String order) {
-        orderBy(NO_DEPENDENCIES, order);
+    protected PartTemplate orderBy(String order) {
+        return orderBy(NO_DEPENDENCIES, order);
     }
     
-    protected void orderBy(String key, String order) {
-        orderBy(NO_DEPENDENCIES, key, order);
+    protected PartTemplate orderBy(String key, String order) {
+        return orderBy(NO_DEPENDENCIES, key, order);
     }
     
-    protected void orderBy(String[] required, String order) {
-        orderBy(required, Include.OPTIONAL, order);
-   }
+    protected List<PartTemplate> orderBy(String[] required, String[] order) {
+        final List<PartTemplate> result = new ArrayList<>();
+        for (String o: order) {
+            result.add(orderBy(required, Include.OPTIONAL, o));
+        }
+        return result;
+    }
+    
+    protected PartTemplate orderBy(String[] required, String order) {
+        return orderBy(required, Include.OPTIONAL, order);
+    }
 
-    protected void orderBy(String[] required, Include include, String order) {
+    protected PartTemplate orderBy(String[] required, Include include, String order) {
         String id = "$$order" + parts.size();        
-        orderBy(required, id, include, order);
+        return orderBy(required, id, include, order);
     }
 
-    protected void orderBy(String[] required, String key, String order) {
-        orderBy(required, key, Include.OPTIONAL, order);
+    protected List<PartTemplate> orderBy(String[] required, KeyMapper key, String[] order) {
+        final List<PartTemplate> result = new ArrayList<>();
+        for (String o: order) {
+            result.add(orderBy(required, key, Include.OPTIONAL, o));
+        }
+        return result;
     }
     
-    protected void orderBy(String[] required, String key, Include include, String order) {
+    protected PartTemplate orderBy(String[] required, KeyMapper key, String order) {
+        return orderBy(required, key, Include.OPTIONAL, order);
+    }
+    
+    protected PartTemplate orderBy(String[] required, String key, String order) {
+        return orderBy(required, key, Include.OPTIONAL, order);
+    }
+    
+    protected PartTemplate orderBy(String[] required, String key, Include include, String order) {
         PartTemplate jp = new SimplePartTemplate(PartType.ORDER, key, include, order, required);
-        orderBy(jp);
+        return orderBy(jp);
     }
     
-    protected void orderBy(PartTemplate gp) {
-        addPart(gp);
+    protected PartTemplate orderBy(String[] required, KeyMapper key, Include include, String order) {
+        String column = SqlUtils.parseOrderPart(order)[0];
+        PartTemplate jp = new SimplePartTemplate(PartType.ORDER, key.map(column), include, order, required);
+        return orderBy(jp);
+    }
+    
+    protected PartTemplate orderBy(PartTemplate gp) {
+        return addPart(gp);
     }
     
     protected PartTemplate virtualPart(String[] required) {
@@ -407,6 +465,28 @@ public class QueryTemplate {
         return using(Include.DEFAULT, keys);
     }
     
+    public static interface KeyMapper {
+        String map(String key);
+    }
+    
+    public static final KeyMapper DEFAULT_KEY = new KeyMapper() {
+        @Override
+        public String map(String key) { return key; }
+    };
+    
+    public static class KeyPrefix implements KeyMapper {
+        private final String prefix;
+
+        public KeyPrefix(String prefix) {
+            this.prefix = prefix;
+        }
+
+        @Override
+        public String map(String key) {
+            return prefix + key;
+        }
+    }
+    
     protected Using noDepenencies() {
         return using(NO_DEPENDENCIES);
     }
@@ -422,11 +502,11 @@ public class QueryTemplate {
     protected Using using(Include include, String... keys) {
         return new Using(include, keys);
     }
-
+    
     public class Using {
 
-        private final Include include;
-        private final String[] required;
+        protected final Include include;
+        protected final String[] required;
 
         public Using(Include include, String[] required) {
             this.include = include;
@@ -543,6 +623,11 @@ public class QueryTemplate {
         }
 
         public abstract QueryPart createPart(String alias);
+
+        @Override
+        public String toString() {
+            return "[" +  Arrays.toString(required) + "] -> " + key;
+        }
     }
     
     public static class SimplePartTemplate extends PartTemplate {
@@ -558,6 +643,11 @@ public class QueryTemplate {
         @Override
         public QueryPart createPart(String alias) {
             return new ParsingQueryBuilder.CustomPart(alias, type, definition);
+        }
+
+        @Override
+        public String toString() {
+            return super.toString() + ": " + type + " " + definition;
         }
     }
     

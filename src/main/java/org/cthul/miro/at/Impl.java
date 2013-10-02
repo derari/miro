@@ -6,13 +6,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import org.cthul.objects.instance.Arg;
 
-@Target({ElementType.TYPE, ElementType.METHOD})
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Where {
+public @interface Impl {
     
-    String key() default "";
+    Class<?> value();
     
-    String[] value();
+    String method() default "";
     
     Arg[] args() default {};
     

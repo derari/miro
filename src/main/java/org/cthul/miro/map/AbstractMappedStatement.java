@@ -26,6 +26,6 @@ public abstract class AbstractMappedStatement<Entity> extends MappedStatement<En
             subKey = key.substring(dot+1);
             key = key.substring(0, dot);
         }
-        put(key, subKey, args);
+        put2(key, subKey, args);
     }
 }

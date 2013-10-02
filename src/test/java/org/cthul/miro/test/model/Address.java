@@ -7,7 +7,7 @@ import org.cthul.miro.dsl.QueryFactoryView;
 import org.cthul.miro.dsl.View;
 import org.cthul.miro.graph.GraphQuery;
 import org.cthul.miro.graph.GraphQueryTemplate;
-import org.cthul.miro.map.MappedQueryTemplate;
+import org.cthul.miro.map.MappedQueryTemplate; 
 import org.cthul.miro.map.MappedTemplateQuery;
 import org.cthul.miro.map.Mapping;
 import org.cthul.miro.map.ReflectiveMapping;

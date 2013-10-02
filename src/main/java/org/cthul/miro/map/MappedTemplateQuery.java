@@ -1,7 +1,6 @@
 package org.cthul.miro.map;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.query.QueryBuilder.QueryPart;
@@ -35,16 +34,11 @@ public class MappedTemplateQuery<Entity> extends AbstractMappedQueryBuilder<Enti
         return query;
     }
     
-    public void configure(ConfigurationProvider<? super Entity> setup) {
+    public void configure(ConfigurationProvider<? super Entity> config) {
         if (configs == null) configs = new ArrayList<>();
-        configs.add(setup);
+        configs.add(config);
     }
     
-    public void setup(ConfigurationProvider<? super Entity>... setups) {
-        if (this.configs == null) this.configs = new ArrayList<>();
-        this.configs.addAll(Arrays.asList(setups));
-    }
-
     public void configure(Object setup) {
         configure(ConfigurationInstance.asFactory(setup));
     }
