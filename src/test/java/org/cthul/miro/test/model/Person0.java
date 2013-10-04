@@ -88,7 +88,8 @@ public class Person0 {
             from = "People p",
             join = @Join("Addresses a ON p.addressId = a.id"),
             more = @More(using="a",
-                where = @Where(key="atAddress",value="a.city = ? AND a.street = ?"))
+                where = @Where(key="atAddress",value="a.city = ? AND a.street = ?")),
+            orderBy = @OrderBy(key="asc_$1",value={"lastName", "firstName"})
             )
     public static interface AtQuery extends AnnotatedStatement<Person0> {
         
@@ -114,6 +115,9 @@ public class Person0 {
         
         @Impl(value=AtQueryImpl.class, method="atAddress", args={@Arg(t="City2"),@Arg(key="0")})
         AtQuery inCity2(String street);
+        
+        @Using({"asc_lastName", "asc_firstName"})
+        AtQuery orderByName();
         
         // --- for testing ---
         String getQueryString();

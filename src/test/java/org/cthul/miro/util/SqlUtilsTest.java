@@ -1,10 +1,6 @@
 package org.cthul.miro.util;
 
 import java.util.List;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.Matchers.*;
@@ -102,4 +98,17 @@ public class SqlUtilsTest {
         assertThat(keyDef, arrayContaining("key", part));
     }
     
+    @Test
+    public void test_parseOrderPart_simple() {
+        String part = "field";
+        String[] def = SqlUtils.parseOrderPart(part);
+        assertThat(def, arrayContaining("field", part, null));
+    }
+    
+    @Test
+    public void test_parseOrderPart_complex() {
+        String part = "`a`.'field' DESC";
+        String[] def = SqlUtils.parseOrderPart(part);
+        assertThat(def, arrayContaining("field", part, "a"));
+    }    
 }

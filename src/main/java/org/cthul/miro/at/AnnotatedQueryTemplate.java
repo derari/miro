@@ -67,6 +67,7 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
             
             readJoins(NO_DEPENDENCIES, query.join());
             readWhere(NO_DEPENDENCIES, query.where(), iface);
+            readOrderBy(AUTODETECT_DEPENDENCIES, query.orderBy());
             readConfig(NO_DEPENDENCIES, query.config());
             readMore(query.more(), iface);
         }
@@ -212,12 +213,16 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         }
     }
     
-    private List<PartTemplate> readOrderBy(String[] required, OrderBy[] orderBy) {
-        List<PartTemplate> list = new ArrayList<>();
+    private void readOrderBy(String[] required, OrderBy[] orderBy) {
         for (OrderBy o: orderBy) {
-            list.addAll(readOrderBy(required, o));
+            readOrderBy(required, o);
         }
-        return list;
+    }
+    
+    private void readOrderBys(List<PartTemplate> bag, String[] required, OrderBy[] orderBy) {
+        for (OrderBy o: orderBy) {
+            bag.addAll(readOrderBy(required, o));
+        }
     }
     
     private List<PartTemplate> readOrderBy(String[] required, OrderBy atOrderBy) {
@@ -264,13 +269,6 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         final List<PartTemplate> list = new ArrayList<>();
         for (More m: more) {
             list.add(readMore(m, iface, null));
-//            String[] required = readRequired(m.using());
-//            select(required, m.select());
-//            optional_select(required, m.optional());
-//            internal_select(required, m.internal());
-//            readJoins(required, m.join());
-//            readWhere(required, m.where(), iface);
-//            readConfig(required, m.config());
         }
         return list;
     }
@@ -298,70 +296,6 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
     protected void readMethodAnnotations(Method m) {
         More more = getMethodMore(m);
         readMore(more, null, m);
-//        InvocationBuilder<Entity> invBuilder = null;
-//        List<PartTemplate> parts = new ArrayList<>();
-//        String[] required = NO_DEPENDENCIES;
-//        org.cthul.miro.at.Using atUsing = m.getAnnotation(org.cthul.miro.at.Using.class);
-//        if (atUsing != null) {
-//            required = readRequired(atUsing.value());
-//            PartTemplate pt = virtualPart(required);
-//            // make sure all query parts depend on `required`,
-//            // but it is also added by the method call
-//            parts.add(pt);
-//            required = new String[]{pt.getKey()};
-//        }
-//        All atAll = getAtAll(m);
-//        Select[] selects = getAnnotations(m, Select.class, atAll.select());
-//        for (Select atSelect: selects) {
-//            String key = atSelect.key();
-//            if (key.isEmpty()) {
-//                parts.addAll(select(required, atSelect.value()));
-//            } else {
-//                parts.add(select(key, required, atSelect.value()));
-//            }
-//        }
-//        
-//        Join[] joins = getAnnotations(m, Join.class, atAll.join());
-//        readJoins(parts, required, joins);
-//        
-//        Where[] wheres = getAnnotations(m, Where.class, atAll.where());
-//        Config[] configs = getAnnotations(m, Config.class, atAll.config());
-//        Put[] puts = getAnnotations(m, Put.class, atAll.put2());
-//        List<PartTemplate> whereParts = null;
-//        if (wheres.length > 0) {
-//            whereParts = readWhere(required, wheres);
-//        }
-//        List<PartTemplate> configParts = null;
-//        if (configs.length > 0) {
-//            configParts = readConfig(required, configs);
-//        }
-//        if (wheres.length > 0 || configs.length > 0 || puts.length > 0) {
-//            invBuilder = buildInvocation(m, wheres, whereParts, configs, configParts, puts);
-//        }
-//        
-//        final String requiredKey;
-//        if (parts.isEmpty()) {
-//            requiredKey = null;
-//        } else if (parts.size() == 1) {
-//            requiredKey = parts.get(0).getKey();
-//        } else {
-//            String[] keys = new String[parts.size()];
-//            int i = 0;
-//            for (PartTemplate pt: parts) {
-//                keys[i++] = pt.getKey();
-//            }
-//            requiredKey = virtualPart(keys).getKey();
-//        }
-//        
-//        if (requiredKey != null) {
-//            if (invBuilder == null) {
-//                invBuilder = new CallPutTemplate<>();
-//            }
-//            invBuilder.setRequired(requiredKey);
-//        }
-//        if (invBuilder != null) {
-//            handlers.put2(m, invBuilder);
-//        }
     }
     
     protected PartTemplate readMore(More more, Class<?> iface, Method m) {
@@ -381,8 +315,8 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         readSelects(parts, required, more.optional(), Include.OPTIONAL);
         readInternalSelects(parts, required, more.internal());
         
-        
         readJoins(parts, required, more.join());
+        readOrderBys(parts, required, more.orderBy());
         
         Where[] wheres = more.where();
         Config[] configs = more.config();
@@ -407,7 +341,7 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
             if (wheres.length > 0 || configs.length > 0 || puts.length > 0) {
                 if (impl != null) {
                     throw new IllegalArgumentException(
-                            "No other annotations supported with @Impl: " + m);
+                            "No other annotations allowed with @Impl: " + m);
                 }
                 invBuilder = buildInvocation(m, wheres, whereParts, configs, configParts, puts);
             } else if (impl != null) {

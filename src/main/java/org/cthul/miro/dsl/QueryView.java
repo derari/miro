@@ -25,7 +25,7 @@ public class QueryView<Entity> extends ViewBase<MappedQueryString<Entity>> {
     
     @Override
     public MappedQueryString<Entity> select(MiConnection cnn, String... fields) {
-        MappedQueryString qry = new MappedQueryString(cnn, mapping, Arrays.asList(fields), query, args);
+        MappedQueryString qry = new MappedQueryString(cnn, mapping, fields == null ? null : Arrays.asList(fields), query, args);
         if (configs != null) {
             qry.configure(configs);
         }

@@ -416,12 +416,20 @@ public class QueryTemplate {
     }
     
     protected PartTemplate orderBy(String[] required, String key, Include include, String order) {
+        if (required == AUTODETECT_DEPENDENCIES) {
+            String[] part = SqlUtils.parseOrderPart(order);
+            required = copyDependencies(part, 2);
+        }
         PartTemplate jp = new SimplePartTemplate(PartType.ORDER, key, include, order, required);
         return orderBy(jp);
     }
     
     protected PartTemplate orderBy(String[] required, KeyMapper key, Include include, String order) {
-        String column = SqlUtils.parseOrderPart(order)[0];
+        String[] part = SqlUtils.parseOrderPart(order);
+        String column = part[0];
+        if (required == AUTODETECT_DEPENDENCIES) {
+            required = copyDependencies(part, 2);
+        }
         PartTemplate jp = new SimplePartTemplate(PartType.ORDER, key.map(column), include, order, required);
         return orderBy(jp);
     }

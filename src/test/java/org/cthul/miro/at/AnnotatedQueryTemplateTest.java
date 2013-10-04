@@ -86,4 +86,12 @@ public class AnnotatedQueryTemplateTest {
         assertThat(result, hasSize(2));
         assertThat(Person0.lastAddress, is("City2, Street 2"));
     }
+    
+    @Test
+    public void test_order() {
+        AtQuery qry = select().from(Persons).orderByName();
+        List<Person0> result = qry.asList()._execute(cnn);
+        Person0 p1 = result.get(0);
+        assertThat(p1.getFirstName(), is("Jane"));
+    }
 }

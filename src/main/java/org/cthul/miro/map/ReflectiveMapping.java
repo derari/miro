@@ -13,15 +13,19 @@ import java.lang.reflect.InvocationTargetException;
  */
 public class ReflectiveMapping<Type> extends Mapping<Type> {
 
-    private final Constructor<Type> newRecord;
-    private final Constructor<Type> newCursor;
+    private final Constructor<? extends Type> newRecord;
+    private final Constructor<? extends Type> newCursor;
 
     public ReflectiveMapping(Class<Type> recordClass) {
         this(recordClass, null);
     }
 
     public ReflectiveMapping(Class<Type> recordClass, Class<? extends Type> cursorClass) {
-        super(recordClass);
+        this(recordClass, recordClass, cursorClass);
+    }
+    
+    public ReflectiveMapping(Class<Type> entityClass, Class<? extends Type> recordClass, Class<? extends Type> cursorClass) {
+        super(entityClass);
         try {
             newRecord = recordClass.getConstructor();
             if (cursorClass != null) {

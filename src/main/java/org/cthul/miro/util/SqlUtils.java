@@ -121,13 +121,18 @@ public class SqlUtils {
         if (!m.matches()) {
             throw new IllegalArgumentException("Cannot parse: " + orderBy);
         }
-        final String key;
-        if (m.group(2) != null) {
-            key = m.group(2);
+        final String key, required;
+        if (m.group(3) != null) {
+            key = m.group(3);
         } else {
             throw new AssertionError(m.toString());
         }
-        return new String[]{stripQuotes(key), orderBy};
+        if (m.group(2) != null) {
+            required = m.group(2);
+        } else {
+            required = null;
+        }
+        return new String[]{stripQuotes(key), orderBy, stripQuotes(required)};
     }
     
     private static final Pattern FROM_PART_PATTERN = PartPattern(
@@ -140,7 +145,7 @@ public class SqlUtils {
             "(IDENT_\\._)?(IDENT)");
     
     private static final Pattern ORDER_PART_PATTERN = PartPattern(
-            "(IDENT_\\._)?(IDENT)(_ASC|_DESC)?");
+            "((IDENT)_\\._)?(IDENT)(_ASC|_DESC)?");
     
     private static int scanUntil(int i, String select, char end) {
         for (;i < select.length(); i++) {
@@ -189,5 +194,4 @@ public class SqlUtils {
         }
         return s;
     }
-    
 }
