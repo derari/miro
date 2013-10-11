@@ -455,20 +455,20 @@ public class QueryTemplate {
         return addPart(pt);
     }
     
-    protected Using always() {
+    protected Using<?> always() {
         return using(Include.ALWAYS);
     }
     
-    protected Using always(String... keys) {
+    protected Using<?> always(String... keys) {
         virtualPart(keys, Include.ALWAYS);
         return using(Include.ALWAYS, keys);
     }
     
-    protected Using byDefault() {
+    protected Using<?> byDefault() {
         return using(Include.DEFAULT, NO_DEPENDENCIES);
     }
     
-    protected Using byDefault(String... keys) {
+    protected Using<?> byDefault(String... keys) {
         virtualPart(keys, Include.DEFAULT);
         return using(Include.DEFAULT, keys);
     }
@@ -495,23 +495,23 @@ public class QueryTemplate {
         }
     }
     
-    protected Using noDepenencies() {
+    protected Using<?> noDepenencies() {
         return using(NO_DEPENDENCIES);
     }
 
-    protected Using using() {
+    protected Using<?> using() {
         return using(NO_DEPENDENCIES);
     }
 
-    protected Using using(String... keys) {
+    protected Using<?> using(String... keys) {
         return using(Include.NOT_SPECIFIED, keys);
     }
     
-    protected Using using(Include include, String... keys) {
+    protected Using<?> using(Include include, String... keys) {
         return new Using(include, keys);
     }
     
-    public class Using {
+    public class Using<This extends Using> {
 
         protected final Include include;
         protected final String[] required;
@@ -520,98 +520,102 @@ public class QueryTemplate {
             this.include = include;
             this.required = required;
         }
-
-        public Using select(String... selectClause) {
-            if (include == Include.NOT_SPECIFIED) {
-                select(required, selectClause);
-            } else {
-                select(required, include, selectClause);
-            }
-            return this;
-        }
-
-        public Using select(String selectClause) {
-            if (include == Include.NOT_SPECIFIED) {
-                select(required, selectClause);
-            } else {
-                select(required, include, selectClause);
-            }
-            return this;
-        }
-
-        public Using optional_select(String... selectClause) {
-            optional_select(required, selectClause);
-            return this;
-        }
-
-        public Using optional_select(String selectClause) {
-            optional_select(required, selectClause);
-            return this;
-        }
-
-        public Using internal_select(String... selectClause) {
-            internal_select(required, selectClause);
-            return this;
-        }
-
-        public Using internal_select(String selectClause) {
-            internal_select(required, selectClause);
-            return this;
-        }
-
-        public Using join(String join) {
-            join(required, include, join);
-            return this;
-        }
-
-        public Using join(String key, String join) {
-            join(required, key, include, join);
-            return this;
-        }
-
-        public Using where(String where) {
-            where(required, include, where);
-            return this;
-        }
-
-        public Using where(String key, String where) {
-            where(required, key, include, where);
-            return this;
+        
+        protected This _this() {
+            return (This) this;
         }
         
-        public Using where(String... definitions) {
+        public This select(String... selectClause) {
+            if (include == Include.NOT_SPECIFIED) {
+                select(required, selectClause);
+            } else {
+                select(required, include, selectClause);
+            }
+            return _this();
+        }
+
+        public This select(String selectClause) {
+            if (include == Include.NOT_SPECIFIED) {
+                select(required, selectClause);
+            } else {
+                select(required, include, selectClause);
+            }
+            return _this();
+        }
+
+        public This optional_select(String... selectClause) {
+            optional_select(required, selectClause);
+            return _this();
+        }
+
+        public This optional_select(String selectClause) {
+            optional_select(required, selectClause);
+            return _this();
+        }
+
+        public This internal_select(String... selectClause) {
+            internal_select(required, selectClause);
+            return _this();
+        }
+
+        public This internal_select(String selectClause) {
+            internal_select(required, selectClause);
+            return _this();
+        }
+
+        public This join(String join) {
+            join(required, include, join);
+            return _this();
+        }
+
+        public This join(String key, String join) {
+            join(required, key, include, join);
+            return _this();
+        }
+
+        public This where(String where) {
+            where(required, include, where);
+            return _this();
+        }
+
+        public This where(String key, String where) {
+            where(required, key, include, where);
+            return _this();
+        }
+        
+        public This where(String... definitions) {
             where(required, include, definitions);
-            return this;
+            return _this();
         }
 
-        public Using groupBy(String groupBy) {
+        public This groupBy(String groupBy) {
             groupBy(required, include, groupBy);
-            return this;
+            return _this();
         }
 
-        public Using groupBy(String key, String groupBy) {
+        public This groupBy(String key, String groupBy) {
             groupBy(required, key, include, groupBy);
-            return this;
+            return _this();
         }
 
-        public Using having(String having) {
+        public This having(String having) {
             having(required, include, having);
-            return this;
+            return _this();
         }
 
-        public Using having(String key, String having) {
+        public This having(String key, String having) {
             having(required, key, include, having);
-            return this;
+            return _this();
         }
 
-        public Using orderBy(String order) {
+        public This orderBy(String order) {
             orderBy(required, include, order);
-            return this;
+            return _this();
         }
 
-        public Using orderBy(String key, String order) {
+        public This orderBy(String key, String order) {
             orderBy(required, key, include, order);
-            return this;
+            return _this();
         }
     }
     

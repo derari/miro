@@ -50,32 +50,43 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         if (!interfaces.add(iface)) {
             return;
         }
-        MiQuery query = getClassQuery(iface);
-        if (query != null) {
-            readSelects(AUTODETECT_DEPENDENCIES, query.select(), Include.DEFAULT);
-            readSelects(AUTODETECT_DEPENDENCIES, query.optional(), Include.OPTIONAL);
-            readInternalSelects(AUTODETECT_DEPENDENCIES, query.internal());
-            List<PartTemplate> always = readMore(query.always(), iface);
-            always(getPartKeys(always));
-            List<PartTemplate> byDefault = readMore(query.byDefault(), iface);
-            byDefault(getPartKeys(byDefault));
-            
-            String from = query.from();
-            if (!from.isEmpty()) {
-                from(from);
-            }
-            
-            readJoins(NO_DEPENDENCIES, query.join());
-            readWhere(NO_DEPENDENCIES, query.where(), iface);
-            readOrderBy(AUTODETECT_DEPENDENCIES, query.orderBy());
-            readConfig(NO_DEPENDENCIES, query.config());
-            readMore(query.more(), iface);
-        }
         for (Class<?> supI: iface.getInterfaces()) {
             readClassAnnotations(supI);
         }
+
+        MiQuery query = getClassQuery(iface);
+        readSelects(AUTODETECT_DEPENDENCIES, query.select(), Include.DEFAULT);
+        readSelects(AUTODETECT_DEPENDENCIES, query.optional(), Include.OPTIONAL);
+        readInternalSelects(AUTODETECT_DEPENDENCIES, query.internal());
+        List<PartTemplate> always = readMore(query.always(), iface);
+        always(getPartKeys(always));
+        List<PartTemplate> byDefault = readMore(query.byDefault(), iface);
+        byDefault(getPartKeys(byDefault));
+
+        String from = query.from().value();
+        if (!from.isEmpty()) {
+            from(from);
+        }
+
+        readJoins(NO_DEPENDENCIES, query.join());
+        readWhere(NO_DEPENDENCIES, query.where(), iface);
+        readOrderBy(AUTODETECT_DEPENDENCIES, query.orderBy());
+        readConfig(NO_DEPENDENCIES, query.config());
+        readMore(query.more(), iface);
+        
+        Impl atImpl = query.impl();
+        if (atImpl.args().length > 0 || !isDefaultArgsMapping(atImpl.mapArgs())) {
+            throw new IllegalArgumentException(
+                    "@Impl.args and .mapArgs not supported for class: " + iface);
+        }
+        if (!atImpl.method().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "@Impl.method not supported for class: " + iface);
+        }
+        
+        Class<?> implClass = atImpl.value();
         for (Method m: iface.getDeclaredMethods()) {
-            readMethodAnnotations(m);
+            readMethodAnnotations(m, implClass);
         }
     }
     
@@ -268,7 +279,7 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
     private List<PartTemplate> readMore(More[] more, Class<?> iface) {
         final List<PartTemplate> list = new ArrayList<>();
         for (More m: more) {
-            list.add(readMore(m, iface, null));
+            list.add(readMore(m, iface, null, null));
         }
         return list;
     }
@@ -293,15 +304,15 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         return list.toArray(new String[list.size()]);
     }
     
-    protected void readMethodAnnotations(Method m) {
+    protected void readMethodAnnotations(Method m, Class<?> impl) {
         More more = getMethodMore(m);
-        readMore(more, null, m);
+        readMore(more, null, m, impl);
     }
     
-    protected PartTemplate readMore(More more, Class<?> iface, Method m) {
+    protected PartTemplate readMore(More more, Class<?> iface, Method m, Class<?> impl) {
         InvocationBuilder<Entity> invBuilder = null;
         List<PartTemplate> parts = new ArrayList<>();
-        String[] required = more.using();
+        String[] required = more.require();
         if (required.length > 0) {
             required = readRequired(required);
             PartTemplate pt = virtualPart(required);
@@ -337,15 +348,15 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
             throw new IllegalArgumentException("@Put not allowed at class");
         }
         if (m != null) {
-            Impl impl = m.getAnnotation(Impl.class);
+            Impl atImpl = m.getAnnotation(Impl.class);
             if (wheres.length > 0 || configs.length > 0 || puts.length > 0) {
-                if (impl != null) {
+                if (atImpl != null) {
                     throw new IllegalArgumentException(
                             "No other annotations allowed with @Impl: " + m);
                 }
                 invBuilder = buildInvocation(m, wheres, whereParts, configs, configParts, puts);
-            } else if (impl != null) {
-                invBuilder = buildInvocation(m, impl);
+            } else if (atImpl != null || impl != void.class) {
+                invBuilder = buildInvocation(m, atImpl, impl);
             }
         }
         
@@ -408,17 +419,17 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
                 return query.internal();
             }
             @Override
-            public String from() {
+            public From from() {
                 From atFrom = c.getAnnotation(From.class);
-                String from = query.from();
+                String from = query.from().value();
                 if (atFrom != null && !from.isEmpty()) {
                     throw new IllegalArgumentException(
                             "Expected only one of @From an @MiQuery.from: " + c);
                 }
                 if (atFrom != null) {
-                    return atFrom.value();
+                    return atFrom;
                 }
-                return from;
+                return query.from();
             }
             @Override
             public More[] always() {
@@ -449,6 +460,19 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
                 return getAnnotations(c, More.class, query.more()); 
             }
             @Override
+            public Impl impl() {
+                Impl atImpl = c.getAnnotation(Impl.class);
+                Class<?> i = query.impl().value();
+                if (atImpl != null && i != void.class) {
+                    throw new IllegalArgumentException(
+                            "Expected only one of @Impl an @MiQuery.impl: " + c);
+                }
+                if (atImpl != null) {
+                    return atImpl;
+                }
+                return query.impl();
+            }
+            @Override
             public Class<? extends Annotation> annotationType() {
                 return MiQuery.class;
             }
@@ -464,9 +488,9 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
                 return more.key();
             }
             @Override
-            public String[] using() {
-                org.cthul.miro.at.Using atUsing = m.getAnnotation(org.cthul.miro.at.Using.class);
-                String[] using = more.using();
+            public String[] require() {
+                org.cthul.miro.at.Require atUsing = m.getAnnotation(org.cthul.miro.at.Require.class);
+                String[] using = more.require();
                 if (atUsing != null && using.length > 0) {
                     throw new IllegalArgumentException(
                     "Expected only one of @Using"
@@ -576,8 +600,23 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
                 maps.toArray(new int[maps.size()][]));
     }
     
-    private InvocationBuilder<Entity> buildInvocation(Method m, Impl impl) {
-        return new CallImplTemplate<>(m, impl);
+    private InvocationBuilder<Entity> buildInvocation(Method m, Impl atImpl, Class<?> implClass) {
+        if (atImpl == null) {
+            if (!hasMethodImplementation(implClass, m)) {
+                return null;
+            }
+            atImpl = NO_IMPL;
+        }
+        return new CallImplTemplate<>(m, atImpl, implClass);
+    }
+    
+    private boolean hasMethodImplementation(Class<?> clazz, Method m) {
+        Method[] methods = Signatures.collectMethods(clazz, m.getName(), Signatures.STATIC | Signatures.PUBLIC, Signatures.NONE);
+        Class[] mParamTypes = m.getParameterTypes();
+        Class[] paramTypes = new Class[mParamTypes.length+1];
+        paramTypes[0] = AnnotatedQueryHandler.class;
+        System.arraycopy(mParamTypes, 0, paramTypes, 1, mParamTypes.length);
+        return Signatures.candidateMethods(methods, paramTypes).length > 0;
     }
         
     private static Object[] getActualArgs(Arg[] args, int[] map, Object[] values, Object context) {
@@ -621,6 +660,8 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         return result;
     }
     
+    private static final int[] NO_INTS = {}; 
+    private static final int[] NO_ARGS_MAP = {Integer.MIN_VALUE}; 
     private static final String[] NO_STRINGS = {};
     private static final Select[] NO_SELECTS = {};
     private static final Join[] NO_JOINS = {};
@@ -629,12 +670,39 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
     private static final Config[] NO_CONFIGS = {};
     private static final Put[] NO_PUTS = {}; 
     private static final More[] NO_MORES = {}; 
+    private static final Arg[] NO_ARGS = {}; 
+
+    private static final From NO_FROM = new From() {
+        @Override
+        public String value() {
+            return "";
+        }
+        @Override
+        public Class<? extends Annotation> annotationType() {
+            return From.class;
+        }
+    };
+    
+    private static final Impl NO_IMPL = new Impl() {
+        @Override
+        public Class<?> value() { return void.class; }
+        @Override
+        public String method() { return ""; }
+        @Override
+        public Arg[] args() { return NO_ARGS; }
+        @Override
+        public int[] mapArgs() { return NO_ARGS_MAP; }
+        @Override
+        public Class<? extends Annotation> annotationType() {
+            return Impl.class;
+        }
+    }; 
 
     private static final More NO_MORE = new More() {
         @Override
         public String key() { return ""; }
         @Override
-        public String[] using() { return NO_STRINGS; }
+        public String[] require() { return NO_STRINGS; }
         @Override
         public Select[] select() { return NO_SELECTS; }
         @Override
@@ -665,7 +733,7 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         @Override
         public Select[] internal() { return NO_SELECTS; }
         @Override
-        public String from() { return ""; }
+        public From from() { return NO_FROM; }
         @Override
         public More[] always() { return NO_MORES; }
         @Override
@@ -680,6 +748,8 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         public Config[] config() { return NO_CONFIGS; }
         @Override
         public More[] more() { return NO_MORES; }
+        @Override
+        public Impl impl() { return NO_IMPL; }
         @Override
         public Class<? extends Annotation> annotationType() {
             return MiQuery.class;
@@ -799,18 +869,26 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         private final int[] mapArgs;
         private String required = null;
 
-        public CallImplTemplate(Method m, Impl impl) {
-            String m0 = impl.method();
+        public CallImplTemplate(Method m, Impl atImpl, Class<?> impl) {
+            Class<?> clazz = atImpl.value();
+            if (clazz == void.class) {
+                clazz = impl;
+                if (clazz == void.class) {
+                    throw new IllegalArgumentException(
+                            "Implementation class required: " + m);
+                }
+            }
+            String m0 = atImpl.method();
             if (m0.isEmpty()) {
                 m0 = m.getName();
             }
-            this.impl = impl.value();
+            this.impl = clazz;
             this.methods = Signatures.collectMethods(
                     this.impl, m0, 
                     Signatures.STATIC | Signatures.PUBLIC, 
                     Signatures.NONE);
-            this.args = impl.args();
-            this.mapArgs = impl.mapArgs();
+            this.args = atImpl.args();
+            this.mapArgs = atImpl.mapArgs();
         }
 
         @Override
@@ -835,6 +913,10 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            if(template.required != null) {
+                handler.put(template.required);
+            }
+            
             args = getActualArgs(template.args, template.mapArgs, args, method);
             Object[] actualArgs = new Object[args.length+1];
             actualArgs[0] = handler;

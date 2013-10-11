@@ -117,7 +117,7 @@ public abstract class MappedStatement<Entity> {
             for (int i = 0; i < c; i++) {
                 columns[i] = meta.getColumnLabel(i+1);
             }
-            return mapping.newSetup(columns).newInitializer(rs);
+            return mapping.newFieldConfiguration(columns).newInitializer(rs);
         }
     }
 }

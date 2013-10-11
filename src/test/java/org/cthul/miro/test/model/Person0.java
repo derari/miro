@@ -1,13 +1,14 @@
 package org.cthul.miro.test.model;
 
-import java.util.List;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.at.*;
 import org.cthul.miro.dsl.View;
 import org.cthul.miro.map.Mapping;
 import org.cthul.miro.dsl.QueryFactoryView;
 import org.cthul.miro.map.*;
-import org.cthul.miro.query.QueryBuilder;
+import org.cthul.miro.result.*;
 import org.cthul.miro.util.CfgSetField;
 import org.cthul.objects.instance.Arg;
 
@@ -51,6 +52,8 @@ public class Person0 {
         where("lastName_LIKE", "lastName LIKE ?");
         using("a")
             .where("city_EQ", "a.city = ?");
+        using("firstName", "lastName")
+            .configure("fullName", new CfgFullName());
     }};
     
     public static class TQuery extends MappedTemplateQuery<Person0> {
@@ -81,17 +84,48 @@ public class Person0 {
         }
     }
     
+    private static class CfgFullName implements EntityConfiguration<Person0> {
+        @Override
+        public EntityInitializer<Person0> newInitializer(ResultSet rs) throws SQLException {
+            return new InitFullName(rs);
+        }
+    }
+    
+    private static class InitFullName extends EntityBuilderBase implements EntityInitializer<Person0> {
+        private final ResultSet rs;
+        private final int cFirstName, cLastName;
+
+        public InitFullName(ResultSet rs) throws SQLException {
+            this.rs = rs;
+            cFirstName = getFieldIndex(rs, "firstName");
+            cLastName = getFieldIndex(rs, "lastName");
+        }
+        @Override
+        public void apply(Person0 entity) throws SQLException {
+            String fn = rs.getString(cFirstName);
+            String ln = rs.getString(cLastName);
+            entity.lastName = fn + " " + ln;
+        }
+        @Override
+        public void complete() throws SQLException { }
+        @Override
+        public void close() throws SQLException { }
+    }
+    
     public static final View<AtQuery> AT_VIEW = new AnnotatedView<>(AtQuery.class, MAPPING);
     
     @MiQuery(
-            select = @Select("p.id, firstName, lastName, a.street, a.city"),
-            from = "People p",
-            join = @Join("Addresses a ON p.addressId = a.id"),
-            more = @More(using="a",
-                where = @Where(key="atAddress",value="a.city = ? AND a.street = ?")),
-            orderBy = @OrderBy(key="asc_$1",value={"lastName", "firstName"})
-            )
-    public static interface AtQuery extends AnnotatedStatement<Person0> {
+    select = @Select("p.id, firstName, lastName, a.street, a.city"),
+    from = @From("People p"),
+    join = @Join("Addresses a ON p.addressId = a.id"),
+    more = @More(require="a",
+        where = @Where(key="atAddress",value="a.city = ? AND a.street = ?")),
+    orderBy = @OrderBy(key="asc_$1",value={"lastName", "firstName"}),
+    impl = @Impl(AtQueryImpl.class)
+    )
+    public static interface AtQuery extends 
+                    AnnotatedMappedStatement<Person0>,
+                    AnnotatedQueryBuilder {
         
         AtQuery with();
         
@@ -109,19 +143,17 @@ public class Person0 {
         @Where("lastName LIKE ?")
         AtQuery lastNameLike(String name);
         
-        @Using("a")
+        @Require("a")
         @Where("a.city = ?")
         AtQuery inCity(String city);
         
         @Impl(value=AtQueryImpl.class, method="atAddress", args={@Arg(t="City2"),@Arg(key="0")})
         AtQuery inCity2(String street);
         
-        @Using({"asc_lastName", "asc_firstName"})
-        AtQuery orderByName();
+        AtQuery atAddress(String city, String street);
         
-        // --- for testing ---
-        String getQueryString();
-        List<Object> getArguments();
+        @Require({"asc_lastName", "asc_firstName"})
+        AtQuery orderByName();
     }
     
     public static String lastAddress = "";

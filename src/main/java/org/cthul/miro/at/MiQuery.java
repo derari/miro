@@ -15,7 +15,7 @@ public @interface MiQuery {
     
     Select[] internal() default {};
     
-    String from() default "";
+    From from() default @From("");
     
     More[] always() default {};
     
@@ -30,4 +30,6 @@ public @interface MiQuery {
     Config[] config() default {};
     
     More[] more() default {};
+    
+    Impl impl() default @Impl(void.class);
 }

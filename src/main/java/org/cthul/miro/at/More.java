@@ -11,7 +11,7 @@ public @interface More {
     
     String key() default "";
     
-    String[] using() default {};
+    String[] require() default {};
     
     Select[] select() default {};
     

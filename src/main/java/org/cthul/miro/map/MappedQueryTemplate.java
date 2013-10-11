@@ -4,6 +4,7 @@ import org.cthul.miro.MiConnection;
 import org.cthul.miro.query.QueryBuilder;
 import org.cthul.miro.query.QueryTemplate;
 import org.cthul.miro.result.EntityConfiguration;
+import org.cthul.miro.result.EntityInitializer;
 
 /**
  *
@@ -24,8 +25,53 @@ public class MappedQueryTemplate<Entity> extends QueryTemplate {
         return mapping;
     }
 
-    protected PartTemplate configure(String[] required, String key, Include include, ConfigurationProvider<Entity> factory) {
-        return addPart(new ConfigPartTemplate(key, include, required, factory));
+    protected PartTemplate configure(String[] required, String key, Include include, ConfigurationProvider<? super Entity> factory) {
+        return addPart(new ConfigPartTemplate<>(key, include, required, factory));
+    }
+
+    @Override
+    protected Using<?> always() {
+        return (Using) super.always();
+    }
+
+    @Override
+    protected Using<?> always(String... keys) {
+        return (Using) super.always(keys);
+    }
+
+    @Override
+    protected Using<?> using() {
+        return (Using) super.using();
+    }
+
+    @Override
+    protected Using<?> using(String... keys) {
+        return (Using) super.using(keys);
+    }
+
+    @Override
+    protected Using<?> using(Include include, String... keys) {
+        return new Using<>(include, keys);
+    }
+    
+    public class Using<This extends Using> extends QueryTemplate.Using<This> {
+
+        public Using(Include include, String[] required) {
+            super(include, required);
+        }
+        
+        public This configure(String key, ConfigurationProvider<? super Entity> factory) {
+            MappedQueryTemplate.this.configure(required, key, include, factory);
+            return _this();
+        }
+        
+        public This configure(String key, EntityConfiguration<? super Entity> cfg) {
+            return configure(key, ConfigurationInstance.asFactory(cfg));
+        }
+        
+        public This configure(String key, EntityInitializer<? super Entity> init) {
+            return configure(key, ConfigurationInstance.asFactory(init));
+        }
     }
     
     protected static class ConfigPartTemplate<Entity> extends PartTemplate {

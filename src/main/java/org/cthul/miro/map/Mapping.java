@@ -94,7 +94,7 @@ public abstract class Mapping<Entity> implements EntityType<Entity> {
         return new FieldValuesSetup(fields);
     }
     
-    public EntityConfiguration<Entity> newSetup(String... fields) {
+    public EntityConfiguration<Entity> newFieldConfiguration(String... fields) {
         return new FieldValuesSetup(fields);
     }
     

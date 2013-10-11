@@ -43,12 +43,12 @@ public class MappingTest {
     }
     
     @Test
-    public void test_newValueAdapter_select_street() throws Exception {
+    public void test_newFieldConfiguration_select_street() throws Exception {
         Address a = new Address();
         try (ResultSet rs = TestDB.getConnection().createStatement()
                         .executeQuery(
                         "SELECT * FROM Addresses WHERE street = 'Street 1'")) {
-            EntityConfiguration<Address> config = Address.MAPPING.newSetup("street");
+            EntityConfiguration<Address> config = Address.MAPPING.newFieldConfiguration("street");
             EntityInitializer<Address> init = config.newInitializer(rs);
             rs.next();
             init.apply(a);
@@ -59,12 +59,12 @@ public class MappingTest {
     }
     
     @Test
-    public void test_newValueAdapter_select_all() throws Exception {
+    public void test_newFieldConfiguration_select_all() throws Exception {
         Address a = new Address();
         try (ResultSet rs = TestDB.getConnection().createStatement()
                         .executeQuery(
                         "SELECT * FROM Addresses WHERE street = 'Street 1'")) {
-            EntityConfiguration<Address> config = Address.MAPPING.newSetup("id", "street", "city");
+            EntityConfiguration<Address> config = Address.MAPPING.newFieldConfiguration("id", "street", "city");
             EntityInitializer<Address> init = config.newInitializer(rs);
             rs.next();
             init.apply(a);

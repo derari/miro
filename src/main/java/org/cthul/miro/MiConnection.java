@@ -38,9 +38,10 @@ public class MiConnection implements AutoCloseable {
     private final List<QueryPreProcessor> preProcessors = new ArrayList<>();
     private boolean closed = false;
 
+    @SuppressWarnings("LeakingThisInConstructor")
     public MiConnection(Connection connection) {
         this.connection = connection;
-        runningExecs.put(executor, true);
+        openConnections.put(this, true);
     }
     
     public void addPreProcessor(QueryPreProcessor qpp) {
@@ -97,7 +98,7 @@ public class MiConnection implements AutoCloseable {
             }
         } finally {
             connection.close();
-            runningExecs.remove(executor);
+            openConnections.remove(this);
         }
     }
     
@@ -143,15 +144,15 @@ public class MiConnection implements AutoCloseable {
     
     // Executor management =====================================================
     
-    private static final ConcurrentMap<ExecutorService, Boolean> runningExecs = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<MiConnection, Boolean> openConnections = new ConcurrentHashMap<>();
 
     static {
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
-                for (ExecutorService e : runningExecs.keySet()) {
+                for (MiConnection cnn : openConnections.keySet()) {
                     try {
-                        e.shutdownNow();
+                        cnn.close();
                     } catch (Throwable t) {
                         t.printStackTrace(System.err);
                     }

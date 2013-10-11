@@ -88,6 +88,16 @@ public class AnnotatedQueryTemplateTest {
     }
     
     @Test
+    public void test_class_impl() {
+        AtQuery qry = select("id, lastName")
+                .from(Persons)
+                .where().atAddress("City2", "Street 1");
+        List<Person0> result = qry.asList()._execute(cnn);
+        assertThat(result, hasSize(1));
+        assertThat(Person0.lastAddress, is("City2, Street 1"));
+    }
+    
+    @Test
     public void test_order() {
         AtQuery qry = select().from(Persons).orderByName();
         List<Person0> result = qry.asList()._execute(cnn);

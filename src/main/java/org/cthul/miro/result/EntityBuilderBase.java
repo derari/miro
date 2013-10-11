@@ -9,7 +9,7 @@ import java.util.List;
  */
 public class EntityBuilderBase {
     
-    protected int[] getFieldIndices(ResultSet rs, String[] fields) throws SQLException {
+    protected int[] getFieldIndices(ResultSet rs, String... fields) throws SQLException {
         final int[] indices = new int[fields.length];
         for (int i = 0; i < indices.length; i++) {
             indices[i] = rs.findColumn(fields[i]);
@@ -25,4 +25,7 @@ public class EntityBuilderBase {
         return indices;
     }
     
+    protected int getFieldIndex(ResultSet rs, String field) throws SQLException {
+        return rs.findColumn(field);
+    }
 }
