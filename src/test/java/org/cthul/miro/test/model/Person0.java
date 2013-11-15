@@ -19,6 +19,7 @@ public class Person0 {
     String lastName = null;
     String street = null;
     String city = null;
+    String someFlag = null;
 
     public int getId() {
         return id;
@@ -38,6 +39,10 @@ public class Person0 {
 
     public String getCity() {
         return city;
+    }
+
+    public String getSomeFlag() {
+        return someFlag;
     }
     
     public static View<TQuery> VIEW = new QueryFactoryView<>(TQuery.class);
@@ -113,6 +118,7 @@ public class Person0 {
     }
     
     public static final View<AtQuery> AT_VIEW = new AnnotatedView<>(AtQuery.class, MAPPING);
+    public static final View<AtQuery2> AT_VIEW2 = new AnnotatedView<>(AtQuery2.class, MAPPING);
     
     @MiQuery(
     select = @Select("p.id, firstName, lastName, a.street, a.city"),
@@ -156,6 +162,13 @@ public class Person0 {
         AtQuery orderByName();
     }
     
+    @Always(@More(
+        config = @Config(impl=InitSomeFlag.class, args=@Arg(x=true))
+    ))
+    public static interface AtQuery2 extends AtQuery {
+        
+    }
+    
     public static String lastAddress = "";
     
     private static class AtQueryImpl {
@@ -164,5 +177,24 @@ public class Person0 {
             qry.put("atAddress", city, street);
             lastAddress = city + ", " + street;
         }
+    }
+    
+    public static class InitSomeFlag implements EntityInitializer<Person0> {
+        private boolean flag;
+
+        public InitSomeFlag(boolean flag) {
+            this.flag = flag;
+        }
+
+        @Override
+        public void apply(Person0 entity) throws SQLException {
+            entity.someFlag = flag ? "true" : "false";
+        }
+
+        @Override
+        public void complete() throws SQLException { }
+
+        @Override
+        public void close() throws SQLException { }
     }
 }

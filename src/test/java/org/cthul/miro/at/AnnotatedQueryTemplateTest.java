@@ -6,6 +6,7 @@ import org.cthul.miro.dsl.View;
 import org.cthul.miro.test.TestDB;
 import org.cthul.miro.test.model.Person0;
 import org.cthul.miro.test.model.Person0.AtQuery;
+import org.cthul.miro.test.model.Person0.AtQuery2;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.hamcrest.MatcherAssert.*;
@@ -18,6 +19,7 @@ import static org.cthul.miro.dsl.Select.*;
 public class AnnotatedQueryTemplateTest {
     
     private View<AtQuery> Persons = Person0.AT_VIEW;
+    private View<AtQuery2> Persons2 = Person0.AT_VIEW2;
     
     @BeforeClass
     public static void setUpClass() {
@@ -103,5 +105,12 @@ public class AnnotatedQueryTemplateTest {
         List<Person0> result = qry.asList()._execute(cnn);
         Person0 p1 = result.get(0);
         assertThat(p1.getFirstName(), is("Jane"));
+    }
+    
+    @Test
+    public void test_always() {
+        AtQuery qry = select().from(Persons2);
+        Person0 p1 = qry.getFirst()._execute(cnn);
+        assertThat(p1.getSomeFlag(), is("true"));
     }
 }

@@ -1,5 +1,9 @@
 package org.cthul.miro;
 
+import java.net.URLClassLoader;
+import java.nio.channels.AsynchronousChannel;
+import java.nio.channels.AsynchronousFileChannel;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -7,6 +11,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ResourceBundle;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.*;
 import org.cthul.miro.dsl.Select;
@@ -18,23 +24,9 @@ import org.cthul.miro.util.FutureBase;
 public class MiConnection implements AutoCloseable {
 
     private final Connection connection;
+    private final ExecutorService actionExecutor;
+    private final ExecutorService queryExecutor;
     private final Set<Thread> execThreads = Collections.synchronizedSet(new HashSet<Thread>());
-    private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
-        @Override
-        public Thread newThread(final Runnable r) {
-            return new Thread(){
-                @Override
-                public void run() {
-                    execThreads.add(this);
-                    try {
-                        r.run();
-                    } finally {
-                        execThreads.remove(this);
-                    }
-                }
-            };
-        }
-    });
     private final List<QueryPreProcessor> preProcessors = new ArrayList<>();
     private boolean closed = false;
 
@@ -42,6 +34,30 @@ public class MiConnection implements AutoCloseable {
     public MiConnection(Connection connection) {
         this.connection = connection;
         openConnections.put(this, true);
+        ThreadFactory tf = new ThreadFactory() {
+            @Override
+            public Thread newThread(final Runnable r) {
+                return new Thread(){
+                    @Override
+                    public void run() {
+                        execThreads.add(this);
+                        try {
+                            r.run();
+                        } finally {
+                            execThreads.remove(this);
+                        }
+                    }
+                };
+            }
+        };
+        queryExecutor = Executors.newFixedThreadPool(3, tf);
+        actionExecutor = newDynamicThreadPool(8, tf);
+        AsynchronousFileChannel c = null;
+        Files.readAllLines(null, null)
+    }
+    
+    private ExecutorService newDynamicThreadPool(int max, ThreadFactory tf) {
+        return new ThreadPoolExecutor(1, max, 15, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), tf);
     }
     
     public void addPreProcessor(QueryPreProcessor qpp) {
@@ -65,13 +81,17 @@ public class MiConnection implements AutoCloseable {
     }
 
     /* MiPreparedStatement */
-    protected Future<?> submit(Runnable queryCommand) {
-        return executor.submit(queryCommand);
+    protected Future<?> submitQuery(Runnable queryCommand) {
+        return actionExecutor.submit(queryCommand);
+    }
+    
+    private Future<?> submitAction(Runnable queryCommand) {
+        return actionExecutor.submit(queryCommand);
     }
 
     public <P, R> MiFuture<R> submit(MiFutureAction<P, R> action, P arg) {
         ActionResult<P, R> result = new ActionResult<>(action, arg);
-        result.cancelDelegate = submit(result);
+        result.cancelDelegate = submitAction(result);
         return result;
     }
 
@@ -89,12 +109,12 @@ public class MiConnection implements AutoCloseable {
         try {
             boolean terminated = false;
             try {
-                terminated = executor.awaitTermination(100, TimeUnit.MILLISECONDS);
+                terminated = actionExecutor.awaitTermination(100, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
             if (!terminated) {
-                executor.shutdownNow();
+                actionExecutor.shutdownNow();
             }
         } finally {
             connection.close();

@@ -23,7 +23,7 @@ public class MiPreparedStatement {
 
     public MiFuture<ResultSet> submitQuery(Object[] args) {
         QueryRun query = new QueryRun(this, args);
-        query.setFutureDelegate(cnn.submit(query));
+        query.setFutureDelegate(cnn.submitQuery(query));
         return query.getResult();
     }
 

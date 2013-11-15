@@ -7,6 +7,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.cthul.miro.MiConnection;
 import org.cthul.miro.MiFuture;
 import org.cthul.miro.MiFutureAction;
 
@@ -18,6 +19,7 @@ import org.cthul.miro.MiFutureAction;
  */
 public abstract class FutureBase<V> implements MiFuture<V> {
 
+    private final MiConnection cnn;
     private final Object lock = new Object();
     private final Future<?> cancelDelegate;
     private boolean done = false;
@@ -26,8 +28,13 @@ public abstract class FutureBase<V> implements MiFuture<V> {
     private OnComplete<? super MiFuture<V>, ?> onCompleteListener = null;
     private List<OnComplete<? super MiFuture<V>, ?>> onCompleteListeners = null;
 
-    public FutureBase(Future<?> cancelDelegate) {
+    public FutureBase(MiConnection cnn, Future<?> cancelDelegate) {
+        this.cnn = cnn;
         this.cancelDelegate = cancelDelegate;
+    }
+
+    public FutureBase(Future<?> cancelDelegate) {
+        this(null, cancelDelegate);
     }
 
     protected Future<?> getCancelDelegate() {
@@ -99,7 +106,11 @@ public abstract class FutureBase<V> implements MiFuture<V> {
     }
 
     protected void trigger(OnComplete<? super MiFuture<V>, ?> listener) {
-        listener.call(this);
+        if (cnn != null) {
+            cnn.submit(listener, this);
+        } else {
+            listener.call(this);
+        }
     }
 
     @Override
@@ -217,7 +228,7 @@ public abstract class FutureBase<V> implements MiFuture<V> {
 
     @Override
     public <R> MiFuture<R> onComplete(MiFutureAction<? super MiFuture<V>, R> action) {
-        OnComplete<? super MiFuture<V>, R> listener = new OnComplete<>(cancelDelegate, action);
+        OnComplete<? super MiFuture<V>, R> listener = new OnComplete<>(cnn, cancelDelegate, action);
         if (done) {
             trigger(listener);
             return listener;
@@ -227,13 +238,15 @@ public abstract class FutureBase<V> implements MiFuture<V> {
                 trigger(listener);
                 return listener;
             }
-            if (onCompleteListener == null) {
+            if (onCompleteListeners != null) {
+                onCompleteListeners.add(listener);
+            } else if (onCompleteListener == null) {
                 onCompleteListener = listener;
             } else {
-                if (onCompleteListeners == null) {
-                    onCompleteListeners = new ArrayList<>();
-                }
+                onCompleteListeners = new ArrayList<>();
+                onCompleteListeners.add(onCompleteListener);
                 onCompleteListeners.add(listener);
+                onCompleteListener = null;
             }
         }
         return listener;
@@ -279,16 +292,17 @@ public abstract class FutureBase<V> implements MiFuture<V> {
         });
     }
 
-    protected static class OnComplete<Param, Result> extends FutureBase<Result> {
-
+    protected static class OnComplete<Param, Result> extends FutureBase<Result> implements MiFutureAction<Param, Result> {
+        
         private final MiFutureAction<Param, Result> action;
 
-        public OnComplete(Future<?> cancelDelegate, MiFutureAction<Param, Result> action) {
-            super(cancelDelegate);
+        public OnComplete(MiConnection cnn, Future<?> cancelDelegate, MiFutureAction<Param, Result> action) {
+            super(cnn, cancelDelegate);
             this.action = action;
         }
 
-        protected void call(Param param) {
+        @Override
+        public Result call(Param param) {
             final Result result;
             try {
                 result = action.call(param);
@@ -300,9 +314,10 @@ public abstract class FutureBase<V> implements MiFuture<V> {
                 if (t instanceof InterruptedException) {
                     Thread.currentThread().interrupt();
                 }
-                return;
+                return null;
             }
             setValue(result);
+            return result;
         }
     }
 }

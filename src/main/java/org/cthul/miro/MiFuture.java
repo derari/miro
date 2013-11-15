@@ -62,7 +62,7 @@ public interface MiFuture<V> extends Future<V> {
     Throwable getException();
     
     /**
-     * Like {@link #_get()}, but without checked exceptions.
+     * Like {@link #get()}, but without checked exceptions.
      */
     V _get();
 

@@ -358,6 +358,14 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
             } else if (atImpl != null || impl != void.class) {
                 invBuilder = buildInvocation(m, atImpl, impl);
             }
+        } else {
+            // class side, just add all to parts
+            if (whereParts != null) {
+                parts.addAll(whereParts);
+            }
+            if (configParts != null) {
+                parts.addAll(configParts);
+            }
         }
         
         final PartTemplate requiredPart;
@@ -433,7 +441,16 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
             }
             @Override
             public More[] always() {
-                return query.always();
+                More[] qryAlways = query.always();
+                Always atAlways = c.getAnnotation(Always.class);
+                if (qryAlways.length > 0 && atAlways != null) {
+                    throw new IllegalArgumentException(
+                            "Expected only one of @Always an @MiQuery.always: " + c);
+                }
+                if (atAlways != null) {
+                    return atAlways.value();
+                }
+                return qryAlways;
             }
             @Override
             public More[] byDefault() {
@@ -797,7 +814,11 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         @Override
         public <E extends Entity> EntityConfiguration<? super E> getConfiguration(MiConnection cnn, Mapping<E> mapping) {
             Class[] unknownTypes = null;
-            Object o = Instances.newInstance(config.impl(), config.factory(), unknownTypes, arguments);
+            Object[] values = arguments;
+            if (values == null) {
+                values = getActualArgs(config.args(), NO_ARGS_MAP, NO_ARGS, config);
+            }
+            Object o = Instances.newInstance(config.impl(), config.factory(), unknownTypes, values);
             return ConfigurationInstance.asConfiguration(o, cnn, mapping);
         }
 
@@ -887,6 +908,10 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
                     this.impl, m0, 
                     Signatures.STATIC | Signatures.PUBLIC, 
                     Signatures.NONE);
+            if (methods.length == 0) {
+                throw new IllegalArgumentException(
+                        "No methods '" + m0 + "' in " + impl);
+            }
             this.args = atImpl.args();
             this.mapArgs = atImpl.mapArgs();
         }

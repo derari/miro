@@ -1,10 +1,10 @@
 package org.cthul.miro.cursor;
 
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.cthul.miro.MiFuture;
 import org.cthul.miro.MiFutureAction;
-import org.cthul.miro.cursor.FutureCursor;
-import org.cthul.miro.cursor.ResultCursor;
 import org.cthul.miro.util.FutureDelegator;
 
 /**
@@ -19,32 +19,75 @@ public class FutureCursorDelegator<V> extends FutureDelegator<ResultCursor<V>> i
     }
 
     @Override
-    public <R> MiFuture<R> onCompleteC(final MiFutureAction<? super FutureCursor<V>, R> action) {
-        return onComplete(new MiFutureAction<Object, R>() {
+    public Iterator<V> iterator() {
+        return _get().iterator();
+    }
+
+    @Override
+    public void close() {
+        sendClose();
+    }
+
+    @Override
+    public boolean beClosed() {
+        return sendClose().beDone();
+    }
+
+    @Override
+    public boolean beClosed(long timeout, TimeUnit unit) {
+        return sendClose().beDone(timeout, unit);
+    }
+
+    @Override
+    public void waitUntilClosed() throws InterruptedException {
+        sendClose().waitUntilDone();
+    }
+
+    @Override
+    public void waitUntilClosed(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
+        sendClose().waitUntilDone(timeout, unit);
+    }
+
+    @Override
+    public MiFutureAction<Object, Boolean> closeAction() {
+        return new MiFutureAction<Object, Boolean>() {
             @Override
-            public R call(Object param) throws Exception {
+            public Boolean call(Object arg) throws Exception {
+                if (hasResult()) {
+                    getResult().close();
+                }
+                return true;
+            }
+        };
+    }
+
+    @Override
+    public MiFuture<Boolean> sendClose() {
+        return onComplete(closeCursorAction());
+    }
+    
+    @Override
+    public <R> MiFuture<R> onCursorComplete(final MiFutureAction<? super FutureCursor<V>, R> action) {
+        return onComplete(new MiFutureAction<MiFuture<ResultCursor<V>>, R>() {
+            @Override
+            public R call(MiFuture<ResultCursor<V>> arg) throws Exception {
+                assert arg == getDelegatee();
                 return action.call(FutureCursorDelegator.this);
             }
         });
     }
 
-    @Override
-    public void close() {
-        onComplete(CLOSE_ACTION);
-    }
-
-    @Override
-    public Iterator<V> iterator() {
-        return _get().iterator();
+    public static MiFutureAction<MiFuture<? extends AutoCloseable>, Boolean> closeCursorAction() {
+        return CLOSE_ACTION;
     }
     
-    protected static MiFutureAction<MiFuture<? extends AutoCloseable>, ?> CLOSE_ACTION = new MiFutureAction<MiFuture<? extends AutoCloseable>, Void>() {
+    protected static MiFutureAction<MiFuture<? extends AutoCloseable>, Boolean> CLOSE_ACTION = new MiFutureAction<MiFuture<? extends AutoCloseable>, Boolean>() {
         @Override
-        public Void call(MiFuture<? extends AutoCloseable> f) throws Exception {
+        public Boolean call(MiFuture<? extends AutoCloseable> f) throws Exception {
             if (f.hasResult()) {
                 f.getResult().close();
             }
-            return null;
+            return true;
         }
     };
 }
