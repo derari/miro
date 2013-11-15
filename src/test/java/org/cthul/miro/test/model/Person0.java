@@ -5,7 +5,7 @@ import java.sql.SQLException;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.at.*;
 import org.cthul.miro.dsl.View;
-import org.cthul.miro.map.Mapping;
+import org.cthul.miro.map.SimpleMapping;
 import org.cthul.miro.dsl.QueryFactoryView;
 import org.cthul.miro.map.*;
 import org.cthul.miro.result.*;
@@ -47,7 +47,7 @@ public class Person0 {
     
     public static View<TQuery> VIEW = new QueryFactoryView<>(TQuery.class);
     
-    private static final Mapping<Person0> MAPPING = new ReflectiveMapping<>(Person0.class);
+    private static final SimpleMapping<Person0> MAPPING = new ReflectiveMapping<>(Person0.class);
     
     private static final MappedQueryTemplate<Person0> TEMPLATE = new MappedQueryTemplate<Person0>() {{
         select("p.id", "firstName", "lastName",

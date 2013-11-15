@@ -7,7 +7,7 @@ import org.cthul.miro.MiConnection;
  */
 public abstract class AbstractMappedStatement<Entity> extends MappedStatement<Entity> {
 
-    public AbstractMappedStatement(MiConnection cnn, Mapping<Entity> mapping) {
+    public AbstractMappedStatement(MiConnection cnn, SimpleMapping<Entity> mapping) {
         super(cnn, mapping);
     }
 

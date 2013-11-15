@@ -5,8 +5,8 @@ import java.util.Arrays;
 import java.util.List;
 import org.cthul.miro.dsl.*;
 import org.cthul.miro.map.MappedQueryTemplate;
-import org.cthul.miro.map.Mapping;
-import org.cthul.miro.query.QueryBuilder.QueryPart;
+import org.cthul.miro.map.SimpleMapping;
+import org.cthul.miro.query.ZQueryBuilder.QueryPart;
 import org.cthul.miro.query.QueryTemplate.PartTemplate;
 
 /**
@@ -16,7 +16,7 @@ public class GraphQueryTemplate<Entity> extends MappedQueryTemplate<Entity> {
     
     private final List<String> keys = new ArrayList<>();
 
-    public GraphQueryTemplate(Mapping<Entity> mapping) {
+    public GraphQueryTemplate(SimpleMapping<Entity> mapping) {
         super(mapping);
     }
 

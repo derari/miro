@@ -2,20 +2,20 @@ package org.cthul.miro.map;
 
 import java.util.List;
 import org.cthul.miro.*;
-import org.cthul.miro.query.QueryBuilder;
+import org.cthul.miro.query.ZQueryBuilder;
 import org.cthul.miro.result.*;
 
 /**
- * Converts a {@link QueryBuilder} into a {@link MappedStatement}
+ * Converts a {@link ZQueryBuilder} into a {@link MappedStatement}
  * @param <Entity> 
  */
 public abstract class AbstractMappedQueryBuilder<Entity> extends MappedStatement<Entity> {
 
-    public AbstractMappedQueryBuilder(MiConnection cnn, Mapping<Entity> mapping) {
+    public AbstractMappedQueryBuilder(MiConnection cnn, SimpleMapping<Entity> mapping) {
         super(cnn, mapping);
     }
 
-    protected abstract QueryBuilder queryBuilder();
+    protected abstract ZQueryBuilder queryBuilder();
 
     @Override
     protected List<String> selectedFields() {
@@ -56,7 +56,7 @@ public abstract class AbstractMappedQueryBuilder<Entity> extends MappedStatement
     @Override
     protected void addMoreConfigs(MiConnection cnn, List<EntityConfiguration<? super Entity>> configs) {
         super.addMoreConfigs(cnn, configs);
-        for (QueryBuilder.QueryPart qp: queryBuilder().getAllParts()) {
+        for (ZQueryBuilder.QueryPart qp: queryBuilder().getAllParts()) {
             if (qp instanceof ConfigurationProvider) {
                 ConfigurationProvider<? super Entity> sp = (ConfigurationProvider<Entity>) qp;
                 configs.add(sp.getConfiguration(cnn, mapping));

@@ -9,7 +9,7 @@ import org.cthul.miro.graph.GraphQuery;
 import org.cthul.miro.graph.GraphQueryTemplate;
 import org.cthul.miro.map.MappedQueryTemplate; 
 import org.cthul.miro.map.MappedTemplateQuery;
-import org.cthul.miro.map.Mapping;
+import org.cthul.miro.map.SimpleMapping;
 import org.cthul.miro.map.ReflectiveMapping;
 
 public class Address {
@@ -38,7 +38,7 @@ public class Address {
     public static final View<Query> VIEW = new QueryFactoryView<>(Query.class);
     
     // test-public
-    public static final Mapping<Address> MAPPING = new ReflectiveMapping<>(Address.class);
+    public static final SimpleMapping<Address> MAPPING = new ReflectiveMapping<>(Address.class);
     
     // test-public
     public static final MappedQueryTemplate<Address> TEMPLATE = new MappedQueryTemplate<Address>() {{

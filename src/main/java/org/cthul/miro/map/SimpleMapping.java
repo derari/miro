@@ -19,12 +19,12 @@ import org.cthul.miro.result.ResultBuilders;
  *
  * @param <Entity>
  */
-public abstract class Mapping<Entity> implements EntityType<Entity> {
+public abstract class SimpleMapping<Entity> implements EntityType<Entity> {
 
     private final Class<Entity> entityClass;
     private ResultBuilder<Entity[], Entity> arrayResultBuilder = null;
 
-    public Mapping(Class<Entity> recordClass) {
+    public SimpleMapping(Class<Entity> recordClass) {
         this.entityClass = recordClass;
     }
 
@@ -184,17 +184,17 @@ public abstract class Mapping<Entity> implements EntityType<Entity> {
                     argsBuf[i] = rs.getObject(argColumns[i]);
                 }
             }
-            return Mapping.this.newRecord(argsBuf);
+            return SimpleMapping.this.newRecord(argsBuf);
         }
 
         @Override
         public Entity newCursorValue(ResultCursor<? super Entity> rc) throws SQLException {
-            return Mapping.this.newCursorValue(rc);
+            return SimpleMapping.this.newCursorValue(rc);
         }
 
         @Override
         public Entity copy(Entity e) throws SQLException {
-            return Mapping.this.copy(e);
+            return SimpleMapping.this.copy(e);
         }
 
         @Override

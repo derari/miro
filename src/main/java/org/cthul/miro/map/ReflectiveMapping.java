@@ -8,10 +8,10 @@ import org.cthul.miro.cursor.ResultCursor;
 import java.lang.reflect.InvocationTargetException;
 
 /**
- * A {@link Mapping} that uses reflection to set fields and create entities by default.
+ * A {@link SimpleMapping} that uses reflection to set fields and create entities by default.
  * @param <Type> 
  */
-public class ReflectiveMapping<Type> extends Mapping<Type> {
+public class ReflectiveMapping<Type> extends SimpleMapping<Type> {
 
     private final Constructor<? extends Type> newRecord;
     private final Constructor<? extends Type> newCursor;

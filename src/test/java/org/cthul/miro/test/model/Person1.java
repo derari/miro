@@ -8,7 +8,7 @@ import org.cthul.miro.dsl.View;
 import org.cthul.miro.graph.GraphQuery;
 import org.cthul.miro.graph.GraphQueryTemplate;
 import org.cthul.miro.graph.SelectByKey;
-import org.cthul.miro.map.Mapping;
+import org.cthul.miro.map.SimpleMapping;
 import org.cthul.miro.map.ReflectiveMapping;
 
 /**
@@ -39,7 +39,7 @@ public class Person1 {
     
     public static View<Query> VIEW = new QueryFactoryView<>(Query.class);
     
-    private static final Mapping<Person1> MAPPING = new ReflectiveMapping<>(Person1.class);
+    private static final SimpleMapping<Person1> MAPPING = new ReflectiveMapping<>(Person1.class);
     
     private static final GraphQueryTemplate<Person1> TEMPLATE = new GraphQueryTemplate<Person1>() {{
         key("id");

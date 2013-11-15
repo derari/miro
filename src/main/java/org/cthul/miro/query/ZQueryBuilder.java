@@ -5,7 +5,7 @@ import java.util.*;
 /**
  * Composes an SQL query string from query parts.
  */
-public abstract class QueryBuilder {
+public abstract class ZQueryBuilder {
     
     private final List<String> selectedFields = new ArrayList<>();
     private final List<QueryPart> selectParts = new ArrayList<>();
@@ -22,7 +22,7 @@ public abstract class QueryBuilder {
     private List<String> publicSelectedFields = null;
     
 
-    public QueryBuilder() {
+    public ZQueryBuilder() {
     }
     
     protected List<String> selectedFields() {
@@ -219,6 +219,11 @@ public abstract class QueryBuilder {
     protected void putUnknownKey(String key, String subKey, Object[] args) {
         throw new IllegalArgumentException("Unknown key: " + key);
     }
+    
+    // SELECT f FROM t JOIN t2 WHERE w
+    // UPDATE t JOIN t2 SET f=x, g=y WHERE w
+    // INSERT INTO t(f,g) VALUES x,y
+    // DELETE FROM t WHERE w
     
     public String getQueryString() {
         final StringBuilder query = new StringBuilder();

@@ -7,8 +7,8 @@ import org.cthul.miro.MiConnection;
 import org.cthul.miro.graph.GraphQueryTemplate;
 import org.cthul.miro.map.ConfigurationProvider;
 import org.cthul.miro.map.ConfigurationInstance;
-import org.cthul.miro.map.Mapping;
-import org.cthul.miro.query.QueryBuilder;
+import org.cthul.miro.map.SimpleMapping;
+import org.cthul.miro.query.ZQueryBuilder;
 import org.cthul.miro.result.EntityConfiguration;
 import org.cthul.objects.instance.Arg;
 import org.cthul.objects.instance.*;
@@ -23,7 +23,7 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
     private final Set<Class<?>> interfaces = new HashSet<>();
     private int generatedIDs = 0;
 
-    public AnnotatedQueryTemplate(Mapping<Entity> mapping) {
+    public AnnotatedQueryTemplate(SimpleMapping<Entity> mapping) {
         super(mapping);
     }
 
@@ -798,12 +798,12 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         }
         
         @Override
-        public QueryBuilder.QueryPart createPart(String alias) {
+        public ZQueryBuilder.QueryPart createPart(String alias) {
             return new AtConfigQueryPart(config, alias);
         }
     }
     
-    private static class AtConfigQueryPart<Entity> extends QueryBuilder.QueryPart implements ConfigurationProvider<Entity> {
+    private static class AtConfigQueryPart<Entity> extends ZQueryBuilder.QueryPart implements ConfigurationProvider<Entity> {
         private final Config config;
 
         public AtConfigQueryPart(Config config, String key) {
@@ -812,7 +812,7 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         }
 
         @Override
-        public <E extends Entity> EntityConfiguration<? super E> getConfiguration(MiConnection cnn, Mapping<E> mapping) {
+        public <E extends Entity> EntityConfiguration<? super E> getConfiguration(MiConnection cnn, SimpleMapping<E> mapping) {
             Class[] unknownTypes = null;
             Object[] values = arguments;
             if (values == null) {
@@ -823,8 +823,8 @@ public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
         }
 
         @Override
-        public QueryBuilder.PartType getPartType() {
-            return QueryBuilder.PartType.OTHER;
+        public ZQueryBuilder.PartType getPartType() {
+            return ZQueryBuilder.PartType.OTHER;
         }
     }
     

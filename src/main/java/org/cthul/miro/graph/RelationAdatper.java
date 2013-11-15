@@ -4,7 +4,7 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import org.cthul.miro.dsl.View;
-import org.cthul.miro.map.Mapping;
+import org.cthul.miro.map.SimpleMapping;
 
 /**
  *
@@ -13,7 +13,7 @@ public class RelationAdatper<Entity> { // extends ValueAdapterBase<Entity> {
 
     private final Graph graph;
     private final View<? extends SelectByKey<?>> view;
-    private final Mapping<Entity> mapping;
+    private final SimpleMapping<Entity> mapping;
     private final String field;
     private final String[] refFields;
     private final boolean compositeKey;
@@ -23,7 +23,7 @@ public class RelationAdatper<Entity> { // extends ValueAdapterBase<Entity> {
     private final List<Object> refKeys = new ArrayList<>();
     private final List<Entity> values = new ArrayList<>();
 
-    public RelationAdatper(Graph graph, View<? extends SelectByKey<?>> view, Mapping<Entity> mapping, String field, String[] refFields) {
+    public RelationAdatper(Graph graph, View<? extends SelectByKey<?>> view, SimpleMapping<Entity> mapping, String field, String[] refFields) {
         this.graph = graph;
         this.view = view;
         this.mapping = mapping;

@@ -1,7 +1,7 @@
 package org.cthul.miro.map;
 
 import org.cthul.miro.MiConnection;
-import org.cthul.miro.query.QueryBuilder;
+import org.cthul.miro.query.ZQueryBuilder;
 import org.cthul.miro.query.QueryTemplate;
 import org.cthul.miro.result.EntityConfiguration;
 import org.cthul.miro.result.EntityInitializer;
@@ -11,9 +11,9 @@ import org.cthul.miro.result.EntityInitializer;
  */
 public class MappedQueryTemplate<Entity> extends QueryTemplate {
     
-    private final Mapping<Entity> mapping;
+    private final SimpleMapping<Entity> mapping;
 
-    public MappedQueryTemplate(Mapping<Entity> mapping) {
+    public MappedQueryTemplate(SimpleMapping<Entity> mapping) {
         this.mapping = mapping;
     }
 
@@ -21,7 +21,7 @@ public class MappedQueryTemplate<Entity> extends QueryTemplate {
         this.mapping = null;
     }
     
-    public Mapping<Entity> getMapping() {
+    public SimpleMapping<Entity> getMapping() {
         return mapping;
     }
 
@@ -83,21 +83,21 @@ public class MappedQueryTemplate<Entity> extends QueryTemplate {
         }
 
         @Override
-        public QueryBuilder.QueryPart createPart(String alias) {
+        public ZQueryBuilder.QueryPart createPart(String alias) {
             return new ConfigQueryPart(alias, factory);
         }
     }
     
-    protected static class ConfigQueryPart<Entity> extends QueryBuilder.CustomPart implements ConfigurationProvider<Entity> {
+    protected static class ConfigQueryPart<Entity> extends ZQueryBuilder.CustomPart implements ConfigurationProvider<Entity> {
         private final ConfigurationProvider<Entity> factory;
 
         public ConfigQueryPart(String key, ConfigurationProvider<Entity> factory) {
-            super(key, QueryBuilder.PartType.OTHER, null);
+            super(key, ZQueryBuilder.PartType.OTHER, null);
             this.factory = factory;
         }
 
         @Override
-        public <E extends Entity> EntityConfiguration<? super E> getConfiguration(MiConnection cnn, Mapping<E> mapping) {
+        public <E extends Entity> EntityConfiguration<? super E> getConfiguration(MiConnection cnn, SimpleMapping<E> mapping) {
             return factory.getConfiguration(cnn, mapping);
         }   
     }

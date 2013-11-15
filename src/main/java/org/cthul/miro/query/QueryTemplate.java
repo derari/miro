@@ -5,8 +5,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.cthul.miro.query.QueryBuilder.PartType;
-import org.cthul.miro.query.QueryBuilder.QueryPart;
+import org.cthul.miro.query.ZQueryBuilder.PartType;
+import org.cthul.miro.query.ZQueryBuilder.QueryPart;
 import org.cthul.miro.util.SqlUtils;
 
 /**
