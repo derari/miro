@@ -4,7 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.map.ConfigurationProvider;
-import org.cthul.miro.map.Mapping;
+import org.cthul.miro.map.SimpleMapping;
 import org.cthul.miro.result.EntityConfiguration;
 import org.cthul.miro.result.EntityInitializer;
 
@@ -19,15 +19,15 @@ public class CfgSetField<Entity> implements ConfigurationProvider<Entity> {
     }
 
     @Override
-    public <E extends Entity> EntityConfiguration<E> getConfiguration(MiConnection cnn, Mapping<E> mapping) {
+    public <E extends Entity> EntityConfiguration<E> getConfiguration(MiConnection cnn, SimpleMapping<E> mapping) {
         return new Config<>(mapping);
     }
     
     protected class Config<E> implements EntityConfiguration<E>, EntityInitializer<E> {
         
-        private final Mapping<E> mapping;
+        private final SimpleMapping<E> mapping;
 
-        public Config(Mapping<E> mapping) {
+        public Config(SimpleMapping<E> mapping) {
             this.mapping = mapping;
         }
         

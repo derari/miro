@@ -14,21 +14,21 @@ public class MappedQueryString<Entity> extends AbstractMappedStatement<Entity> {
     private Object[] arguments;
     private List<Object> configs = null;
 
-    public MappedQueryString(MiConnection cnn, Mapping<Entity> mapping, List<String> fields, String query, Object... arguments) {
+    public MappedQueryString(MiConnection cnn, SimpleMapping<Entity> mapping, List<String> fields, String query, Object... arguments) {
         super(cnn, mapping);
         this.fields = fields;
         this.query = query;
         this.arguments = arguments;
     }
     
-    public MappedQueryString(MiConnection cnn, Mapping<Entity> mapping, List<String> fields, String query) {
+    public MappedQueryString(MiConnection cnn, SimpleMapping<Entity> mapping, List<String> fields, String query) {
         super(cnn, mapping);
         this.fields = fields;
         this.query = query;
         this.arguments = null;
     }
     
-    public MappedQueryString(MiConnection cnn, Mapping<Entity> mapping, String query, String... fields) {
+    public MappedQueryString(MiConnection cnn, SimpleMapping<Entity> mapping, String query, String... fields) {
         super(cnn, mapping);
         this.fields = Arrays.asList(fields);
         this.query = query;

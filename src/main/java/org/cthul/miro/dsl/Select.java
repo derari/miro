@@ -4,7 +4,7 @@ import java.util.Arrays;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.map.MappedQueryString;
 import org.cthul.miro.map.MappedStatement;
-import org.cthul.miro.map.Mapping;
+import org.cthul.miro.map.SimpleMapping;
 
 public class Select {
 
@@ -41,7 +41,7 @@ public class Select {
         return view.select(cnn, fields);
     }
     
-    public <T> MappedStatement<T> fromQuery(Mapping<T> mapping, String query, Object... args) {
+    public <T> MappedStatement<T> fromQuery(SimpleMapping<T> mapping, String query, Object... args) {
         String[] select = fields;
         if (select.length == 0 || 
                 (select.length == 1 && select[0].equals("*"))) {

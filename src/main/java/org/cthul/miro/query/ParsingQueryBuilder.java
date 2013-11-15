@@ -5,7 +5,7 @@ import org.cthul.miro.util.SqlUtils;
 /**
  *
  */
-public class ParsingQueryBuilder extends QueryBuilder {
+public class ParsingQueryBuilder extends ZQueryBuilder {
 
     public ParsingQueryBuilder() {
     }

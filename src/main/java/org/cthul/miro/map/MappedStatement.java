@@ -17,9 +17,9 @@ import org.cthul.miro.result.ResultBuilder;
 public abstract class MappedStatement<Entity> {
 
     private final MiConnection cnn;
-    protected final Mapping<Entity> mapping;
+    protected final SimpleMapping<Entity> mapping;
 
-    public MappedStatement(MiConnection cnn, Mapping<Entity> mapping) {
+    public MappedStatement(MiConnection cnn, SimpleMapping<Entity> mapping) {
         this.cnn = cnn;
         this.mapping = mapping;
     }

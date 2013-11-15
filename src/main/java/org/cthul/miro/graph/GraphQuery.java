@@ -27,7 +27,7 @@ public class GraphQuery<Entity> extends MappedTemplateQuery<Entity>
         this.view = view;
     }
 
-    public GraphQuery(MiConnection cnn, Mapping<Entity> mapping, GraphQueryTemplate<Entity> template, View<? extends SelectByKey<?>> view) {
+    public GraphQuery(MiConnection cnn, SimpleMapping<Entity> mapping, GraphQueryTemplate<Entity> template, View<? extends SelectByKey<?>> view) {
         super(cnn, mapping, template);
         this.template = template;
         this.view = view;
@@ -123,7 +123,7 @@ public class GraphQuery<Entity> extends MappedTemplateQuery<Entity>
 //    private Entity[] intoValues;
 //    private Object[] keys;
 //    
-//    public GraphQuery(MiConnection cnn, Mapping<Entity> mapping, GraphQueryTemplate<Entity> template, View<? extends SelectByKey<?>> view) {
+//    public GraphQuery(MiConnection cnn, SimpleMapping<Entity> mapping, GraphQueryTemplate<Entity> template, View<? extends SelectByKey<?>> view) {
 //        super(cnn, mapping, template);
 //        this.t = template;
 //        this.view= view;
@@ -185,7 +185,7 @@ public class GraphQuery<Entity> extends MappedTemplateQuery<Entity>
 //            return PartType.VIRTUAL;
 //        }
 //
-//        public void addValueAdapters(List<ValueAdapter<? super Entity>> adapters, Graph g, Mapping<Entity> m, MiConnection cnn) {
+//        public void addValueAdapters(List<ValueAdapter<? super Entity>> adapters, Graph g, SimpleMapping<Entity> m, MiConnection cnn) {
 //            adapters.add(new RelationAdatper<>(g, view, m, key, refFields));
 //        }
 //        
@@ -231,7 +231,7 @@ public class GraphQuery<Entity> extends MappedTemplateQuery<Entity>
 //        }
 //
 //        @Override
-//        public void addValueAdapters(List<ValueAdapter<? super Entity>> adapters, Mapping<Entity> m, MiConnection cnn) {
+//        public void addValueAdapters(List<ValueAdapter<? super Entity>> adapters, SimpleMapping<Entity> m, MiConnection cnn) {
 //            Graph g = graph != null ? graph : new Graph(cnn);
 //            // 1) allow the graph to learn about new object
 //            adapters.add(g.<Entity>valueAdapter(view, keyFields));
@@ -305,10 +305,10 @@ public class GraphQuery<Entity> extends MappedTemplateQuery<Entity>
 //        
 //        private final String[] keyFields;
 //        private final Object[] keys;
-//        private final Mapping<Entity> mapping;
+//        private final SimpleMapping<Entity> mapping;
 //        private final boolean compositeKeys;
 //
-//        public ArrayByKeyResult(String[] keyFields, Object[] keys, Mapping<Entity> mapping) {
+//        public ArrayByKeyResult(String[] keyFields, Object[] keys, SimpleMapping<Entity> mapping) {
 //            this.keyFields = keyFields;
 //            this.keys = keys;
 //            this.mapping = mapping;

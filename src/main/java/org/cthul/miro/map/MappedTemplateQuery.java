@@ -3,7 +3,7 @@ package org.cthul.miro.map;
 import java.util.ArrayList;
 import java.util.List;
 import org.cthul.miro.MiConnection;
-import org.cthul.miro.query.QueryBuilder.QueryPart;
+import org.cthul.miro.query.ZQueryBuilder.QueryPart;
 import org.cthul.miro.query.QueryTemplate;
 import org.cthul.miro.query.QueryWithTemplate;
 import org.cthul.miro.result.EntityConfiguration;
@@ -20,7 +20,7 @@ public class MappedTemplateQuery<Entity> extends AbstractMappedQueryBuilder<Enti
         this(cnn, template.getMapping(), template);
     }
     
-    public MappedTemplateQuery(MiConnection cnn, Mapping<Entity> mapping, QueryTemplate template) {
+    public MappedTemplateQuery(MiConnection cnn, SimpleMapping<Entity> mapping, QueryTemplate template) {
         super(cnn, mapping);
         this.query = new InternQueryWithTemplate(template);
     }
