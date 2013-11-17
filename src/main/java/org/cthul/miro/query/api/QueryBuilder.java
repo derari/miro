@@ -1,27 +1,10 @@
 package org.cthul.miro.query.api;
 
-import java.util.List;
-import org.cthul.miro.query.syntax.QueryType;
-import org.cthul.miro.query.syntax.SqlBuilder;
-import org.cthul.miro.query.syntax.SqlSyntax;
+public interface QueryBuilder {
 
-public abstract class QueryBuilder {
-
-    private final SqlBuilder sqlBuilder;
-
-    public QueryBuilder(SqlBuilder sqlBuilder) {
-        this.sqlBuilder = sqlBuilder;
-    }
-
-    public QueryBuilder(SqlSyntax sqlSyntax, QueryType queryType) {
-        this(sqlSyntax.newQuery(queryType));
-    }
+    void put(String key);
     
-    protected void addPart(QueryPart part) {
-        sqlBuilder.addPart(part);
-    }
+    void put(String key, Object... args);
     
-    protected void buildQuery(StringBuilder sql, List<Object> args) {
-        
-    }
+    void put(String key, String subkey, Object... args);
 }

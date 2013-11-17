@@ -7,5 +7,7 @@ public interface SqlBuilder {
     
     void addPart(QueryPart part);
     
-    void buildQuery(StringBuilder sql, List<Object> args);
+    String getQueryString();
+    
+    List<Object> getArguments();
 }

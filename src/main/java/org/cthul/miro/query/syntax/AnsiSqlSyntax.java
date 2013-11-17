@@ -73,11 +73,20 @@ public class AnsiSqlSyntax implements SqlSyntax {
             }
         }
 
-        protected void buildQuery(QueryPartType type, String first, String sep, StringBuilder sql, List<Object> args) {
-            buildQuery(type, first, sep, "", sql, args);
+        @Override
+        public String getQueryString() {
+            StringBuilder sb = new StringBuilder();
+            buildQuery(sb);
+            return sb.toString();
         }
         
-        protected void buildQuery(QueryPartType type, String begin, String sep, String end, StringBuilder sql, List<Object> args) {
+        protected abstract void buildQuery(StringBuilder sql);
+
+        protected void buildQuery(QueryPartType type, String first, String sep, StringBuilder sql) {
+            buildQuery(type, first, sep, "", sql);
+        }
+        
+        protected void buildQuery(QueryPartType type, String begin, String sep, String end, StringBuilder sql) {
             List<QueryPart> list = parts.get(type);
             if (list == null || list.isEmpty()) return;
             boolean first = true;
@@ -86,9 +95,26 @@ public class AnsiSqlSyntax implements SqlSyntax {
                 if (first) first = true;
                 else sql.append(sep);
                 qp.appendSqlTo(sql);
-                qp.appendArgsTo(args);
             }
             sql.append(end);
+        }
+
+        @Override
+        public List<Object> getArguments() {
+            List<Object> args = new ArrayList<>();
+            collectArguments(args);
+            return args;
+        }
+
+        protected abstract void collectArguments(List<Object> args);
+        
+        protected void collectArguments(List<Object> args, QueryPartType... types) {
+            for (QueryPartType t: types) {
+                if (isEmpty(t)) continue;
+                for (QueryPart qp: getParts(t)) {
+                    qp.appendArgsTo(args);
+                }
+            }
         }
     }
     
@@ -116,16 +142,28 @@ public class AnsiSqlSyntax implements SqlSyntax {
         }
 
         @Override
-        public void buildQuery(StringBuilder sql, List<Object> args) {
+        protected void buildQuery(StringBuilder sql) {
             ensureNotEmpty(DataQueryPartType.SELECT);
             ensureNotEmpty(DataQueryPartType.TABLE);
-            buildQuery(DataQueryPartType.SELECT, "SELECT ", ", ", sql, args);
-            buildQuery(DataQueryPartType.TABLE, " FROM ", ", ", sql, args);
-            buildQuery(DataQueryPartType.JOIN, " ", " ", sql, args);
-            buildQuery(DataQueryPartType.WHERE, " WHERE ", " AND ", sql, args);
-            buildQuery(DataQueryPartType.GROUP_BY, " GROUP BY ", ", ", sql, args);
-            buildQuery(DataQueryPartType.HAVING, " HAVING ", " AND ", sql, args);
-            buildQuery(DataQueryPartType.ORDER_BY, " ORDER BY ", ", ", sql, args);
+            buildQuery(DataQueryPartType.SELECT, "SELECT ", ", ", sql);
+            buildQuery(DataQueryPartType.TABLE, " FROM ", ", ", sql);
+            buildQuery(DataQueryPartType.JOIN, " ", " ", sql);
+            buildQuery(DataQueryPartType.WHERE, " WHERE ", " AND ", sql);
+            buildQuery(DataQueryPartType.GROUP_BY, " GROUP BY ", ", ", sql);
+            buildQuery(DataQueryPartType.HAVING, " HAVING ", " AND ", sql);
+            buildQuery(DataQueryPartType.ORDER_BY, " ORDER BY ", ", ", sql);
+        }
+
+        @Override
+        protected void collectArguments(List<Object> args) {
+            collectArguments(args, 
+                    DataQueryPartType.SELECT,
+                    DataQueryPartType.TABLE,
+                    DataQueryPartType.JOIN,
+                    DataQueryPartType.WHERE,
+                    DataQueryPartType.GROUP_BY,
+                    DataQueryPartType.HAVING,
+                    DataQueryPartType.ORDER_BY);
         }
     }
     
@@ -165,11 +203,11 @@ public class AnsiSqlSyntax implements SqlSyntax {
         }
 
         @Override
-        public void buildQuery(StringBuilder sql, List<Object> args) {
+        protected void buildQuery(StringBuilder sql) {
             ensureNotEmpty(DataQueryPartType.ATTRIBUTE);
             ensureExactlyOne(DataQueryPartType.TABLE);
-            buildQuery(DataQueryPartType.TABLE, "INSERT INTO ", ", ", sql, args);
-            buildQuery(DataQueryPartType.ATTRIBUTE, "(", ",", ")", sql, args);
+            buildQuery(DataQueryPartType.TABLE, "INSERT INTO ", ", ", sql);
+            buildQuery(DataQueryPartType.ATTRIBUTE, "(", ",", ")", sql);
 
             int cValues = getCount(DataQueryPartType.VALUES);
             int cSubQry = getCount(DataQueryPartType.SUBQUERY);
@@ -179,11 +217,20 @@ public class AnsiSqlSyntax implements SqlSyntax {
                         " and " + DataQueryPartType.SUBQUERY);
             }
             if (cValues > 0) {
-                buildQuery(DataQueryPartType.VALUES, " VALUES ", ", ", sql, args);
+                buildQuery(DataQueryPartType.VALUES, " VALUES ", ", ", sql);
             } else {
                 ensureExactlyOne(DataQueryPartType.SUBQUERY);
-                buildQuery(DataQueryPartType.SUBQUERY, " ", "--", sql, args);
+                buildQuery(DataQueryPartType.SUBQUERY, " ", "--", sql);
             }
+        }
+
+        @Override
+        protected void collectArguments(List<Object> args) {
+            collectArguments(args, 
+                    DataQueryPartType.TABLE,
+                    DataQueryPartType.ATTRIBUTE,
+                    DataQueryPartType.VALUES,
+                    DataQueryPartType.SUBQUERY);
         }
     }
     
@@ -205,13 +252,22 @@ public class AnsiSqlSyntax implements SqlSyntax {
         }
 
         @Override
-        public void buildQuery(StringBuilder sql, List<Object> args) {
+        protected void buildQuery(StringBuilder sql) {
             ensureNotEmpty(DataQueryPartType.TABLE);
             ensureNotEmpty(DataQueryPartType.SET);
-            buildQuery(DataQueryPartType.TABLE, "UPDATE ", ", ", sql, args);
-            buildQuery(DataQueryPartType.JOIN, " ", " ", sql, args);
-            buildQuery(DataQueryPartType.SET, " SET ", ", ", sql, args);
-            buildQuery(DataQueryPartType.WHERE, " WHERE ", " AND ", sql, args);
+            buildQuery(DataQueryPartType.TABLE, "UPDATE ", ", ", sql);
+            buildQuery(DataQueryPartType.JOIN, " ", " ", sql);
+            buildQuery(DataQueryPartType.SET, " SET ", ", ", sql);
+            buildQuery(DataQueryPartType.WHERE, " WHERE ", " AND ", sql);
+        }
+
+        @Override
+        protected void collectArguments(List<Object> args) {
+            collectArguments(args,
+                    DataQueryPartType.TABLE,
+                    DataQueryPartType.JOIN,
+                    DataQueryPartType.SET,
+                    DataQueryPartType.WHERE);
         }
     }
     
@@ -232,11 +288,19 @@ public class AnsiSqlSyntax implements SqlSyntax {
         }
 
         @Override
-        public void buildQuery(StringBuilder sql, List<Object> args) {
+        protected void buildQuery(StringBuilder sql) {
             ensureNotEmpty(DataQueryPartType.TABLE);
-            buildQuery(DataQueryPartType.TABLE, "DELETE FROM ", ", ", sql, args);
-            buildQuery(DataQueryPartType.JOIN, " ", " ", sql, args);
-            buildQuery(DataQueryPartType.WHERE, " WHERE ", " AND ", sql, args);
+            buildQuery(DataQueryPartType.TABLE, "DELETE FROM ", ", ", sql);
+            buildQuery(DataQueryPartType.JOIN, " ", " ", sql);
+            buildQuery(DataQueryPartType.WHERE, " WHERE ", " AND ", sql);
+        }
+
+        @Override
+        protected void collectArguments(List<Object> args) {
+            collectArguments(args,
+                    DataQueryPartType.TABLE,
+                    DataQueryPartType.JOIN,
+                    DataQueryPartType.WHERE);
         }
     }
 }
