@@ -5,6 +5,8 @@ import org.cthul.miro.query.api.QueryPart;
 
 public interface SqlBuilder {
     
+    QueryType getQueryType();
+    
     void addPart(QueryPart part);
     
     String getQueryString();

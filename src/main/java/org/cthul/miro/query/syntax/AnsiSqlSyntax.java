@@ -4,11 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.cthul.miro.query.api.AttributeQueryPart;
-import org.cthul.miro.query.api.DataQueryPartType;
-import org.cthul.miro.query.api.QueryPart;
-import org.cthul.miro.query.api.QueryPartType;
-import org.cthul.miro.query.api.SelectableQueryPart;
+import org.cthul.miro.query.api.*;
 import static org.cthul.miro.query.api.DataQueryPartType.WHERE;
 
 public class AnsiSqlSyntax implements SqlSyntax {
@@ -120,6 +116,11 @@ public class AnsiSqlSyntax implements SqlSyntax {
     
     private static class SelectQuery extends AbstractQuery {
         @Override
+        public QueryType getQueryType() {
+            return DataQueryType.SELECT;
+        }
+        
+        @Override
         public void addPart(QueryPart part) {
             QueryPartType t = part.getPartType();
             if (t instanceof DataQueryPartType) {
@@ -137,6 +138,9 @@ public class AnsiSqlSyntax implements SqlSyntax {
                         addPart(t, part);
                         break;
                 }
+            }
+            if (t == OtherQueryPartType.VIRTUAL) {
+                return;
             }
             throw new IllegalArgumentException("Unsupported part type: " + t);
         }
@@ -171,6 +175,11 @@ public class AnsiSqlSyntax implements SqlSyntax {
         private final List<String> attributes = new ArrayList<>();
         private final List<SelectableQueryPart> values = new ArrayList<>();
         @Override
+        public QueryType getQueryType() {
+            return DataQueryType.INSERT;
+        }
+        
+        @Override
         public synchronized void addPart(QueryPart part) {
             QueryPartType t = part.getPartType();
             if (t instanceof DataQueryPartType) {
@@ -198,6 +207,9 @@ public class AnsiSqlSyntax implements SqlSyntax {
                         addPart(t, part);
                         break;
                 }
+            }
+            if (t == OtherQueryPartType.VIRTUAL) {
+                return;
             }
             throw new IllegalArgumentException("Unsupported part type: " + t);
         }
@@ -236,6 +248,11 @@ public class AnsiSqlSyntax implements SqlSyntax {
     
     private static class UpdateQuery extends AbstractQuery {
         @Override
+        public QueryType getQueryType() {
+            return DataQueryType.UPDATE;
+        }
+        
+        @Override
         public void addPart(QueryPart part) {
             QueryPartType t = part.getPartType();
             if (t instanceof DataQueryPartType) {
@@ -247,6 +264,9 @@ public class AnsiSqlSyntax implements SqlSyntax {
                         addPart(t, part);
                         break;
                 }
+            }
+            if (t == OtherQueryPartType.VIRTUAL) {
+                return;
             }
             throw new IllegalArgumentException("Unsupported part type: " + t);
         }
@@ -273,6 +293,11 @@ public class AnsiSqlSyntax implements SqlSyntax {
     
     private static class DeleteQuery extends AbstractQuery {
         @Override
+        public QueryType getQueryType() {
+            return DataQueryType.DELETE;
+        }
+
+        @Override
         public void addPart(QueryPart part) {
             QueryPartType t = part.getPartType();
             if (t instanceof DataQueryPartType) {
@@ -283,6 +308,9 @@ public class AnsiSqlSyntax implements SqlSyntax {
                         addPart(t, part);
                         break;
                 }
+            }
+            if (t == OtherQueryPartType.VIRTUAL) {
+                return;
             }
             throw new IllegalArgumentException("Unsupported part type: " + t);
         }

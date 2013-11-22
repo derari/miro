@@ -6,4 +6,8 @@ public enum DataQueryType implements QueryType {
     SELECT,
     UPDATE,
     DELETE;
+    
+    public SqlBuilder builder(SqlSyntax syntax) {
+        return syntax.newQuery(this);
+    }
 }
