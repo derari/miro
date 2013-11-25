@@ -1,14 +1,18 @@
 package org.cthul.miro.query.sql;
 
+import org.cthul.miro.query.parts.AttributeQueryPart;
+import org.cthul.miro.query.parts.SelectableQueryPart;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.cthul.miro.query.api.*;
 import org.cthul.miro.query.api.QueryType;
 import org.cthul.miro.query.jdbc.JdbcAdapter;
 import org.cthul.miro.query.jdbc.JdbcQueryBuilder;
+import org.cthul.miro.query.parts.ValuesQueryPart;
 import org.cthul.miro.query.syntax.QueryStringBuilder;
 import org.cthul.miro.query.syntax.QuerySyntax;
 import static org.cthul.miro.query.sql.DataQueryPartType.WHERE;
@@ -48,7 +52,7 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
         public AbstractQuery() {
         }
         
-        private List<QueryPart> getParts(QueryPartType type) {
+        protected synchronized List<QueryPart> getParts(QueryPartType type) {
             List<QueryPart> list = parts.get(type);
             if (list == null) {
                 list = new ArrayList<>();
@@ -311,20 +315,52 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
     }
     
     private static class UpdateQuery extends AbstractQuery {
+        private final List<String> setAttributes = new ArrayList<>();
+        private final List<String> filterAttributes = new ArrayList<>();
+        private final List<ValuesQueryPart> values = new ArrayList<>();
         @Override
         public QueryType getQueryType() {
             return DataQueryType.UPDATE;
         }
         
         @Override
-        public void addPart(QueryPart part) {
+        public synchronized void addPart(QueryPart part) {
             QueryPartType t = part.getPartType();
             if (t instanceof DataQueryPartType) {
                 switch ((DataQueryPartType) t) {
                     case TABLE:
                     case JOIN:
-                    case WHERE:
+                        addPart(t, part);
+                        return;
+                    case VALUES:
+                        ValuesQueryPart v = (ValuesQueryPart) part;
+                        for (String s: setAttributes) {
+                            v.selectAttribute(s);
+                        }
+                        for (String f: filterAttributes) {
+                            v.selectFilterValue(f);
+                        }
+                        values.add(v);
+                        addPart(t, part);
+                        return;
                     case SET:
+                        if (t instanceof AttributeQueryPart) {
+                            String a = ((AttributeQueryPart) t).getAttribute();
+                            for (ValuesQueryPart vp: values) {
+                                vp.selectAttribute(a);
+                            }
+                            setAttributes.add(a);
+                        }
+                        addPart(t, part);
+                        return;
+                    case WHERE:
+                        if (t instanceof AttributeQueryPart) {
+                            String a = ((AttributeQueryPart) t).getAttribute();
+                            for (ValuesQueryPart vp: values) {
+                                vp.selectAttribute(a);
+                            }
+                            setAttributes.add(a);
+                        }
                         addPart(t, part);
                         return;
                 }
@@ -346,12 +382,45 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
         }
 
         @Override
+        public int getBatchCount() {
+            return values.size();
+        }
+
+        @Override
         protected void collectArguments(List<Object> args, int batch) {
-            collectArguments(args,
-                    DataQueryPartType.TABLE,
-                    DataQueryPartType.JOIN,
-                    DataQueryPartType.SET,
-                    DataQueryPartType.WHERE);
+            if (getBatchCount() == 0) {
+                collectArguments(args,
+                        DataQueryPartType.TABLE,
+                        DataQueryPartType.JOIN,
+                        DataQueryPartType.SET,
+                        DataQueryPartType.WHERE);
+            } else {
+                collectArguments(args,
+                        DataQueryPartType.TABLE,
+                        DataQueryPartType.JOIN);
+                List<Object> tuple = new ArrayList<>();
+                values.get(batch).appendArgsTo(tuple);
+                Iterator<Object> itTuple = tuple.iterator();
+                for (QueryPart setPart: getParts(DataQueryPartType.SET)) {
+                    if (setPart instanceof AttributeQueryPart) {
+                        args.add(itTuple.next());
+                    } else {
+                        setPart.appendArgsTo(args);
+                    }
+                }
+                assert !itTuple.hasNext();
+                List<Object> filter = new ArrayList<>();
+                values.get(batch).appendFilterValuesTo(filter);
+                Iterator<Object> itFilter = filter.iterator();
+                for (QueryPart wPart: getParts(DataQueryPartType.WHERE)) {
+                    if (wPart instanceof AttributeQueryPart) {
+                        args.add(itFilter.next());
+                    } else {
+                        wPart.appendArgsTo(args);
+                    }
+                }
+                assert !itFilter.hasNext();
+            }
         }
     }
     

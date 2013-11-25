@@ -3,10 +3,10 @@ package org.cthul.miro.test;
 
 import java.util.Arrays;
 import java.util.List;
-import org.cthul.miro.query.api.AttributeQueryPart;
+import org.cthul.miro.query.parts.AttributeQueryPart;
 import org.cthul.miro.query.api.QueryPart;
 import org.cthul.miro.query.api.QueryPartType;
-import org.cthul.miro.query.api.SelectableQueryPart;
+import org.cthul.miro.query.parts.SelectableQueryPart;
 import org.cthul.miro.query.sql.DataQueryPartType;
 
 public class TestQueryPart implements QueryPart {

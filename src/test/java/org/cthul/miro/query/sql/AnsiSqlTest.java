@@ -96,6 +96,22 @@ public class AnsiSqlTest {
         assertThat(i2, is(greaterThan(i1)));
     }
     
+    @Test
+    public void test_update_set_sql() {
+        QueryStringBuilder sql = new AnsiSql().newQueryStringBuilder(DataQueryType.UPDATE);
+        addParts(sql,
+                new TestQueryPart(DataQueryPartType.SET, "a = ?", "1"),
+                new TestQueryPart(DataQueryPartType.TABLE, "Data"),
+                new TestQueryPart(DataQueryPartType.WHERE, "id = ?", "2"));
+        assertThat(sql.getQueryString(), 
+                is("UPDATE Data "
+                + "SET a = ? "
+                + "WHERE id = ?"));
+        
+        assertThat(sql.getArguments(0), 
+                contains((Object) "1", "2"));
+    }
+    
     private void addParts(QueryAdapter adapter, QueryPart... parts) {
         for (QueryPart qp: parts) {
             adapter.addPart(qp);
