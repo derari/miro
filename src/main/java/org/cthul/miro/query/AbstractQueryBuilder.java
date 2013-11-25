@@ -4,21 +4,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.cthul.miro.query.api.QueryPart;
-import org.cthul.miro.query.syntax.QueryType;
-import org.cthul.miro.query.syntax.SqlBuilder;
-import org.cthul.miro.query.syntax.SqlSyntax;
+import org.cthul.miro.query.api.QueryType;
+import org.cthul.miro.query.syntax.QueryStringBuilder;
+import org.cthul.miro.query.syntax.QuerySyntax;
 
 public abstract class AbstractQueryBuilder {
 
-    private final SqlBuilder sqlBuilder;
+    private final QueryStringBuilder sqlBuilder;
     private final Map<String, QueryPart> parts = new HashMap<>();
 
-    public AbstractQueryBuilder(SqlBuilder sqlBuilder) {
+    public AbstractQueryBuilder(QueryStringBuilder sqlBuilder) {
         this.sqlBuilder = sqlBuilder;
     }
 
-    public AbstractQueryBuilder(SqlSyntax sqlSyntax, QueryType queryType) {
-        this(sqlSyntax.newQuery(queryType));
+    public AbstractQueryBuilder(QuerySyntax sqlSyntax, QueryType queryType) {
+        this(sqlSyntax.newQueryStringBuilder(queryType));
     }
     
     protected synchronized void addPart(String key, QueryPart part) {
@@ -30,7 +30,11 @@ public abstract class AbstractQueryBuilder {
         return sqlBuilder.getQueryString();
     }
     
-    protected List<Object> getArguments() {
-        return sqlBuilder.getArguments();
+    protected int getBatchCount() {
+        return sqlBuilder.getBatchCount();
+    }
+    
+    protected List<Object> getArguments(int batch) {
+        return sqlBuilder.getArguments(batch);
     }
 }

@@ -2,6 +2,8 @@ package org.cthul.miro.map;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
@@ -166,6 +168,9 @@ public abstract class SimpleMapping<Entity> implements EntityType<Entity> {
         private final Object[] argsBuf;
 
         public MappedEntityFactory(ResultSet rs) throws SQLException {
+            PreparedStatement ps = null;
+            Connection c = null;
+            
             this.rs = rs;
             String[] params = getConstructorParameters();
             if (params != null) {

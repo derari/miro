@@ -1,0 +1,12 @@
+
+--- set-up query
+
+builder.put("part", args)
+    template.getPartTemplate
+    part.put("", args)
+    sql.add(part);
+
+QueryBuilder
+    * selected fields
+    * generated fields
+    

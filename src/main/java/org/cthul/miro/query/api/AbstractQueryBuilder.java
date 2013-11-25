@@ -1,9 +1,7 @@
 package org.cthul.miro.query.api;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import org.cthul.miro.query.syntax.SqlBuilder;
 
 /**
  *
@@ -11,21 +9,21 @@ import org.cthul.miro.query.syntax.SqlBuilder;
 public class AbstractQueryBuilder implements QueryBuilder {
     
     private final Map<String, QueryPart> parts = new HashMap<>();
-    private final SqlBuilder sqlBuilder;
+    private final QueryAdapter adapter;
     private final QueryTemplate template;
 
-    public AbstractQueryBuilder(SqlBuilder sqlBuilder, QueryTemplate template) {
-        this.sqlBuilder = sqlBuilder;
+    public AbstractQueryBuilder(QueryAdapter sqlBuilder, QueryTemplate template) {
+        this.adapter = sqlBuilder;
         this.template = template;
     }
     
     protected QueryPart newPartFromTemplate(String key) {
         if (template == null) return null;
-        QueryPartTemplate tmpl = template.getPartTemplate(key);
+        QueryTemplatePart tmpl = template.getPartTemplate(key);
         for (String requiredKey: tmpl.getRequiredParts()) {
             put(requiredKey);
         }
-        return tmpl.newQueryPart(sqlBuilder.getQueryType());
+        return tmpl.newQueryPart(adapter.getQueryType());
     }
     
     protected QueryPart unknownPart(String key) {
@@ -33,7 +31,7 @@ public class AbstractQueryBuilder implements QueryBuilder {
     }
     
     protected synchronized void addPart(String key, QueryPart part) {
-        sqlBuilder.addPart(part);
+        adapter.addPart(part);
         parts.put(key, part);
     }
     
@@ -62,13 +60,5 @@ public class AbstractQueryBuilder implements QueryBuilder {
     @Override
     public void put(String key, String subkey, Object... args) {
         part(key).put(subkey, args);
-    }
-    
-    protected String getQueryString() {
-        return sqlBuilder.getQueryString();
-    }
-    
-    protected List<Object> getArguments() {
-        return sqlBuilder.getArguments();
     }
 }

@@ -6,7 +6,7 @@ import java.util.Map;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.dsl.View;
 import org.cthul.miro.graph.*;
-import org.cthul.miro.map.Mapping;
+import org.cthul.miro.map.SimpleMapping;
 
 /**
  *
@@ -17,7 +17,7 @@ public class AnnotatedQueryHandler<Entity> extends GraphQuery<Entity> implements
     private final Map<Method, InvocationHandler> handlers;
 
     @SuppressWarnings("LeakingThisInConstructor")
-    public AnnotatedQueryHandler(MiConnection cnn, Mapping<Entity> mapping, AnnotatedQueryTemplate<Entity> template, View<? extends SelectByKey<?>> view) {
+    public AnnotatedQueryHandler(MiConnection cnn, SimpleMapping<Entity> mapping, AnnotatedQueryTemplate<Entity> template, View<? extends SelectByKey<?>> view) {
         super(cnn, mapping, template, view);
         this.template = template;
         this.handlers = template.getHandlers(this);
@@ -30,7 +30,7 @@ public class AnnotatedQueryHandler<Entity> extends GraphQuery<Entity> implements
         this.handlers = template.getHandlers(this);
     }
     
-    public AnnotatedQueryHandler(MiConnection cnn, Mapping<Entity> mapping, AnnotatedQueryTemplate<Entity> template, View<? extends SelectByKey<?>> view, String... fields) {
+    public AnnotatedQueryHandler(MiConnection cnn, SimpleMapping<Entity> mapping, AnnotatedQueryTemplate<Entity> template, View<? extends SelectByKey<?>> view, String... fields) {
         this(cnn, mapping, template, view);
         select(fields);
     }

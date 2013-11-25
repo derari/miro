@@ -53,7 +53,6 @@ public class MiConnection implements AutoCloseable {
         queryExecutor = Executors.newFixedThreadPool(3, tf);
         actionExecutor = newDynamicThreadPool(8, tf);
         AsynchronousFileChannel c = null;
-        Files.readAllLines(null, null)
     }
     
     private ExecutorService newDynamicThreadPool(int max, ThreadFactory tf) {

@@ -230,15 +230,21 @@ public class MappedTemplateQuery<Entity> extends AbstractMappedQueryBuilder<Enti
             super.orderBy(key);
         }
 
-        @Override
-        public QueryPart addPart(String key) {
-            return super.addPart(key);
-        }
+        ////        @Override
+        //        public QueryPart addPart(String key) {
+        //            return super.addPart(key);
+        //        }
+        //
+        ////        @Override
+        //        public QueryPart addPartAs(String key, String alias) {
+        //            return super.addPartAs(key, alias);
+        //        }
+//        @Override
+//        protected QueryPart addPart(String key) {
+//            return super.addPart(key); //To change body of generated methods, choose Tools | Templates.
+//        }
 
-        @Override
-        public QueryPart addPartAs(String key, String alias) {
-            return super.addPartAs(key, alias);
-        }
+        
 
         @Override
         public void sql_select(String... selectClause) {
