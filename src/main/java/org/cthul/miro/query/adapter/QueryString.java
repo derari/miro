@@ -1,9 +1,8 @@
-package org.cthul.miro.query.syntax;
+package org.cthul.miro.query.adapter;
 
 import java.util.List;
-import org.cthul.miro.query.api.QueryAdapter;
 
-public interface QueryStringBuilder extends QueryAdapter {
+public interface QueryString<Builder> extends QueryAdapter<Builder> {
     
     String getQueryString();
     

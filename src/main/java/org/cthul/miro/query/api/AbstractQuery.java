@@ -1,19 +1,21 @@
 package org.cthul.miro.query.api;
 
+import org.cthul.miro.query.adapter.QueryAdapter;
+import org.cthul.miro.query.parts.QueryPart;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  *
  */
-public class AbstractQueryBuilder implements QueryBuilder {
+public class AbstractQuery<Builder> implements QueryBuilder {
     
     private final Map<String, QueryPart> parts = new HashMap<>();
-    private final QueryAdapter adapter;
+    private final QueryAdapter<Builder> adapter;
     private final QueryTemplate template;
 
-    public AbstractQueryBuilder(QueryAdapter sqlBuilder, QueryTemplate template) {
-        this.adapter = sqlBuilder;
+    public AbstractQuery(QueryAdapter<Builder> adapter, QueryTemplate template) {
+        this.adapter = adapter;
         this.template = template;
     }
     
@@ -30,8 +32,8 @@ public class AbstractQueryBuilder implements QueryBuilder {
         return newPartFromTemplate(key);
     }
     
-    protected synchronized void addPart(String key, QueryPart part) {
-        adapter.addPart(part);
+    protected synchronized void addPart(String key, QueryPartType<? super Builder> partType, QueryPart part) {
+        partType.addPartTo(part, adapter);
         parts.put(key, part);
     }
     
@@ -42,7 +44,7 @@ public class AbstractQueryBuilder implements QueryBuilder {
             if (part == null) {
                 throw new IllegalArgumentException("Unknown key " + key);
             }
-            addPart(key, part);
+//            addPart(key, part);
         }
         return part;
     }

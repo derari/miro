@@ -1,5 +1,5 @@
 package org.cthul.miro.query.api;
 
-public interface QueryType {
+public interface QueryType<Builder> {
     
 }

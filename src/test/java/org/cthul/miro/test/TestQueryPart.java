@@ -4,32 +4,22 @@ package org.cthul.miro.test;
 import java.util.Arrays;
 import java.util.List;
 import org.cthul.miro.query.parts.AttributeQueryPart;
-import org.cthul.miro.query.api.QueryPart;
+import org.cthul.miro.query.parts.QueryPart;
 import org.cthul.miro.query.api.QueryPartType;
 import org.cthul.miro.query.parts.SelectableQueryPart;
-import org.cthul.miro.query.sql.DataQueryPartType;
+import org.cthul.miro.query.parts.ValuesQueryPart;
+import org.cthul.miro.query.sql.DataQueryPart;
 
 public class TestQueryPart implements QueryPart {
     
-    protected final QueryPartType type;
     protected final String sql;
     protected final Object[] args;
 
-    public TestQueryPart(QueryPartType type, String sql, Object... args) {
-        this.type = type;
+    public TestQueryPart(String sql, Object... args) {
         this.sql = sql;
         this.args = args;
     }
     
-    @Override
-    public QueryPartType getPartType() {
-        return type;
-    }
-
-    @Override
-    public void put(String key, Object[] args) {
-    }
-
     @Override
     public void appendSqlTo(StringBuilder sqlBuilder) {
         sqlBuilder.append(sql);
@@ -42,19 +32,7 @@ public class TestQueryPart implements QueryPart {
 
     @Override
     public String toString() {
-        return type + " " + sql + " " + Arrays.toString(args);
-    }
-    
-    public static class Attribute extends TestQueryPart implements AttributeQueryPart {
-        
-        public Attribute(String attribute) {
-            super(DataQueryPartType.ATTRIBUTE, attribute);
-        }
-
-        @Override
-        public String getAttribute() {
-            return sql;
-        }
+        return sql + " " + Arrays.toString(args);
     }
     
     private static String tuple(int l) {
@@ -66,15 +44,59 @@ public class TestQueryPart implements QueryPart {
         }
         return sb.append(')').toString();
     }
-    
-    public static class Values extends TestQueryPart implements SelectableQueryPart {
 
+    public static class Values extends TestQueryPart implements ValuesQueryPart {
+
+        private final Object[] filterValues;
+        
         public Values(Object... args) {
-            super(DataQueryPartType.VALUES, tuple(args.length), args);
+            this(args, new Object[0]);
+        }
+        
+        public Values(int argC, Object... args) {
+            this(Arrays.copyOfRange(args, 0, argC), Arrays.copyOfRange(args, argC, args.length));
+        }
+        
+        public Values(Object[] args, Object[] filterValues) {
+            super(tuple(args.length), args);
+            this.filterValues = filterValues;
         }
 
         @Override
         public void selectAttribute(String attribute) {
         }
+
+        @Override
+        public void selectFilterValue(String key) {
+        }
+
+        @Override
+        public void appendFilterValuesTo(List<Object> args) {
+            args.addAll(Arrays.asList(filterValues));
+        }
     }
+    
+//    public static class Attribute extends TestQueryPart implements AttributeQueryPart {
+//        
+//        public Attribute(String attribute) {
+//            super(attribute);
+//        }
+//
+//        @Override
+//        public String getAttribute() {
+//            return sql;
+//        }
+//    }
+//    
+//    
+//    public static class Values extends TestQueryPart implements SelectableQueryPart {
+//
+//        public Values(Object... args) {
+//            super(DataQueryPart.VALUES, tuple(args.length), args);
+//        }
+//
+//        @Override
+//        public void selectAttribute(String attribute) {
+//        }
+//    }
 }
