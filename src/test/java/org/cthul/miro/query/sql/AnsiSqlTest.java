@@ -21,7 +21,7 @@ public class AnsiSqlTest {
     
     @Test
     public void test_select_sql() {
-        QueryString<SelectQueryBuilder> sql = new AnsiSql().newQueryString(DataQuery.SELECT);
+        QueryString<SelectBuilder<?>> sql = new AnsiSql().newQueryString(DataQuery.SELECT);
         
         sql.getBuilder()
                 .where(new TestQueryPart("a > ? OR a < ?", "W1", "W2"))
@@ -50,7 +50,7 @@ public class AnsiSqlTest {
     
     @Test
     public void test_select_jdbc() throws SQLException {
-        JdbcQuery<SelectQueryBuilder> qry = new AnsiSql().newJdbcQuery(DataQuery.SELECT);
+        JdbcQuery<SelectBuilder<?>> qry = new AnsiSql().newJdbcQuery(DataQuery.SELECT);
         
         qry.getBuilder()
                 .select(new TestQueryPart("street"))
@@ -63,11 +63,11 @@ public class AnsiSqlTest {
     
     @Test
     public void test_insert_values_sql() {
-        QueryString<InsertQueryBuilder> sql = new AnsiSql().newQueryString(DataQuery.INSERT);
+        QueryString<InsertBuilder<?>> sql = new AnsiSql().newQueryString(DataQuery.INSERT);
         sql.getBuilder()
-                .attribute("a")
+                .attribute(new TestQueryPart.Attribute("a"))
                 .into(new TestQueryPart("Data"))
-                .attribute("b")
+                .attribute(new TestQueryPart.Attribute("b"))
                 .values(new TestQueryPart.Values("1", "2"))
                 .values(new TestQueryPart.Values("3", "4"));
         assertThat(sql.getQueryString(), 
@@ -80,10 +80,10 @@ public class AnsiSqlTest {
     
     @Test
     public void test_insert_values_jdbc() throws SQLException {
-        JdbcQuery<InsertQueryBuilder> qry = new AnsiSql().newJdbcQuery(DataQuery.INSERT);
+        JdbcQuery<InsertBuilder<?>> qry = new AnsiSql().newJdbcQuery(DataQuery.INSERT);
         qry.getBuilder()
-                .attribute("street")
-                .attribute("city")
+                .attribute(new TestQueryPart.Attribute("street"))
+                .attribute(new TestQueryPart.Attribute("city"))
                 .into(new TestQueryPart("Addresses"))
                 .values(new TestQueryPart.Values("Street A", "City2"))
                 .values(new TestQueryPart.Values("Street B", "City2"));
@@ -99,13 +99,13 @@ public class AnsiSqlTest {
 
     @Test
     public void test_update_set_sql() {
-        QueryString<UpdateQueryBuilder> sql = new AnsiSql().newQueryString(DataQuery.UPDATE);
+        QueryString<UpdateBuilder<?>> sql = new AnsiSql().newQueryString(DataQuery.UPDATE);
         sql.getBuilder()
                 .set(new TestQueryPart("a = ?", "1"))
-                .set("b")
+                .set(new TestQueryPart.Attribute("b"))
                 .update(new TestQueryPart("Data"))
                 .where(new TestQueryPart("id = ?", "2"))
-                .where("id2")
+                .where(new TestQueryPart.Attribute("id2"))
                 .values(new TestQueryPart.Values(1, new Object[]{"X", "Y"}));
         
         assertThat(sql.getQueryString(), 

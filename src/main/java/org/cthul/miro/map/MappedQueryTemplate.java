@@ -2,14 +2,14 @@ package org.cthul.miro.map;
 
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.query.ZQueryBuilder;
-import org.cthul.miro.query.QueryTemplate;
+import org.cthul.miro.query.ZQueryTemplate;
 import org.cthul.miro.result.EntityConfiguration;
 import org.cthul.miro.result.EntityInitializer;
 
 /**
  *
  */
-public class MappedQueryTemplate<Entity> extends QueryTemplate {
+public class MappedQueryTemplate<Entity> extends ZQueryTemplate {
     
     private final SimpleMapping<Entity> mapping;
 
@@ -54,7 +54,7 @@ public class MappedQueryTemplate<Entity> extends QueryTemplate {
         return new Using<>(include, keys);
     }
     
-    public class Using<This extends Using> extends QueryTemplate.Using<This> {
+    public class Using<This extends Using> extends ZQueryTemplate.Using<This> {
 
         public Using(Include include, String[] required) {
             super(include, required);

@@ -12,14 +12,14 @@ import org.cthul.miro.util.SqlUtils;
 /**
  *
  */
-public class QueryTemplate {
+public class ZQueryTemplate {
     
     private final List<String> selectableFields = new ArrayList<>();
     private final List<String> defaultFields = new ArrayList<>();
     private final List<String> alwaysRequired = new ArrayList<>();
     private final Map<String, PartTemplate> parts = new HashMap<>();
 
-    public QueryTemplate() {
+    public ZQueryTemplate() {
     }
 
     public List<String> getSelectableFields() {
@@ -654,7 +654,7 @@ public class QueryTemplate {
 
         @Override
         public QueryPart createPart(String alias) {
-            return new ParsingQueryBuilder.CustomPart(alias, type, definition);
+            return new ZParsingQueryBuilder.CustomPart(alias, type, definition);
         }
 
         @Override

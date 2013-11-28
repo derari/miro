@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.query.ZQueryBuilder.QueryPart;
-import org.cthul.miro.query.QueryTemplate;
-import org.cthul.miro.query.QueryWithTemplate;
+import org.cthul.miro.query.ZQueryTemplate;
+import org.cthul.miro.query.ZQueryWithTemplate;
 import org.cthul.miro.result.EntityConfiguration;
 
 /**
@@ -20,7 +20,7 @@ public class MappedTemplateQuery<Entity> extends AbstractMappedQueryBuilder<Enti
         this(cnn, template.getMapping(), template);
     }
     
-    public MappedTemplateQuery(MiConnection cnn, SimpleMapping<Entity> mapping, QueryTemplate template) {
+    public MappedTemplateQuery(MiConnection cnn, SimpleMapping<Entity> mapping, ZQueryTemplate template) {
         super(cnn, mapping);
         this.query = new InternQueryWithTemplate(template);
     }
@@ -179,9 +179,9 @@ public class MappedTemplateQuery<Entity> extends AbstractMappedQueryBuilder<Enti
         return query().addPart(qp);
     }
     
-    protected static class InternQueryWithTemplate extends QueryWithTemplate {
+    protected static class InternQueryWithTemplate extends ZQueryWithTemplate {
 
-        public InternQueryWithTemplate(QueryTemplate template) {
+        public InternQueryWithTemplate(ZQueryTemplate template) {
             super(template);
         }
 

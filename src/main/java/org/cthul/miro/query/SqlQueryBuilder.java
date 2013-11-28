@@ -1,65 +1,126 @@
 package org.cthul.miro.query;
 
-/**
- *
- */
-public class SqlQueryBuilder extends ParsingQueryBuilder {
+import org.cthul.miro.query.api.InternalQueryBuilder;
+import org.cthul.miro.query.api.QueryPartType;
+import org.cthul.miro.query.parts.QueryPart;
+import org.cthul.miro.query.parts.SimpleQueryPart;
+import org.cthul.miro.query.sql.DataQueryPart;
+import org.cthul.miro.util.SqlUtils;
 
-    public SqlQueryBuilder() {
-    }
+public class SqlQueryBuilder<This extends SqlQueryBuilder<This>> implements SqlParser<This> {
 
-    public SqlQueryBuilder select(String... selectClause) {
-        sql_select(selectClause);
-        return this;
+    private final InternalQueryBuilder queryBuilder;
+
+    public SqlQueryBuilder(InternalQueryBuilder queryBuilder) {
+        this.queryBuilder = queryBuilder;
     }
     
-    public SqlQueryBuilder select(String selectClause) {
-        sql_select(selectClause);
-        return this;
+    protected This self() {
+        return (This) this;
     }
     
-    public SqlQueryBuilder from(String from) {
-        sql_from(from);
-        return this;
+    protected String newKey(String hint) {
+        return queryBuilder.newKey(hint);
     }
     
-    public SqlQueryBuilder join(String join) {
-        sql_join(join);
-        return this;
+    protected void addPart(QueryPartType type, QueryPart part) {
+        queryBuilder.addPart((QueryPartType) type, part);
+    }
+
+    @Override
+    public This select(String... selectClause) {
+        for (String s: selectClause) {
+            select(s);
+        }
+        return self();
     }
     
-    public SqlQueryBuilder join(String join, Object... args) {
-        sql_join(join).put("", args);
-        return this;
+    @Override
+    public This select(String selectClause) {
+        String[][] selParts = SqlUtils.parseSelectClause(selectClause);
+        for (String[] part: selParts) {
+            QueryPart sp = new SimpleQueryPart(part[0], part[1]);
+            addPart(DataQueryPart.SELECT, sp);
+        }
+        return self();
     }
     
-    public SqlQueryBuilder where(String where) {
-        sql_where(where);
-        return this;
+    public This select(QueryPart part) {
+        addPart(DataQueryPart.SELECT, part);
+        return self();
     }
 
-    public SqlQueryBuilder where(String where, Object... args) {
-        sql_where(where).put("", args);
-        return this;
+    @Override
+    public This from(String... fromClause) {
+        for (String f: fromClause) {
+            from(f);
+        }
+        return self();
     }
 
-    public SqlQueryBuilder groupBy(String groupBy) {
-        sql_groupBy(groupBy);
-        return this;
+    @Override
+    public This table(String fromClause) {
+        String[] part = SqlUtils.parseFromPart(fromClause);
+        String key = part[0] != null ?  part[0] : newKey("from");
+        return table(new SimpleQueryPart(key, part[1]));
+    }
+    
+    public This table(QueryPart part) {
+        addPart(DataQueryPart.TABLE, part);
+        return self();
     }
 
-    public SqlQueryBuilder having(String having) {
-        sql_having(having);
-        return this;
+    @Override
+    public This attributes(String... attributes) {
+        for (String a: attributes) {
+//            addPart(DataQueryPart.VALUES, new SimplePart.Attribute(a));
+        }
+        return self();
     }
 
-    public SqlQueryBuilder having(String having, Object... args) {
-        sql_having(having).put("", args);
-        return this;
+    @Override
+    public This from(String fromClause) {
+        String[] part = SqlUtils.parseFromPart(fromClause);
+        String key = part[0] != null ?  part[0] : newKey("from");
+        return from(new SimpleQueryPart(key, part[1]));
+    }
+    
+    public This from(QueryPart part) {
+        addPart(DataQueryPart.SUBQUERY, part);
+        return self();
     }
 
-    public SqlQueryBuilder orderBy(String order) {
-        sql_orderBy(order);
-        return this;
+    @Override
+    public This join(String... joinClause) {
+        for (String j: joinClause) {
+            join(j);
+        }
+        return self();
+    }
+
+    @Override
+    public This join(String joinClause) {
+        String[] part = SqlUtils.parseJoinPart(joinClause);
+        return join(new SimpleQueryPart(part[0], part[1]));
+    }
+    
+    public This join(QueryPart part) {
+        addPart(DataQueryPart.JOIN, part);
+        return self();
+    }
+
+    @Override
+    public This where(String whereClause) {
+        return where(newKey("where"), whereClause);
+    }
+
+    @Override
+    public This where(String key, String whereClause) {
+        return where(new SimpleQueryPart(key, whereClause));
+    }
+    
+    public This where(QueryPart part) {
+        addPart(DataQueryPart.WHERE, part);
+        return self();
     }
 }

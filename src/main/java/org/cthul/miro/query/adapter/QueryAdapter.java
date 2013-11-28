@@ -5,7 +5,7 @@ import org.cthul.miro.query.api.QueryType;
 /**
  * Either a {@link QueryString} or a {@link JdbcQuery}.
  */
-public interface QueryAdapter<Builder> {
+public interface QueryAdapter<Builder extends QueryBuilder<? extends Builder>> {
     
     Builder getBuilder();
     

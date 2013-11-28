@@ -3,15 +3,19 @@ package org.cthul.miro.query.sql;
 import java.sql.*;
 import java.util.*;
 import org.cthul.miro.query.adapter.JdbcQuery;
+import org.cthul.miro.query.adapter.QueryBuilder;
 import org.cthul.miro.query.parts.QueryPart;
 import org.cthul.miro.query.adapter.QueryString;
+import org.cthul.miro.query.api.OtherQueryPart;
+import org.cthul.miro.query.api.QueryPartType;
+import org.cthul.miro.query.parts.*;
 
-abstract class AbstractQueryAdapter<Builder>
-                implements QueryString<Builder>, JdbcQuery<Builder> {
+public abstract class AbstractQueryBuilder<Builder extends QueryBuilder<? extends Builder>>
+                implements QueryString<Builder>, JdbcQuery<Builder>, QueryBuilder<Builder> {
     
     private final List<QueryPart>[] parts;
 
-    public AbstractQueryAdapter(int partCount) {
+    public AbstractQueryBuilder(int partCount) {
         parts = new List[partCount];
     }
     
@@ -20,6 +24,41 @@ abstract class AbstractQueryAdapter<Builder>
         return (Builder) this;
     }
 
+    @Override
+    public Builder add(QueryPartType type, QueryPart part) {
+        if (type == OtherQueryPart.VIRTUAL) {
+            return (Builder) this;
+        }
+        if (type instanceof DataQueryPart && 
+                addPart(DataQueryPart.get(type), part) != null) {
+            return (Builder) this;
+        }
+        throw new IllegalArgumentException(
+                "Unexpected type " + type + ": " + part);
+    }
+    
+    protected abstract Builder addPart(DataQueryPart type, QueryPart part);
+
+    protected <T> T cast(Class<T> clazz, Object o) {
+        if (clazz.isInstance(o)) {
+            return clazz.cast(o);
+        }
+        throw new IllegalArgumentException(
+                "Expected " + clazz + ", got " + o);
+    }
+        
+    protected SelectableQueryPart asSelectable(QueryPart part) {
+        return cast(SelectableQueryPart.class, part);
+    }
+
+    protected ValuesQueryPart asValues(QueryPart part) {
+        return cast(ValuesQueryPart.class, part);
+    }
+
+    protected AttributeQueryPart asAttribute(QueryPart part) {
+        return cast(AttributeQueryPart.class, part);
+    }
+    
     protected synchronized List<QueryPart> getParts(int type) {
         List<QueryPart> list = parts[type];
         if (list == null) {
@@ -42,9 +81,9 @@ abstract class AbstractQueryAdapter<Builder>
         return getCount(type) == 0;
     }
 
-    protected void ensureNotEmpty(int type) {
+    protected void ensureNotEmpty(int type, String name) {
         if (isEmpty(type)) {
-            throw new IllegalStateException(type + " part must not be empty");
+            throw new IllegalStateException(name + " part must not be empty");
         }
     }
     

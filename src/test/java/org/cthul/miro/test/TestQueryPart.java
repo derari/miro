@@ -1,14 +1,10 @@
 package org.cthul.miro.test;
 
-
 import java.util.Arrays;
 import java.util.List;
 import org.cthul.miro.query.parts.AttributeQueryPart;
 import org.cthul.miro.query.parts.QueryPart;
-import org.cthul.miro.query.api.QueryPartType;
-import org.cthul.miro.query.parts.SelectableQueryPart;
 import org.cthul.miro.query.parts.ValuesQueryPart;
-import org.cthul.miro.query.sql.DataQueryPart;
 
 public class TestQueryPart implements QueryPart {
     
@@ -18,6 +14,20 @@ public class TestQueryPart implements QueryPart {
     public TestQueryPart(String sql, Object... args) {
         this.sql = sql;
         this.args = args;
+    }
+
+    @Override
+    public String getKey() {
+        return sql;
+    }
+
+    public String getSql() {
+        return sql;
+    }
+
+    @Override
+    public void put(String key, Object... args) {
+        throw new UnsupportedOperationException();
     }
     
     @Override
@@ -63,7 +73,7 @@ public class TestQueryPart implements QueryPart {
         }
 
         @Override
-        public void selectAttribute(String attribute) {
+        public void selectAttribute(String attribute, String alias) {
         }
 
         @Override
@@ -76,27 +86,20 @@ public class TestQueryPart implements QueryPart {
         }
     }
     
-//    public static class Attribute extends TestQueryPart implements AttributeQueryPart {
-//        
-//        public Attribute(String attribute) {
-//            super(attribute);
-//        }
-//
-//        @Override
-//        public String getAttribute() {
-//            return sql;
-//        }
-//    }
-//    
-//    
-//    public static class Values extends TestQueryPart implements SelectableQueryPart {
-//
-//        public Values(Object... args) {
-//            super(DataQueryPart.VALUES, tuple(args.length), args);
-//        }
-//
-//        @Override
-//        public void selectAttribute(String attribute) {
-//        }
-//    }
+    public static class Attribute extends TestQueryPart implements AttributeQueryPart {
+
+        public Attribute(String sql) {
+            super(sql);
+        }
+
+        @Override
+        public String getAttributeKey() {
+            return getKey();
+        }
+
+        @Override
+        public String getSqlName() {
+            return getSql();
+        }
+    }
 }

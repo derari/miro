@@ -7,7 +7,7 @@ import org.cthul.miro.dsl.*;
 import org.cthul.miro.map.MappedQueryTemplate;
 import org.cthul.miro.map.SimpleMapping;
 import org.cthul.miro.query.ZQueryBuilder.QueryPart;
-import org.cthul.miro.query.QueryTemplate.PartTemplate;
+import org.cthul.miro.query.ZQueryTemplate.PartTemplate;
 
 /**
  *

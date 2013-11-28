@@ -1,16 +1,16 @@
 package org.cthul.miro.query;
 
 import java.util.List;
-import org.cthul.miro.query.QueryTemplate.PartTemplate;
+import org.cthul.miro.query.ZQueryTemplate.PartTemplate;
 
 /**
  *
  */
-public class QueryWithTemplate extends ParsingQueryBuilder {
+public class ZQueryWithTemplate extends ZParsingQueryBuilder {
     
-    private final QueryTemplate template;
+    private final ZQueryTemplate template;
 
-    public QueryWithTemplate(QueryTemplate template) {
+    public ZQueryWithTemplate(ZQueryTemplate template) {
         this.template = template;
         ensureDependencies(template.getAlwaysRequired());
     }

@@ -5,9 +5,9 @@ import org.cthul.miro.util.SqlUtils;
 /**
  *
  */
-public class ParsingQueryBuilder extends ZQueryBuilder {
+public class ZParsingQueryBuilder extends ZQueryBuilder {
 
-    public ParsingQueryBuilder() {
+    public ZParsingQueryBuilder() {
     }
 
     protected void sql_select(String... selectClause) {

@@ -3,13 +3,13 @@ package org.cthul.miro.query.sql;
 import org.cthul.miro.query.adapter.*;
 import org.cthul.miro.query.api.QueryType;
 
-public interface DataQuery<Builder> extends QueryType<Builder> {
+public interface DataQuery<Builder extends QueryBuilder<? extends Builder>> extends QueryType<Builder> {
 
-    public static final DataQuery<SelectQueryBuilder> SELECT = Type.SELECT;
-    public static final DataQuery<InsertQueryBuilder> INSERT = Type.INSERT;
-    public static final DataQuery<UpdateQueryBuilder> UPDATE = Type.UPDATE;
-    public static final DataQuery<UpdateQueryBuilder> DELETE = Type.DELETE;
-    public static final DataQuery<UnionQueryBuilder>  UNION  = Type.UNION;
+    public static final DataQuery<SelectBuilder<?>> SELECT = Type.SELECT;
+    public static final DataQuery<InsertBuilder<?>> INSERT = Type.INSERT;
+    public static final DataQuery<UpdateBuilder<?>> UPDATE = Type.UPDATE;
+    public static final DataQuery<UpdateBuilder<?>> DELETE = Type.DELETE;
+    public static final DataQuery<?>  UNION  = Type.UNION;
     
     QueryString<Builder> newQueryString(QuerySyntax syntax);
     
@@ -19,6 +19,7 @@ public interface DataQuery<Builder> extends QueryType<Builder> {
     
     @SuppressWarnings("LocalVariableHidesMemberVariable")
     public static enum Type implements DataQuery {
+        
         SELECT,
         INSERT,
         UPDATE,
@@ -37,7 +38,7 @@ public interface DataQuery<Builder> extends QueryType<Builder> {
         }
 
         @Override
-        public Object getBuilder(QueryAdapter adapter) {
+        public QueryBuilder getBuilder(QueryAdapter adapter) {
             if (adapter.getQueryType() != this) {
                 throw new IllegalArgumentException(
                         adapter + " is not a " + this + " query");
@@ -46,7 +47,10 @@ public interface DataQuery<Builder> extends QueryType<Builder> {
         }
         
         public static Type get(QueryAdapter<?> query) {
-            QueryType<?> type = query.getQueryType();
+            return get(query.getQueryType());
+        }
+        
+        public static Type get(QueryType<?> type) {
             if (type instanceof Type) {
                 return (Type) type;
             }

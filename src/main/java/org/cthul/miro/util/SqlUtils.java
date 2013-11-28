@@ -16,6 +16,15 @@ public class SqlUtils {
         return result;
     }
     
+    public static String[][] parseAttributes(String select) {
+        List<String> parts = splitSelectClause(select);
+        final String[][] result = new String[parts.size()][];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = parseAttributePart(parts.get(i));
+        }
+        return result;
+    }
+    
     protected static List<String> splitSelectClause(String select) {
         List<String> parts = new ArrayList<>();
         for (int i = 0; i < select.length(); i++) {
@@ -48,9 +57,9 @@ public class SqlUtils {
             + QuotedString("`") + ")";
     
     private static final Pattern SELECT_PART_PATTERN = PartPattern(
-            "((?:(IDENT)_\\._)?(IDENT)(_AS_(IDENT))?)"
+            "(((?:(IDENT)_\\._)?(IDENT))(?:_AS_(IDENT))?)"
              + "|" +
-             "(.+?AS_(IDENT))");
+             "((.+?)AS_(IDENT))");
     
     public static String[] parseSelectPart(String select) {
         select = select.trim();
@@ -58,32 +67,76 @@ public class SqlUtils {
         if (!m.matches()) {
             throw new IllegalArgumentException("Cannot parse: " + select);
         }
-        final String key, required;
-        if (m.group(1) != null) {
-            key = m.group(5) != null ? m.group(5) : m.group(3);
-            required = m.group(2);
-        } else if (m.group(6) != null) {
-            key = m.group(7);
-            required = null;
-        } else {
-            throw new AssertionError(m.toString());
+//        final String key, required;
+//        if (m.group(1) != null) {
+//            key = m.group(5) != null ? m.group(5) : m.group(3);
+//            required = m.group(2);
+//        } else if (m.group(6) != null) {
+//            key = m.group(7);
+//            required = null;
+//        } else {
+//            throw new AssertionError(m.toString());
+//        }
+//        return new String[]{stripQuotes(key), select, stripQuotes(required)};
+        if (!m.matches()) {
+            throw new IllegalArgumentException("Cannot parse: " + select);
         }
-        return new String[]{stripQuotes(key), select, stripQuotes(required)};
+        final String key, def, table/*, column*/;
+        if (m.group(1) != null) {
+            def = m.group(2);
+            table = m.group(3);
+            //column = m.group(4);
+            key = m.group(5) != null ? m.group(5) : m.group(4);
+        } else {
+            def = m.group(7).trim();
+            key = m.group(8);
+            table = null;
+            //column = null;
+        }
+        return new String[]{stripQuotes(key), def, stripQuotes(table), key};
     }
+    
+    private static final Pattern ATTRIBUTE_PART_PATTERN = PartPattern(
+            "((?:(IDENT)_\\._)?(IDENT))(?:_AS_(IDENT))?");
+    
+    public static String[] parseAttributePart(String attribute) {
+        attribute = attribute.trim();
+        Matcher m = ATTRIBUTE_PART_PATTERN.matcher(attribute);
+        if (!m.matches()) {
+            throw new IllegalArgumentException("Cannot parse: " + attribute);
+        }
+        final String key, def, column, table;
+        def = m.group(1);
+        table = m.group(2);
+        column = m.group(3);
+        key = m.group(4) != null ? m.group(4) : column;
+        return new String[]{stripQuotes(key), def, stripQuotes(table), key, column};
+    }
+    
+    private static final Pattern FROM_PART_PATTERN = PartPattern(
+            "(.*?)(IDENT)");
     
     public static String[] parseFromPart(String from) {
         Matcher m = FROM_PART_PATTERN.matcher(from.trim());
         if (!m.matches()) {
             throw new IllegalArgumentException("Cannot parse: " + from);
         }
-        final String key;
-        if (m.group(1) != null) {
-            key = m.group(1);
+        final String key, table;
+        if (m.group(2) != null) {
+            key = stripQuotes(m.group(2));
         } else {
             throw new AssertionError(m.toString());
         }
-        return new String[]{stripQuotes(key), from};
+        if (m.group(1).isEmpty()) {
+            table = m.group(2);
+        } else {
+            table = m.group(1);
+        }
+        return new String[]{key, from, table.trim()};
     }
+    
+    private static final Pattern JOIN_PART_PATTERN = PartPattern(
+            "((?:RIGHT~OUTER|LEFT~OUTER|INNER)?_JOIN)?.*?(IDENT)(_ON.*)?");
     
     public static String[] parseJoinPart(String join) {
         Matcher m = JOIN_PART_PATTERN.matcher(join.trim());
@@ -134,12 +187,6 @@ public class SqlUtils {
         }
         return new String[]{stripQuotes(key), orderBy, stripQuotes(required)};
     }
-    
-    private static final Pattern FROM_PART_PATTERN = PartPattern(
-            ".*?(IDENT)");
-    
-    private static final Pattern JOIN_PART_PATTERN = PartPattern(
-            "((?:RIGHT~OUTER|LEFT~OUTER|INNER)?_JOIN)?.*?(IDENT)(_ON.*)?");
     
     private static final Pattern GROUP_PART_PATTERN = PartPattern(
             "(IDENT_\\._)?(IDENT)");

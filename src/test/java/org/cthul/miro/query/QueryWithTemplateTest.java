@@ -9,7 +9,7 @@ import static org.hamcrest.Matchers.*;
  */
 public class QueryWithTemplateTest {
     
-    private QueryTemplate template = new QueryTemplate(){{
+    private ZQueryTemplate template = new ZQueryTemplate(){{
         select("a.col1 AS a1, b.col1 AS b1");
         optional_select("a.col2 AS a2, c.col1 AS c1");
         internal_select("c.col2 AS c2");
@@ -28,7 +28,7 @@ public class QueryWithTemplateTest {
     
     @Test
     public void test_select_all() {
-        QueryWithTemplate qry = new QueryWithTemplate(template);
+        ZQueryWithTemplate qry = new ZQueryWithTemplate(template);
         qry.select("*");
         assertThat(qry.getQueryString(),
                 is("SELECT a.col1 AS a1, b.col1 AS b1 "
@@ -38,7 +38,7 @@ public class QueryWithTemplateTest {
     
     @Test
     public void test_auto_dependency() {
-        QueryWithTemplate qry = new QueryWithTemplate(template);
+        ZQueryWithTemplate qry = new ZQueryWithTemplate(template);
         qry.select("c1");
         assertThat(qry.getQueryString(),
                 is("SELECT c.col1 AS c1 "
@@ -48,7 +48,7 @@ public class QueryWithTemplateTest {
     
     @Test
     public void test_where() {
-        QueryWithTemplate qry = new QueryWithTemplate(template);
+        ZQueryWithTemplate qry = new ZQueryWithTemplate(template);
         qry.select("a1");
         qry.where("c1 =", 1);
         assertThat(qry.getQueryString(),

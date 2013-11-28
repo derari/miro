@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.query.ZQueryBuilder;
-import org.cthul.miro.query.SqlQueryBuilder;
+import org.cthul.miro.query.ZSqlQueryBuilder;
 import org.cthul.miro.result.EntityConfiguration;
 
 /**
@@ -13,14 +13,14 @@ import org.cthul.miro.result.EntityConfiguration;
  */
 public class MappedSqlQuery<Entity> extends AbstractMappedQueryBuilder<Entity> {
     
-    private final SqlQueryBuilder sql = new SqlQueryBuilder();
+    private final ZSqlQueryBuilder sql = new ZSqlQueryBuilder();
     private List<EntityConfiguration<? super Entity>> configs = null;
 
     public MappedSqlQuery(MiConnection cnn, SimpleMapping<Entity> mapping) {
         super(cnn, mapping);
     }
 
-    public SqlQueryBuilder query() {
+    public ZSqlQueryBuilder query() {
         return sql;
     }
 

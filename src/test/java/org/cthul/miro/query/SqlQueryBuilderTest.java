@@ -11,7 +11,7 @@ public class SqlQueryBuilderTest {
     
     @Test
     public void test_all() {
-        SqlQueryBuilder sql = new SqlQueryBuilder();
+        ZSqlQueryBuilder sql = new ZSqlQueryBuilder();
         
         sql.select("a AS a, b")
                 .where("a > ? OR a < ?", "W1", "W2")
