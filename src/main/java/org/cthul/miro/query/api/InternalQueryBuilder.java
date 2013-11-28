@@ -2,11 +2,9 @@ package org.cthul.miro.query.api;
 
 import org.cthul.miro.query.parts.QueryPart;
 
-public interface InternalQueryBuilder {
+public interface InternalQueryBuilder extends Query {
     
     QueryType<?> getQueryType();
-    
-    void require(String key);
     
     String newKey(String hint);
     

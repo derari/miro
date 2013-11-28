@@ -23,7 +23,18 @@ public class TestSelectQuery extends AbstractQuery {
     
     public TestSelectQuery select(String... select) {
         for (String s: select) {
-            put(s);
+            for (String s2: s.split(",")) {
+                put(s2.trim());
+            }
+        }
+        return this;
+    }
+    
+    public TestSelectQuery orderBy(String... select) {
+        for (String s: select) {
+            for (String s2: s.split(",")) {
+                put("orderBy-" + s2.trim());
+            }
         }
         return this;
     }

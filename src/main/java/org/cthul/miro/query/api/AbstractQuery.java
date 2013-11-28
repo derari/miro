@@ -81,7 +81,7 @@ public class AbstractQuery implements Query {
     
     @Override
     public void put(String key) {
-        part(key);
+        put(key, NO_ARGS);
     }
 
     @Override
@@ -91,8 +91,19 @@ public class AbstractQuery implements Query {
 
     @Override
     public void put2(String key, String subkey, Object... args) {
+        int dot = key.indexOf('.');
+        if (dot > 0) {
+            if (subkey.isEmpty()) {
+                subkey = key.substring(dot+1);
+            } else {
+                subkey = key.substring(dot+1) + "." + subkey;
+            }
+            key = key.substring(0, dot);
+        }
         part(key).put(subkey, args);
     }
+    
+    private static final Object[] NO_ARGS = {};
     
     private class Internal implements InternalQueryBuilder {
 
@@ -102,8 +113,18 @@ public class AbstractQuery implements Query {
         }
 
         @Override
-        public void require(String key) {
+        public void put(String key) {
             AbstractQuery.this.put(key);
+        }
+
+        @Override
+        public void put(String key, Object... args) {
+            AbstractQuery.this.put(key, args);
+        }
+
+        @Override
+        public void put2(String key, String subkey, Object... args) {
+            AbstractQuery.this.put2(key, subkey, args);
         }
 
         @Override

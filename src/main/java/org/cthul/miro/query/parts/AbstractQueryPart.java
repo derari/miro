@@ -15,6 +15,10 @@ public abstract class AbstractQueryPart implements QueryPart {
 
     @Override
     public void put(String key, Object... args) {
+        if ((key == null || key.isEmpty()) && 
+                (args == null || args.length == 0)) {
+            return;
+        }
         throw new IllegalArgumentException("Invalid key: " + key);
     }
 }

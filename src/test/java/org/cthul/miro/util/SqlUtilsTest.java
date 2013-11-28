@@ -32,91 +32,91 @@ public class SqlUtilsTest {
     public void test_parseSelectPart_simple() {
         String part = "key";
         String[] keyDef = SqlUtils.parseSelectPart(part);
-        assertThat(keyDef, arrayContaining("key", "key", null, "key"));
+        assertThat(keyDef, arrayContaining("key", "key", null, "key", "key", "key"));
     }
     
     @Test
     public void test_parseSelectPart_quoted() {
         String part = " 'key' ";
         String[] keyDef = SqlUtils.parseSelectPart(part);
-        assertThat(keyDef, arrayContaining("key", "'key'", null, "'key'"));
+        assertThat(keyDef, arrayContaining("key", "'key'", null, "key", "'key'", "'key'"));
     }
     
     @Test
     public void test_parseSelectPart_qualified() {
         String part = "table . key";
         String[] keyDef = SqlUtils.parseSelectPart(part);
-        assertThat(keyDef, arrayContaining("key", part, "table", "key"));
+        assertThat(keyDef, arrayContaining("key", part, "table", "key", "key", "key"));
     }
     
     @Test
     public void test_parseSelectPart_simple_not_as() {
         String part = "valueASkey";
         String[] keyDef = SqlUtils.parseSelectPart(part);
-        assertThat(keyDef, arrayContaining("valueASkey", part, null, "valueASkey"));
+        assertThat(keyDef, arrayContaining("valueASkey", part, null, "valueASkey", "valueASkey", "valueASkey"));
     }
     
     @Test
     public void test_parseSelectPart_simple_as() {
         String part = "value as key";
         String[] keyDef = SqlUtils.parseSelectPart(part);
-        assertThat(keyDef, arrayContaining("key", "value", null, "key"));
+        assertThat(keyDef, arrayContaining("key", "value", null, "value", "key", "value"));
     }
     
     @Test
     public void test_parseSelectPart_qualified_as() {
         String part = "'table'.`value` as 'key'";
         String[] keyDef = SqlUtils.parseSelectPart(part);
-        assertThat(keyDef, arrayContaining("key", "'table'.`value`", "table", "'key'"));
+        assertThat(keyDef, arrayContaining("key", "'table'.`value`", "table", "value", "'key'", "`value`"));
     }
     
     @Test
     public void test_parseSelectPart_complex() {
         String part = "foo(value, '(AS') AS key";
         String[] keyDef = SqlUtils.parseSelectPart(part);
-        assertThat(keyDef, arrayContaining("key", "foo(value, '(AS')", null, "key"));
+        assertThat(keyDef, arrayContaining("key", "foo(value, '(AS')", null, null, "key", null));
     }
     
     @Test
     public void test_parseAttributePart_simple() {
         String part = "key";
         String[] keyDef = SqlUtils.parseAttributePart(part);
-        assertThat(keyDef, arrayContaining("key", "key", null, "key", "key"));
+        assertThat(keyDef, arrayContaining("key", "key", null, "key", "key", "key"));
     }
     
     @Test
     public void test_parseAttributePart_quoted() {
         String part = " 'key' ";
         String[] keyDef = SqlUtils.parseAttributePart(part);
-        assertThat(keyDef, arrayContaining("key", "'key'", null, "'key'", "'key'"));
+        assertThat(keyDef, arrayContaining("key", "'key'", null, "key", "'key'", "'key'"));
     }
     
     @Test
     public void test_parseAttributePart_qualified() {
         String part = "table . key";
         String[] keyDef = SqlUtils.parseAttributePart(part);
-        assertThat(keyDef, arrayContaining("key", part, "table", "key", "key"));
+        assertThat(keyDef, arrayContaining("key", part, "table", "key", "key", "key"));
     }
     
     @Test
     public void test_parseAttributePart_simple_not_as() {
         String part = "valueASkey";
         String[] keyDef = SqlUtils.parseAttributePart(part);
-        assertThat(keyDef, arrayContaining("valueASkey", part, null, "valueASkey", "valueASkey"));
+        assertThat(keyDef, arrayContaining("valueASkey", part, null, "valueASkey", "valueASkey", "valueASkey"));
     }
     
     @Test
     public void test_parseAttributePart_simple_as() {
         String part = "value as key";
         String[] keyDef = SqlUtils.parseAttributePart(part);
-        assertThat(keyDef, arrayContaining("key", "value", null, "key", "value"));
+        assertThat(keyDef, arrayContaining("key", "value", null, "value", "key", "value"));
     }
     
     @Test
     public void test_parseAttributePart_qualified_as() {
         String part = "'table'.`value` as 'key'";
         String[] keyDef = SqlUtils.parseAttributePart(part);
-        assertThat(keyDef, arrayContaining("key", "'table'.`value`", "table", "'key'", "`value`"));
+        assertThat(keyDef, arrayContaining("key", "'table'.`value`", "table", "value", "'key'", "`value`"));
     }
     
     @Test

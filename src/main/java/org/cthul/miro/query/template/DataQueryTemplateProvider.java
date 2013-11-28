@@ -97,22 +97,64 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         return result;
     }
     
+    protected String newTemplatePartKey(String hint) {
+        hint += "$";
+        if (!parts.containsKey(hint)) {
+            return hint;
+        }
+        int i = 1;
+        while (parts.containsKey(hint + i)) i++;
+        return hint + i;
+    }
+    
     protected QueryTemplatePart autoPartSelect(String key) {
         switch (key) {
             case "all-keys":
-                return new SelectAllTemplate(
+                return new RequireAllTemplate(
                         generatedKeys, naturalKeys);
             case "*":
-                return new SelectAllTemplate("all-keys", 
+                return new RequireAllTemplate("all-keys", 
                         defaultAttributes, defaultSelect);
             case "**":
-                return new SelectAllTemplate("*", 
+                return new RequireAllTemplate("*", 
                         optionalAttributes, optionalSelect);
+            case "groupBy-keys":
+                List<String> groups = new ArrayList<>();
+                for (String k: generatedKeys) {
+                    groups.add("groupBy-"+ k);
+                }
+                for (String k: naturalKeys) {
+                    groups.add("groupBy-"+ k);
+                }
+                return new RequireAllTemplate(groups);
+            case "orderBy-keys":
+                List<String> orders = new ArrayList<>();
+                for (String k: generatedKeys) {
+                    orders.add("orderBy-"+ k);
+                }
+                for (String k: naturalKeys) {
+                    orders.add("orderBy-"+ k);
+                }
+                return new RequireAllTemplate(orders);
         }
         if (key.startsWith("groupBy-")) {
             Attribute at = attributes.get(key.substring(8));
             if (at != null) {
                 return new GroupByTemplate(at);
+            }
+        }
+        if (key.startsWith("orderBy-")) {
+            if (key.toLowerCase().endsWith(" asc")) {
+                return new Put2ValuesTemplate(
+                        key.substring(0, key.length()-4), "asc");
+            }
+            if (key.toLowerCase().endsWith(" desc")) {
+                return new Put2ValuesTemplate(
+                        key.substring(0, key.length()-5), "desc");
+            }
+            Attribute at = attributes.get(key.substring(8));
+            if (at != null) {
+                return new OrderByTemplate(at);
             }
         }
         return autoPartCached(key);
@@ -121,11 +163,11 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
     protected QueryTemplatePart autoPartInsert(String key) {
         switch (key) {
             case "all-keys":
-                return new SelectAllTemplate(naturalKeys);
+                return new RequireAllTemplate(naturalKeys);
             case "*":
-                return new SelectAllTemplate("all-keys", defaultAttributes);
+                return new RequireAllTemplate("all-keys", defaultAttributes);
             case "**":
-                return new SelectAllTemplate("*", optionalAttributes);
+                return new RequireAllTemplate("*", optionalAttributes);
             case "insert-values":
                 return new InsertValuesTemplate();
         }
@@ -138,9 +180,9 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
                 return new RequireAttributeTemplate(
                         getAttributes(generatedKeys, naturalKeys));
             case "*":
-                return new SelectAllTemplate(defaultAttributes);
+                return new RequireAllTemplate(defaultAttributes);
             case "**":
-                return new SelectAllTemplate("*", optionalAttributes);
+                return new RequireAllTemplate("*", optionalAttributes);
             case "update-values":
                 return new UpdateValuesTemplate();
             case "filter-by-keys":
@@ -158,11 +200,11 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
     protected QueryTemplatePart autoPartDelete(String key) {
         switch (key) {
             case "all-keys":
-                return new SelectAllTemplate(
+                return new RequireAllTemplate(
                         generatedKeys, naturalKeys);
             case "*":
             case "**":
-                return new SelectAllTemplate("all-keys");
+                return new RequireAllTemplate("all-keys");
         }
         Attribute at = attributes.get(key);
         if (at != null) {
@@ -192,23 +234,36 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         return null;
     }
     
-    protected List<Attribute> newAttributes(String sql) {
+    protected String[] getRequired(String[] required, String[] part) {
+        if (required != AUTO_DEPENDENCIES) {
+            return required;
+        }
+        String table = part[2] == null ? "main-table" : part[2];
+        if (part[3] == null) {
+            return new String[]{table};
+        } else {
+            return new String[]{table + "." + part[3]};
+        }
+    }
+    
+    protected List<Attribute> newAttributes(String[] required, String sql) {
         String[][] attributeParts = SqlUtils.parseAttributes(sql);
         List<Attribute> result = new ArrayList<>(attributeParts.length);
         for (String[] p: attributeParts) {
-            if (p[2] == null) p[2] = "main-table";
-            Attribute a = new Attribute(p[0], p[1], p[2], p[3], p[4]);
+            required = getRequired(required, p);
+            Attribute a = new Attribute(p[0], p[1], p[4], p[5], required);
             result.add(a);
             attributes.put(a.getKey(), a);
         }
         return result;
     }
     
-    protected List<Attribute> newSelects(String sql) {
+    protected List<Attribute> newSelects(String[] required, String sql) {
         String[][] attributeParts = SqlUtils.parseSelectClause(sql);
         List<Attribute> result = new ArrayList<>(attributeParts.length);
         for (String[] p: attributeParts) {
-            Attribute a = new Attribute(p[0], p[1], p[2], p[3], null);
+            required = getRequired(required, p);
+            Attribute a = new Attribute(p[0], p[1], p[4], null, required);
             result.add(a);
             attributes.put(a.getKey(), a);
         }
@@ -221,45 +276,81 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         }
     }
     
+    protected void addAttributesTo(Iterable<Attribute> attributes, Map<String, Attribute> map) {
+        for (Attribute a: attributes) {
+            map.put(a.getKey(), a);
+        }
+    }
+    
     protected void generatedKeys(@MultiValue @AutoKey @AutoDependencies String... attributes) {
+        generatedKeys(AUTO_DEPENDENCIES, attributes);
+    }
+    
+    protected void generatedKeys(String[] required, @MultiValue @AutoKey String... attributes) {
         for (String a: attributes) {
-            List<Attribute> list = newAttributes(a);
+            List<Attribute> list = newAttributes(required, a);
             addAttributeKeysTo(list, generatedKeys);
+            addAttributesTo(list, this.attributes);
         }
     }
     
     protected void naturalKeys(@MultiValue @AutoKey @AutoDependencies String... attributes) {
+        naturalKeys(AUTO_DEPENDENCIES, attributes);
+    }
+    
+    protected void naturalKeys(String[] required, @MultiValue @AutoKey String... attributes) {
         for (String a: attributes) {
-            List<Attribute> list = newAttributes(a);
+            List<Attribute> list = newAttributes(required, a);
             addAttributeKeysTo(list, naturalKeys);
+            addAttributesTo(list, this.attributes);
         }
     }
     
     protected void attributes(@MultiValue @AutoKey @AutoDependencies String... attributes) {
+        attributes(AUTO_DEPENDENCIES, attributes);
+    }
+    
+    protected void attributes(String[] required, @MultiValue @AutoKey String... attributes) {
         for (String a: attributes) {
-            List<Attribute> list = newAttributes(a);
+            List<Attribute> list = newAttributes(required, a);
             addAttributeKeysTo(list, defaultAttributes);
+            addAttributesTo(list, this.attributes);
         }
     }
     
     protected void optionalAttributes(@MultiValue @AutoKey @AutoDependencies String... attributes) {
+        optionalAttributes(AUTO_DEPENDENCIES, attributes);
+    }
+    
+    protected void optionalAttributes(String[] required, @MultiValue @AutoKey String... attributes) {
         for (String a: attributes) {
-            List<Attribute> list = newAttributes(a);
+            List<Attribute> list = newAttributes(required, a);
             addAttributeKeysTo(list, optionalAttributes);
+            addAttributesTo(list, this.attributes);
         }
     }
     
-    protected void select(@MultiValue @AutoKey @AutoDependencies String... selects) {
+    protected void select(@MultiValue @AutoKey @AutoDependencies String... attributes) {
+        select(AUTO_DEPENDENCIES, attributes);
+    }
+    
+    protected void select(String[] required, @MultiValue @AutoKey String... selects) {
         for (String s: selects) {
-            List<Attribute> list = newSelects(s);
+            List<Attribute> list = newSelects(required, s);
             addAttributeKeysTo(list, defaultSelect);
+            addAttributesTo(list, this.attributes);
         }
     }
     
-    protected void optionalSelect(@MultiValue @AutoKey @AutoDependencies String... selects) {
+    protected void optionalSelect(@MultiValue @AutoKey @AutoDependencies String... attributes) {
+        optionalSelect(AUTO_DEPENDENCIES, attributes);
+    }
+    
+    protected void optionalSelect(String[] required, @MultiValue @AutoKey String... selects) {
         for (String s: selects) {
-            List<Attribute> list = newSelects(s);
+            List<Attribute> list = newSelects(required, s);
             addAttributeKeysTo(list, optionalSelect);
+            addAttributesTo(list, this.attributes);
         }
     }
     
@@ -267,7 +358,8 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         String[] p = SqlUtils.parseFromPart(table);
         TableTemplate tt = new TableTemplate(p[0], p[1], p[2]);
         addIfNew(tt.getKey(), tt);
-        addIfNew("main-table", tt);
+        addIfNew("main-table", new RequireAllTemplate(tt.getKey()));
+        // TODO: find out how to handle multiple tables and/or tables with no key
     }
     
     protected void join(@AutoKey String join) {
@@ -278,6 +370,37 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
     protected void join(String key, String join) {
         JoinTemplate jt = new JoinTemplate(join);
         add(key, jt);
+    }
+    
+    protected void virtual(String[] required, String key) {
+        RequireAllTemplate vt = new RequireAllTemplate(required);
+        add(key, vt);
+    }
+    
+    protected Using<?> using(String... required) {
+        return new Using<>(this, required);
+    }
+    
+    protected String[] dependenciesForUsing(String[] required) {
+        if (required == AUTO_DEPENDENCIES || required == NO_DEPENDENCIES) {
+            return required;
+        }
+        String key;
+        if (required != null && required.length > 0) {
+            StringBuilder sb = new StringBuilder();
+            int l = Math.min(3, required.length);
+            for (int i = 0; i < l; i++) {
+                if (sb.length() > 0) sb.append('+');
+                sb.append(required[i].replace('.', '~'));
+            }
+            if (required.length > 3) sb.append("+").append(required.length-3);
+            key = sb.toString();
+        } else {
+            key = "virtual";
+        }
+        key = newTemplatePartKey(key);
+        virtual(required, key);
+        return new String[]{key};
     }
 
     protected static class SelectAttributeTemplate implements QueryTemplatePart {
@@ -422,34 +545,34 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         }
     }
     
-    protected class SelectAllTemplate implements QueryTemplatePart {
+    protected class RequireAllTemplate implements QueryTemplatePart {
         
         private final List<String> keys;
 
-        public SelectAllTemplate(String key) {
-            this(key, (List<String>[]) null);
+        public RequireAllTemplate(String key) {
+            this.keys = new ArrayList<>();
+            if (key != null) keys.add(key);
         }
         
-        public SelectAllTemplate(String... keys) {
+        public RequireAllTemplate(String... keys) {
             this(Arrays.asList(keys));
         }
         
-        public SelectAllTemplate(String oneMore, List<String>... keys) {
-            this.keys = new ArrayList<>();
-            if (oneMore != null) this.keys.add(oneMore);
+        public RequireAllTemplate(String oneMore, List<String>... keys) {
+            this(oneMore);
             for (List<String> k: keys) {
                 this.keys.addAll(k);
             }
         }
         
-        public SelectAllTemplate(List<String>... keys) {
+        public RequireAllTemplate(List<String>... keys) {
             this(null, keys);
         }
         
         @Override
         public QueryPart addPart(String key, InternalQueryBuilder queryBuilder) {
             requireAll(queryBuilder, keys);
-            return virtualPart(key, queryBuilder);
+            return proxyPart(key, queryBuilder, keys);
         }
     }
     
@@ -483,9 +606,23 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
                     break;
             }
             if (sql == null) return null;
-            QueryPart part = new SimpleQueryPart(key, sql);
+            QueryPart part = new TableQueryPart(key, sql);
             queryBuilder.addPart(DataQueryPart.TABLE, part);
             return part;
+        }
+    }
+    
+    protected static class TableQueryPart extends SimpleQueryPart {
+
+        public TableQueryPart(String key, String sql) {
+            super(key, sql);
+        }
+
+        @Override
+        public void put(String key, Object... args) {
+            if (args != null && args.length > 0) {
+                super.put(key, args);
+            }
         }
     }
     
@@ -523,7 +660,7 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
     protected static class UpdateValuesTemplate implements QueryTemplatePart {
         @Override
         public QueryPart addPart(String key, InternalQueryBuilder queryBuilder) {
-            queryBuilder.require("filter-by-keys");
+            queryBuilder.put("filter-by-keys");
             QueryPart part = new UpdateValuesPart(key, queryBuilder);
             queryBuilder.addPart(OtherQueryPart.VIRTUAL, part);
             return part;
@@ -552,17 +689,29 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         }
     }
     
-    protected static class JoinTemplate extends SimpleTemplatePart {
+    protected static class JoinTemplate implements QueryTemplatePart {
+
+        private final String sql;
+        private final String[] required;
 
         public JoinTemplate(String sql, String... required) {
-            super(DataQueryPart.JOIN, sql, required);
+            this.sql = sql;
+            this.required = required;
+        }
+
+        @Override
+        public QueryPart addPart(String key, InternalQueryBuilder queryBuilder) {
+            requireAll(queryBuilder, required);
+            TableQueryPart jp = new TableQueryPart(key, sql);
+            queryBuilder.addPart(DataQueryPart.JOIN, jp);
+            return jp;
         }
     }
     
     protected class KeysInTemplate implements QueryTemplatePart {
         @Override
         public QueryPart addPart(String key, InternalQueryBuilder queryBuilder) {
-            queryBuilder.require("all-keys");
+            queryBuilder.put("all-keys");
             QueryPart part = new KeysInPart(key);
             queryBuilder.addPart(DataQueryPart.WHERE, part);
             return part;
@@ -695,8 +844,119 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
     
     protected static class GroupByTemplate extends SimpleTemplatePart {
 
+        private final Attribute at;
+        
         public GroupByTemplate(Attribute at) {
-            super(DataQueryPart.GROUP_BY, at.getKeyLiteral(), at.getKey());
+            super(DataQueryPart.GROUP_BY, at.getSelect());
+            this.at = at;
+        }
+
+        public GroupByTemplate(QueryPartType type, String sql, String... required) {
+            super(type, sql, required);
+            this.at = null;
+        }
+
+        @Override
+        public QueryPart addPart(String key, InternalQueryBuilder queryBuilder) {
+            if (at != null) {
+                at.addRequired(queryBuilder);
+            }
+            return super.addPart(key, queryBuilder);
+        }
+    }
+    
+    protected static class OrderByTemplate extends SimpleTemplatePart {
+
+        private final Attribute at;
+        
+        public OrderByTemplate(Attribute at) {
+            super(DataQueryPart.ORDER_BY, at.getSelect());
+            this.at = at;
+        }
+
+        public OrderByTemplate(QueryPartType type, String sql, String... required) {
+            super(type, sql, required);
+            this.at = null;
+        }
+
+        @Override
+        public QueryPart addPart(String key, InternalQueryBuilder queryBuilder) {
+            if (at != null) {
+                at.addRequired(queryBuilder);
+            }
+            return super.addPart(key, queryBuilder);
+        }
+
+        @Override
+        protected QueryPart createPart(String key, String sql) {
+            return new OrderByPart(key, sql);
+        }
+    }
+    
+    protected static class OrderByPart extends SimpleQueryPart {
+        
+        private boolean asc = true;
+
+        public OrderByPart(String key, String sql) {
+            super(key, sql);
+        }
+
+        @Override
+        public void put(String key, Object... args) {
+            switch (key.toLowerCase()) {
+                case "asc":
+                    asc = true;
+                    return;
+                case "desc":
+                    asc = false;
+                    return;
+                default:
+                    super.put(key, args);
+            }
+        }
+
+        @Override
+        public void appendSqlTo(StringBuilder sqlBuilder) {
+            super.appendSqlTo(sqlBuilder);
+            if (asc) {
+                sqlBuilder.append(" ASC");
+            } else {
+                sqlBuilder.append(" DESC");
+            }
+        }
+    }
+    
+    protected static class PutValuesTemplate implements QueryTemplatePart {
+        private final String key;
+        private final Object[] values;
+
+        public PutValuesTemplate(String key, Object... values) {
+            this.key = key;
+            this.values = values;
+        }
+
+        @Override
+        public QueryPart addPart(String key, InternalQueryBuilder queryBuilder) {
+            queryBuilder.put(this.key, values);
+            return virtualPart(key, queryBuilder);
+        }
+    }
+    
+    protected static class Put2ValuesTemplate implements QueryTemplatePart {
+        private final String key;
+        private final String key2;
+        private final Object[] values;
+
+        public Put2ValuesTemplate(String key, String key2, Object... values) {
+            this.key = key;
+            this.key2 = key2;
+            this.values = values;
+        }
+
+        @Override
+        public QueryPart addPart(String key, InternalQueryBuilder queryBuilder) {
+            queryBuilder.put2(this.key, key2, values);
+            return virtualPart(key, queryBuilder);
         }
     }
     
@@ -710,7 +970,7 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
 
         public Using(DataQueryTemplateProvider template, String... required) {
             this.template = template;
-            this.required = required;
+            this.required = template.dependenciesForUsing(required);
         }
         
         protected This self() {
@@ -718,20 +978,25 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         }
         
         public This select(@MultiValue @AutoKey String... select) {
-            template.select(select);
+            template.select(required, select);
+            return self();
+        }
+        
+        public This optionalSelect(@MultiValue @AutoKey String... select) {
+            template.optionalSelect(required, select);
             return self();
         }
     }
     
     protected static void requireAll(InternalQueryBuilder queryBuilder, String... required) {
         for (String s: required) {
-            queryBuilder.require(s);
+            queryBuilder.put(s);
         }
     }
     
     protected static void requireAll(InternalQueryBuilder queryBuilder, List<String> required) {
         for (String s: required) {
-            queryBuilder.require(s);
+            queryBuilder.put(s);
         }
     }
     
@@ -759,6 +1024,19 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
     
     protected static QueryPart virtualPart(String key, InternalQueryBuilder queryBuilder) {
         QueryPart part = new VirtualQueryPart(key);
+        queryBuilder.addPart(OtherQueryPart.VIRTUAL, part);
+        return part;
+    }
+    
+    protected static QueryPart proxyPart(String key, final InternalQueryBuilder queryBuilder, final List<String> required) {
+        QueryPart part = new VirtualQueryPart(key) {
+            @Override
+            public void put(String key, Object... args) {
+                for (String r: required) {
+                    queryBuilder.put2(r, key, args);
+                }
+            }
+        };
         queryBuilder.addPart(OtherQueryPart.VIRTUAL, part);
         return part;
     }

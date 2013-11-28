@@ -6,25 +6,25 @@ public class Attribute {
 
     private final String key;
     private final String select;
-    private final String table;
     private final String keyLiteral;
     private final String columnLiteral;
-    private final String require;
+    private final String[] required;
 
-    public Attribute(String key, String select, String table, String keyLiteral, String columnLiteral) {
+    public Attribute(String key, String select, String keyLiteral, String columnLiteral, String... required) {
         this.key = key;
         this.select = select;
-        this.table = table;
+        this.required = required;
         this.keyLiteral = keyLiteral;
         this.columnLiteral = columnLiteral;
-        if (table == null) {
-            require = null;
-        }
     }
 
     public void addRequired(InternalQueryBuilder queryBuilder) {
-        if (table != null) {
-            queryBuilder.require(table);
+        if (required != null) {
+            for (String r: required) {
+                if (r != null) {
+                    queryBuilder.put(r);
+                }
+            }
         }
     }
 

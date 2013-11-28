@@ -11,11 +11,13 @@ import static org.hamcrest.MatcherAssert.*;
 public class DataQueryTemplateProviderTest {
     
     private DataQueryTemplateProvider template = new DataQueryTemplateProvider() {{
-        generatedKeys("a.'id'");
+        generatedKeys("a.'id' AS 'Id'");
         attributes("a.'street' AS 'Street', a.'city' AS 'City'");
         select("foo() AS `foo`");
+        using("p.id", "groupBy-keys")
+                .optionalSelect("COUNT(p.'id') AS 'Inhabitants'");
         table("'Addresses' a");
-        join("'People' p ON a.id = p.addressId");
+        join("'People' p ON a.'id' = p.'addressId'");
     }};
     
     @Test
@@ -23,9 +25,33 @@ public class DataQueryTemplateProviderTest {
         TestSelectQuery qry = new TestSelectQuery(template);
         qry.select("*");
         assertThat(qry.getQueryString(),
-                is("SELECT a.'id' AS 'id', a.'street' AS 'Street', "
+                is("SELECT a.'id' AS 'Id', a.'street' AS 'Street', "
                 +         "a.'city' AS 'City', foo() AS `foo` "
                 + "FROM 'Addresses' a"));
+    }
+    
+    @Test
+    public void test_select_auto_dependencies() {
+        TestSelectQuery qry = new TestSelectQuery(template);
+        qry.select("Id, Inhabitants");
+        assertThat(qry.getQueryString(),
+                is("SELECT a.'id' AS 'Id', COUNT(p.'id') AS 'Inhabitants' "
+                + "FROM 'Addresses' a "
+                + "JOIN 'People' p ON a.'id' = p.'addressId' "
+                + "GROUP BY a.'id'"));
+    }
+    
+    @Test
+    public void test_select_orderBy() {
+        TestSelectQuery qry = new TestSelectQuery(template);
+        qry.select("Street")
+                .orderBy("Inhabitants DESC");
+        assertThat(qry.getQueryString(),
+                is("SELECT a.'street' AS 'Street' "
+                + "FROM 'Addresses' a "
+                + "JOIN 'People' p ON a.'id' = p.'addressId' "
+                + "GROUP BY a.'id' "
+                + "ORDER BY COUNT(p.'id') DESC"));
     }
     
     @Test

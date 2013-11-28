@@ -81,19 +81,20 @@ public class SqlUtils {
         if (!m.matches()) {
             throw new IllegalArgumentException("Cannot parse: " + select);
         }
-        final String key, def, table/*, column*/;
+        final String key, def, table, column;
         if (m.group(1) != null) {
             def = m.group(2);
             table = m.group(3);
-            //column = m.group(4);
+            column = m.group(4);
             key = m.group(5) != null ? m.group(5) : m.group(4);
         } else {
             def = m.group(7).trim();
             key = m.group(8);
             table = null;
-            //column = null;
+            column = null;
         }
-        return new String[]{stripQuotes(key), def, stripQuotes(table), key};
+        return new String[]{stripQuotes(key), def, stripQuotes(table), 
+            stripQuotes(column), key, column};
     }
     
     private static final Pattern ATTRIBUTE_PART_PATTERN = PartPattern(
@@ -110,7 +111,8 @@ public class SqlUtils {
         table = m.group(2);
         column = m.group(3);
         key = m.group(4) != null ? m.group(4) : column;
-        return new String[]{stripQuotes(key), def, stripQuotes(table), key, column};
+        return new String[]{stripQuotes(key), def, stripQuotes(table), 
+            stripQuotes(column), key, column};
     }
     
     private static final Pattern FROM_PART_PATTERN = PartPattern(
