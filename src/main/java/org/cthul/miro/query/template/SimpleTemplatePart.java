@@ -19,7 +19,7 @@ public class SimpleTemplatePart implements QueryTemplatePart {
 
     @Override
     public QueryPart addPart(String key, InternalQueryBuilder queryBuilder) {
-        DataQueryTemplateProvider.requireAll(queryBuilder, required);
+        Templates.requireAll(queryBuilder, required);
         QueryPart part = createPart(key, sql);
         queryBuilder.addPart(type, part);
         return part;

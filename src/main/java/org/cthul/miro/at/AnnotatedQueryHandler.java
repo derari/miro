@@ -6,7 +6,7 @@ import java.util.Map;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.dsl.View;
 import org.cthul.miro.graph.*;
-import org.cthul.miro.map.SimpleMapping;
+import org.cthul.miro.map.z.SimpleMapping;
 
 /**
  *

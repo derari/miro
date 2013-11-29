@@ -1,5 +1,6 @@
-package org.cthul.miro.map;
+package org.cthul.miro.map.z;
 
+import org.cthul.miro.map.ConfigurationProvider;
 import java.util.List;
 import org.cthul.miro.*;
 import org.cthul.miro.query.ZQueryBuilder;

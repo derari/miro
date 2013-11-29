@@ -75,4 +75,15 @@ public class DataQueryTemplateProviderTest {
                 is("UPDATE 'Addresses' a "
                 + "SET 'street' = ?, 'city' = ? WHERE 'id' = ?"));
     }
+    
+    @Test
+    public void test_delete() {
+        TestDeleteQuery qry = new TestDeleteQuery(template);
+        qry
+                .tuple(1)
+                .tuple(2);
+        assertThat(qry.getQueryString(),
+                is("DELETE FROM 'Addresses' a "
+                + "WHERE 'id' = ?"));
+    }
 }

@@ -102,10 +102,10 @@ public class AnsiSqlTest {
         QueryString<UpdateBuilder<?>> sql = new AnsiSql().newQueryString(DataQuery.UPDATE);
         sql.getBuilder()
                 .set(new TestQueryPart("a = ?", "1"))
-                .set(new TestQueryPart.Attribute("b"))
+                .set(TestQueryPart.attribute("b"))
                 .update(new TestQueryPart("Data"))
                 .where(new TestQueryPart("id = ?", "2"))
-                .where(new TestQueryPart.Attribute("id2"))
+                .where(TestQueryPart.attribute("id2"))
                 .values(new TestQueryPart.Values(1, new Object[]{"X", "Y"}));
         
         assertThat(sql.getQueryString(), 

@@ -8,7 +8,7 @@ public interface DataQuery<Builder extends QueryBuilder<? extends Builder>> exte
     public static final DataQuery<SelectBuilder<?>> SELECT = Type.SELECT;
     public static final DataQuery<InsertBuilder<?>> INSERT = Type.INSERT;
     public static final DataQuery<UpdateBuilder<?>> UPDATE = Type.UPDATE;
-    public static final DataQuery<UpdateBuilder<?>> DELETE = Type.DELETE;
+    public static final DataQuery<DeleteBuilder<?>> DELETE = Type.DELETE;
     public static final DataQuery<?>  UNION  = Type.UNION;
     
     QueryString<Builder> newQueryString(QuerySyntax syntax);

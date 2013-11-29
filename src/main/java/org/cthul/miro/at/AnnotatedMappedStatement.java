@@ -1,5 +1,6 @@
 package org.cthul.miro.at;
 
+import org.cthul.miro.map.z.SubmittableQuery;
 import java.util.List;
 import org.cthul.miro.cursor.ResultCursor;
 import org.cthul.miro.map.*;

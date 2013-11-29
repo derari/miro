@@ -1,7 +1,7 @@
 package org.cthul.miro.test;
 
 import org.cthul.miro.query.adapter.QueryString;
-import org.cthul.miro.query.api.AbstractQuery;
+import org.cthul.miro.query.AbstractQuery;
 import org.cthul.miro.query.sql.AnsiSql;
 import org.cthul.miro.query.sql.DataQuery;
 import org.cthul.miro.query.sql.InsertBuilder;
@@ -10,11 +10,11 @@ import org.cthul.miro.query.template.QueryTemplateProvider;
 public class TestInsertQuery extends AbstractQuery {
 
     public TestInsertQuery(QueryTemplateProvider template) {
-        super(AnsiSql.newInsertQuery(), template.getTemplate(DataQuery.INSERT));
+        super(DataQuery.INSERT, template);
     }
     
     public QueryString<InsertBuilder<?>> getQuery() {
-        return (QueryString) getBuilder();
+        return getAdapter(AnsiSql.getInstance());
     }
     
     public String getQueryString() {

@@ -1,21 +1,17 @@
 package org.cthul.miro;
 
-import java.net.URLClassLoader;
-import java.nio.channels.AsynchronousChannel;
 import java.nio.channels.AsynchronousFileChannel;
-import java.nio.file.Files;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.ResourceBundle;
-import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.*;
 import org.cthul.miro.dsl.Select;
+import org.cthul.miro.query.adapter.JdbcAdapter;
+import org.cthul.miro.query.adapter.JdbcQuery;
+import org.cthul.miro.query.sql.AnsiSql;
 import org.cthul.miro.util.FutureBase;
 
 /**
@@ -68,6 +64,14 @@ public class MiConnection implements AutoCloseable {
             sql = qpp.apply(sql);
         }
         return sql;
+    }
+    
+    public JdbcAdapter getJdbcAdapter() {
+        return AnsiSql.getInstance();
+    }
+    
+    public ResultSet execute(JdbcQuery<?> query) throws SQLException {
+        return query.execute(connection);
     }
 
     public MiPreparedStatement prepare(String sql) throws SQLException {

@@ -2,11 +2,9 @@ package org.cthul.miro.test;
 
 import java.util.Arrays;
 import java.util.List;
-import org.cthul.miro.query.parts.AttributeQueryPart;
-import org.cthul.miro.query.parts.QueryPart;
-import org.cthul.miro.query.parts.ValuesQueryPart;
+import org.cthul.miro.query.parts.*;
 
-public class TestQueryPart implements QueryPart {
+public class TestQueryPart implements SqlQueryPart {
     
     protected final String sql;
     protected final Object[] args;
@@ -73,17 +71,33 @@ public class TestQueryPart implements QueryPart {
         }
 
         @Override
-        public void selectAttribute(String attribute, String alias) {
+        public Selector selector() {
+            return new Selector(getSql(), args);
         }
+        
+        public class Selector extends TestQueryPart implements ValuesQueryPart.Selector {
 
-        @Override
-        public void selectFilterValue(String key) {
-        }
+            public Selector(String sql, Object... args) {
+                super(sql, args);
+            }
 
-        @Override
-        public void appendFilterValuesTo(List<Object> args) {
-            args.addAll(Arrays.asList(filterValues));
+            @Override
+            public void selectAttribute(String attribute, String alias) {
+            }
+
+            @Override
+            public void selectFilterValue(String key) {
+            }
+
+            @Override
+            public void appendFilterValuesTo(List<Object> args) {
+                args.addAll(Arrays.asList(filterValues));
+            }
         }
+    }
+    
+    public static AttributeQueryPart attribute(String sql) {
+        return new Attribute(sql);
     }
     
     public static class Attribute extends TestQueryPart implements AttributeQueryPart {
@@ -98,7 +112,12 @@ public class TestQueryPart implements QueryPart {
         }
 
         @Override
-        public String getSqlName() {
+        public String getColumn() {
+            return getSql();
+        }
+
+        @Override
+        public String getSelect() {
             return getSql();
         }
     }

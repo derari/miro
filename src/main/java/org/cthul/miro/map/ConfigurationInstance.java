@@ -3,6 +3,7 @@ package org.cthul.miro.map;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.cthul.miro.MiConnection;
+import org.cthul.miro.map.z.SimpleMapping;
 import org.cthul.miro.result.EntityConfiguration;
 import org.cthul.miro.result.EntityInitializer;
 
@@ -27,7 +28,7 @@ public class ConfigurationInstance<Entity> implements ConfigurationProvider<Enti
         return asConfiguration(o, null, null);
     }
     
-    public static <Entity> EntityConfiguration<? super Entity> asConfiguration(Object o, MiConnection cnn, SimpleMapping<Entity> mapping) {
+    public static <Entity> EntityConfiguration<? super Entity> asConfiguration(Object o, MiConnection cnn, Mapping<Entity> mapping) {
         if (o instanceof ConfigurationProvider) {
             return ((ConfigurationProvider<Entity>) o).getConfiguration(cnn, mapping);
         } else if (o instanceof EntityConfiguration) {
@@ -62,7 +63,7 @@ public class ConfigurationInstance<Entity> implements ConfigurationProvider<Enti
     }
 
     @Override
-    public <E extends Entity> EntityConfiguration<Entity> getConfiguration(MiConnection cnn, SimpleMapping<E> mapping) {
+    public <E extends Entity> EntityConfiguration<Entity> getConfiguration(MiConnection cnn, Mapping<E> mapping) {
         return config;
     }
     

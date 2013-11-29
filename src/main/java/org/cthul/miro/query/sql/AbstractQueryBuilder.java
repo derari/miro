@@ -13,7 +13,7 @@ import org.cthul.miro.query.parts.*;
 public abstract class AbstractQueryBuilder<Builder extends QueryBuilder<? extends Builder>>
                 implements QueryString<Builder>, JdbcQuery<Builder>, QueryBuilder<Builder> {
     
-    private final List<QueryPart>[] parts;
+    private final List<SqlQueryPart>[] parts;
 
     public AbstractQueryBuilder(int partCount) {
         parts = new List[partCount];
@@ -47,6 +47,10 @@ public abstract class AbstractQueryBuilder<Builder extends QueryBuilder<? extend
                 "Expected " + clazz + ", got " + o);
     }
         
+    protected SqlQueryPart asSql(QueryPart part) {
+        return cast(SqlQueryPart.class, part);
+    }
+
     protected SelectableQueryPart asSelectable(QueryPart part) {
         return cast(SelectableQueryPart.class, part);
     }
@@ -59,8 +63,8 @@ public abstract class AbstractQueryBuilder<Builder extends QueryBuilder<? extend
         return cast(AttributeQueryPart.class, part);
     }
     
-    protected synchronized List<QueryPart> getParts(int type) {
-        List<QueryPart> list = parts[type];
+    protected synchronized List<SqlQueryPart> getParts(int type) {
+        List<SqlQueryPart> list = parts[type];
         if (list == null) {
             list = new ArrayList<>();
             parts[type] = list;
@@ -68,12 +72,12 @@ public abstract class AbstractQueryBuilder<Builder extends QueryBuilder<? extend
         return list;
     }
 
-    protected synchronized void addPart(int type, QueryPart part) {
+    protected synchronized void addPart(int type, SqlQueryPart part) {
         getParts(type).add(part);
     }
 
     protected int getCount(int type) {
-        List<QueryPart> list = parts[type];
+        List<SqlQueryPart> list = parts[type];
         return list == null ? 0 : list.size();
     }
 
@@ -116,17 +120,17 @@ public abstract class AbstractQueryBuilder<Builder extends QueryBuilder<? extend
         buildQuery(parts[type], begin, sep, end, sql);
     }
     
-    protected void buildQuery(List<? extends QueryPart> list, String begin, String sep, StringBuilder sql) {
+    protected void buildQuery(List<? extends SqlQueryPart> list, String begin, String sep, StringBuilder sql) {
         buildQuery(list, begin, sep, "", sql);
     }
     
-    protected void buildQuery(List<? extends QueryPart> list, String begin, String sep, String end, StringBuilder sql) {
+    protected void buildQuery(List<? extends SqlQueryPart> list, String begin, String sep, String end, StringBuilder sql) {
         if (list == null || list.isEmpty()) {
             return;
         }
         boolean first = true;
         sql.append(begin);
-        for (QueryPart qp : list) {
+        for (SqlQueryPart qp : list) {
             if (first) {
                 first = false;
             } else {
@@ -156,15 +160,15 @@ public abstract class AbstractQueryBuilder<Builder extends QueryBuilder<? extend
             if (isEmpty(t)) {
                 continue;
             }
-            for (QueryPart qp : getParts(t)) {
+            for (SqlQueryPart qp : getParts(t)) {
                 qp.appendArgsTo(args);
             }
         }
     }
     
-    protected void collectArgumentsOfParts(List<Object> args, List<? extends QueryPart>... parts) {
-        for (List<? extends QueryPart> l: parts) {
-            for (QueryPart qp : l) {
+    protected void collectArgumentsOfParts(List<Object> args, List<? extends SqlQueryPart>... parts) {
+        for (List<? extends SqlQueryPart> l: parts) {
+            for (SqlQueryPart qp : l) {
                 qp.appendArgsTo(args);
             }
         }
@@ -194,9 +198,33 @@ public abstract class AbstractQueryBuilder<Builder extends QueryBuilder<? extend
     }
 
     protected void setArgs(PreparedStatement stmt, List<Object> args) throws SQLException {
-        int i = 0;
-        for (Object o : args) {
-            stmt.setObject(++i, o);
+        if (args == null) return;
+        int length = args.size();
+        for (int i = 0; i < length; i++) {
+            setArg(stmt, i + 1, args.get(i));
+        }
+    }
+
+    protected void setArg(PreparedStatement stmt, int i, Object arg) throws SQLException {
+        if (arg == null) {
+            stmt.setObject(i, null);
+        } else if (arg instanceof String) {
+            stmt.setString(i, (String) arg);
+        } else if (arg instanceof Number) {
+            Number n = (Number) arg;
+            if (n instanceof Integer) {
+                stmt.setInt(i, n.intValue());
+            } else if (n instanceof Long) {
+                stmt.setLong(i, n.longValue());
+            } else {
+                throw new IllegalArgumentException(
+                        arg.getClass().getCanonicalName() + " "
+                        + String.valueOf(arg));
+            }
+        } else {
+            throw new IllegalArgumentException(
+                    arg.getClass().getCanonicalName() + " "
+                    + String.valueOf(arg));
         }
     }
 

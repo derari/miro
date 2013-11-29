@@ -4,7 +4,7 @@ import java.lang.reflect.Proxy;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.dsl.View;
 import org.cthul.miro.dsl.ViewBase;
-import org.cthul.miro.map.SimpleMapping;
+import org.cthul.miro.map.z.SimpleMapping;
 
 /**
  *

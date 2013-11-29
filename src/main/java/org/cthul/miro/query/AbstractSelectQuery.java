@@ -2,7 +2,6 @@ package org.cthul.miro.query;
 
 import org.cthul.miro.doc.MultiValue;
 import org.cthul.miro.query.adapter.*;
-import org.cthul.miro.query.api.AbstractQuery;
 import org.cthul.miro.query.api.QueryType;
 import org.cthul.miro.query.sql.DataQuery;
 import org.cthul.miro.query.template.QueryTemplate;
@@ -12,22 +11,30 @@ public class AbstractSelectQuery<This> extends AbstractQuery {
     
     private final SqlParser<?> sql = new SqlQueryBuilder<>(internal());
 
-    public AbstractSelectQuery(QueryAdapter<?> adapter) {
-        super(adapter);
+    public AbstractSelectQuery(QueryType<?> queryType) {
+        super(queryType);
     }
 
-    public AbstractSelectQuery(QueryAdapter<?> adapter, QueryTemplate template) {
-        super(adapter, template);
+    public AbstractSelectQuery(QueryType<?> queryType, QueryTemplate template) {
+        super(queryType, template);
     }
-    
-    public AbstractSelectQuery(DBAdapter adapter, QueryTemplateProvider templateProvider) {
-        super(DataQuery.SELECT, adapter, templateProvider);
+
+    public AbstractSelectQuery(QueryType<?> type, QueryTemplateProvider templateProvider) {
+        super(type, templateProvider);
     }
-    
-    public AbstractSelectQuery(QueryType<?> type, DBAdapter adapter, QueryTemplateProvider templateProvider) {
-        super(type, adapter, templateProvider);
+
+    public AbstractSelectQuery() {
+        super(DataQuery.SELECT);
     }
-    
+
+    public AbstractSelectQuery(QueryTemplate template) {
+        super(DataQuery.SELECT, template);
+    }
+
+    public AbstractSelectQuery(QueryTemplateProvider templateProvider) {
+        super(DataQuery.SELECT, templateProvider);
+    }
+
     protected This self() {
         return (This) this;
     }

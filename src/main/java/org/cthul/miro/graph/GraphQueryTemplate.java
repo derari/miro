@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.cthul.miro.dsl.*;
-import org.cthul.miro.map.MappedQueryTemplate;
-import org.cthul.miro.map.SimpleMapping;
+import org.cthul.miro.map.z.MappedQueryTemplate;
+import org.cthul.miro.map.z.SimpleMapping;
 import org.cthul.miro.query.ZQueryBuilder.QueryPart;
 import org.cthul.miro.query.ZQueryTemplate.PartTemplate;
 

@@ -18,6 +18,7 @@ public class ResultBuilders {
 
     protected ResultBuilders() {
     }
+ 
     @SuppressWarnings("rawtypes")
     private static ListResult LIST_RESULT = null;
 

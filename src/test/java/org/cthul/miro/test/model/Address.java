@@ -7,10 +7,10 @@ import org.cthul.miro.dsl.QueryFactoryView;
 import org.cthul.miro.dsl.View;
 import org.cthul.miro.graph.GraphQuery;
 import org.cthul.miro.graph.GraphQueryTemplate;
-import org.cthul.miro.map.MappedQueryTemplate; 
-import org.cthul.miro.map.MappedTemplateQuery;
-import org.cthul.miro.map.SimpleMapping;
-import org.cthul.miro.map.ReflectiveMapping;
+import org.cthul.miro.map.z.MappedQueryTemplate; 
+import org.cthul.miro.map.z.MappedTemplateQuery;
+import org.cthul.miro.map.z.SimpleMapping;
+import org.cthul.miro.map.z.ReflectiveMapping;
 
 public class Address {
     

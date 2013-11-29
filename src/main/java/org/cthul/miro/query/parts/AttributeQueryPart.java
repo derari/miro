@@ -9,5 +9,8 @@ public interface AttributeQueryPart extends QueryPart {
     String getAttributeKey();
     
     /** e.g. {@code `first_name` } */
-    String getSqlName();
+    String getColumn();
+    
+    /** e.g. {@code table.`first_name` } */
+    String getSelect();
 }

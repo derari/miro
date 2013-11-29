@@ -4,7 +4,12 @@ import java.util.List;
 
 public interface FilterValueQueryPart extends QueryPart {
 
-    void selectFilterValue(String key);
+    Selector selector();
     
-    void appendFilterValuesTo(List<Object> args);
+    interface Selector extends QueryPart {
+        
+        void selectFilterValue(String key);
+    
+        void appendFilterValuesTo(List<Object> args);
+    }
 }

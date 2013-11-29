@@ -1,6 +1,6 @@
 package org.cthul.miro.view;
 
-public interface ViewR<R> {
+public interface ViewR<R> extends View {
     
     R select();
     

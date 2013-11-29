@@ -8,8 +8,8 @@ import org.cthul.miro.dsl.View;
 import org.cthul.miro.graph.GraphQuery;
 import org.cthul.miro.graph.GraphQueryTemplate;
 import org.cthul.miro.graph.SelectByKey;
-import org.cthul.miro.map.SimpleMapping;
-import org.cthul.miro.map.ReflectiveMapping;
+import org.cthul.miro.map.z.SimpleMapping;
+import org.cthul.miro.map.z.ReflectiveMapping;
 
 /**
  *

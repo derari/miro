@@ -1,5 +1,6 @@
-package org.cthul.miro.map;
+package org.cthul.miro.map.z;
 
+import org.cthul.miro.map.z.MappedQueryString;
 import java.util.List;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.test.TestDB;

@@ -1,7 +1,7 @@
 package org.cthul.miro.graph;
 
 import java.util.List;
-import org.cthul.miro.map.SubmittableQuery;
+import org.cthul.miro.map.z.SubmittableQuery;
 
 /**
  *

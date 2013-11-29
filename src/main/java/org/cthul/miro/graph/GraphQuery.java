@@ -1,5 +1,8 @@
 package org.cthul.miro.graph;
 
+import org.cthul.miro.map.z.MappedTemplateQuery;
+import org.cthul.miro.map.z.SubmittableQuery;
+import org.cthul.miro.map.z.SimpleMapping;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.cthul.miro.MiConnection;

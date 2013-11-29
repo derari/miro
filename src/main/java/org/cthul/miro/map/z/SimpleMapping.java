@@ -1,4 +1,4 @@
-package org.cthul.miro.map;
+package org.cthul.miro.map.z;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.cthul.miro.cursor.ResultCursor;
+import org.cthul.miro.map.Mapping;
 import org.cthul.miro.result.*;
 import org.cthul.miro.result.ResultBuilder;
 import org.cthul.miro.result.ResultBuilders;
@@ -21,7 +22,7 @@ import org.cthul.miro.result.ResultBuilders;
  *
  * @param <Entity>
  */
-public abstract class SimpleMapping<Entity> implements EntityType<Entity> {
+public abstract class SimpleMapping<Entity> implements EntityType<Entity>, Mapping<Entity> {
 
     private final Class<Entity> entityClass;
     private ResultBuilder<Entity[], Entity> arrayResultBuilder = null;

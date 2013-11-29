@@ -1,60 +1,37 @@
 package org.cthul.miro.query;
 
-import java.util.List;
-import org.cthul.miro.query.adapter.DBAdapter;
-import org.cthul.miro.query.adapter.QueryAdapter;
 import org.cthul.miro.query.adapter.QueryString;
 import org.cthul.miro.query.adapter.QuerySyntax;
 import org.cthul.miro.query.api.QueryType;
-import org.cthul.miro.query.sql.SelectBuilder;
 import org.cthul.miro.query.template.QueryTemplate;
 import org.cthul.miro.query.template.QueryTemplateProvider;
 
-public class SimpleSelectQuery extends AbstractSelectQuery implements QueryString<SelectBuilder<?>> {
+public class SimpleSelectQuery extends AbstractSelectQuery {
 
-    public SimpleSelectQuery(QueryAdapter<?> adapter) {
-        super(adapter);
+    public SimpleSelectQuery(QueryType queryType) {
+        super(queryType);
     }
 
-    public SimpleSelectQuery(QueryAdapter<?> adapter, QueryTemplate template) {
-        super(adapter, template);
+    public SimpleSelectQuery(QueryType queryType, QueryTemplate template) {
+        super(queryType, template);
     }
 
-    public SimpleSelectQuery(QuerySyntax adapter, QueryTemplateProvider templateProvider) {
-        super(adapter, templateProvider);
+    public SimpleSelectQuery(QueryType type, QueryTemplateProvider templateProvider) {
+        super(type, templateProvider);
     }
 
-    public SimpleSelectQuery(QueryType<?> type, QuerySyntax adapter, QueryTemplateProvider templateProvider) {
-        super(type, adapter, templateProvider);
-    }
-    
-    @Override
-    public QueryString<SelectBuilder<?>> getAdapter() {
-        return (QueryString) super.getAdapter();
+    public SimpleSelectQuery() {
     }
 
-    @Override
-    public String getQueryString() {
-        return getAdapter().getQueryString();
+    public SimpleSelectQuery(QueryTemplate template) {
+        super(template);
     }
 
-    @Override
-    public int getBatchCount() {
-        return getAdapter().getBatchCount();
+    public SimpleSelectQuery(QueryTemplateProvider templateProvider) {
+        super(templateProvider);
     }
 
-    @Override
-    public List<Object> getArguments(int batch) {
-        return getAdapter().getArguments(batch);
-    }
-
-    @Override
-    public SelectBuilder<?> getBuilder() {
-        return getAdapter().getBuilder();
-    }
-
-    @Override
-    public QueryType<SelectBuilder<?>> getQueryType() {
-        return (QueryType) super.getQueryType();
+    public QueryString<?> getQueryString(QuerySyntax syntax) {
+        return getAdapter(syntax);
     }
 }

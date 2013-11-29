@@ -2,9 +2,9 @@ package org.cthul.miro.dsl;
 
 import java.util.Arrays;
 import org.cthul.miro.MiConnection;
-import org.cthul.miro.map.MappedQueryString;
-import org.cthul.miro.map.MappedStatement;
-import org.cthul.miro.map.SimpleMapping;
+import org.cthul.miro.map.z.MappedQueryString;
+import org.cthul.miro.map.z.MappedStatement;
+import org.cthul.miro.map.z.SimpleMapping;
 
 public class Select {
 

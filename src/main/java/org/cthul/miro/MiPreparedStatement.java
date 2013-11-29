@@ -14,6 +14,7 @@ import org.cthul.miro.util.FutureBase;
 public class MiPreparedStatement {
 
     private final MiConnection cnn;
+    //private final jdbc
     private final String sql;
 
     public MiPreparedStatement(MiConnection cnn, String sql) {

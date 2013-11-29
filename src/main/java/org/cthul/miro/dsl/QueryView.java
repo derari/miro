@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.cthul.miro.MiConnection;
-import org.cthul.miro.map.MappedQueryString;
-import org.cthul.miro.map.SimpleMapping;
+import org.cthul.miro.map.z.MappedQueryString;
+import org.cthul.miro.map.z.SimpleMapping;
 
 /**
  *

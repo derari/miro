@@ -1,7 +1,7 @@
 package org.cthul.miro.test;
 
 import org.cthul.miro.query.adapter.QueryString;
-import org.cthul.miro.query.api.AbstractQuery;
+import org.cthul.miro.query.AbstractQuery;
 import org.cthul.miro.query.sql.AnsiSql;
 import org.cthul.miro.query.sql.DataQuery;
 import org.cthul.miro.query.sql.SelectBuilder;
@@ -10,11 +10,11 @@ import org.cthul.miro.query.template.QueryTemplateProvider;
 public class TestSelectQuery extends AbstractQuery {
 
     public TestSelectQuery(QueryTemplateProvider template) {
-        super(AnsiSql.newSelectQuery(), template.getTemplate(DataQuery.SELECT));
+        super(DataQuery.SELECT, template);
     }
     
     public QueryString<SelectBuilder<?>> getQuery() {
-        return (QueryString) getBuilder();
+        return getAdapter(AnsiSql.getInstance());
     }
     
     public String getQueryString() {

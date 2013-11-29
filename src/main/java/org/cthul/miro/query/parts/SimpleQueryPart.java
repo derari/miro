@@ -3,7 +3,7 @@ package org.cthul.miro.query.parts;
 import java.util.Arrays;
 import java.util.List;
 
-public class SimpleQueryPart extends AbstractQueryPart {
+public class SimpleQueryPart extends AbstractQueryPart implements SqlQueryPart {
     
     private final String sql;
     private Object[] values = null;
@@ -24,6 +24,14 @@ public class SimpleQueryPart extends AbstractQueryPart {
         }
     }
 
+    public String getSql() {
+        return sql;
+    }
+
+    public Object[] getValues() {
+        return values;
+    }
+    
     @Override
     public void appendSqlTo(StringBuilder sqlBuilder) {
         sqlBuilder.append(sql);
@@ -34,5 +42,12 @@ public class SimpleQueryPart extends AbstractQueryPart {
         if (values != null) {
             args.addAll(Arrays.asList(values));
         }
+    }
+
+    @Override
+    public String toString() {
+        Object[] v = getValues();
+        return super.toString() + " " + getSql() + 
+                (v == null ? "" : " " + Arrays.toString(v));
     }
 }

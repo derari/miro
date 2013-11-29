@@ -1,6 +1,6 @@
 package org.cthul.miro.view;
 
-public interface ViewC<C> {
+public interface ViewC<C> extends View {
     
     C insert();
     

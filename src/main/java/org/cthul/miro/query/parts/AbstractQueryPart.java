@@ -21,4 +21,9 @@ public abstract class AbstractQueryPart implements QueryPart {
         }
         throw new IllegalArgumentException("Invalid key: " + key);
     }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " " + getKey();
+    }
 }

@@ -1,11 +1,14 @@
 package org.cthul.miro.test.model;
 
+import org.cthul.miro.map.z.MappedQueryTemplate;
+import org.cthul.miro.map.z.ReflectiveMapping;
+import org.cthul.miro.map.z.MappedTemplateQuery;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.at.*;
 import org.cthul.miro.dsl.View;
-import org.cthul.miro.map.SimpleMapping;
+import org.cthul.miro.map.z.SimpleMapping;
 import org.cthul.miro.dsl.QueryFactoryView;
 import org.cthul.miro.map.*;
 import org.cthul.miro.result.*;

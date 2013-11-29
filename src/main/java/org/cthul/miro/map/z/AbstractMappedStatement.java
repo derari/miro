@@ -1,4 +1,4 @@
-package org.cthul.miro.map;
+package org.cthul.miro.map.z;
 
 import org.cthul.miro.MiConnection;
 

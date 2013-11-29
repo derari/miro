@@ -7,7 +7,7 @@ import org.cthul.miro.MiConnection;
 import org.cthul.miro.graph.GraphQueryTemplate;
 import org.cthul.miro.map.ConfigurationProvider;
 import org.cthul.miro.map.ConfigurationInstance;
-import org.cthul.miro.map.SimpleMapping;
+import org.cthul.miro.map.z.SimpleMapping;
 import org.cthul.miro.query.ZQueryBuilder;
 import org.cthul.miro.result.EntityConfiguration;
 import org.cthul.objects.instance.Arg;

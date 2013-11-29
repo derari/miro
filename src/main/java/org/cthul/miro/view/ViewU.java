@@ -1,6 +1,6 @@
 package org.cthul.miro.view;
 
-public interface ViewU<U> {
+public interface ViewU<U> extends View {
     
     U update();
     

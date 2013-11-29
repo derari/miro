@@ -8,13 +8,14 @@ public enum DataQueryPart implements QueryPartType {
         
                 // for query type
     SELECT,     // SELECT
-    ATTRIBUTE,  // S->SELECT,U->SET,I
+    ATTRIBUTE,  // S->SELECT,U,I
     TABLE,      // S,U,I,D
     JOIN,       // S,U,I,D
     SET,        // UPDATE
-    VALUES,     // U(Values), I(Selectable)
-    SUBQUERY,   // S->TABLE,I->FROM
+    VALUES,     // U(Values),I(Selectable),D(Values)
+    SUBQUERY,   // S->TABLE,I(Selectable)
     WHERE,      // S,U,D
+    FILTER_ATTRIBUTE,  // U,D
     GROUP_BY,   // SELECT
     HAVING,     // SELECT
     ORDER_BY,   // SELECT

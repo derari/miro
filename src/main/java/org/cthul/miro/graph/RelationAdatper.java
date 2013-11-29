@@ -4,7 +4,7 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import org.cthul.miro.dsl.View;
-import org.cthul.miro.map.SimpleMapping;
+import org.cthul.miro.map.z.SimpleMapping;
 
 /**
  *

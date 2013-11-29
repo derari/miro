@@ -17,15 +17,19 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
     }
     
     public static SelectQuery newSelectQuery() {
-        return getInstance().newQueryBuilder(DataQuery.SELECT);
-    }
-
-    public static UpdateQuery newUpdateQuery() {
-        return getInstance().newQueryBuilder(DataQuery.UPDATE);
+        return new SelectQuery();
     }
 
     public static InsertQuery newInsertQuery() {
-        return getInstance().newQueryBuilder(DataQuery.INSERT);
+        return new InsertQuery();
+    }
+
+    public static UpdateQuery newUpdateQuery() {
+        return new UpdateQuery();
+    }
+
+    public static DeleteQuery newDeleteQuery() {
+        return new DeleteQuery();
     }
 
     @Override
@@ -46,12 +50,14 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
     protected <T> T newQueryBuilder(QueryType<?> queryType) {
         if (queryType instanceof DataQuery.Type) {
             switch ((DataQuery.Type) queryType) {
-                case INSERT:
-                    return (T) new InsertQuery();
                 case SELECT:
                     return (T) new SelectQuery();
+                case INSERT:
+                    return (T) new InsertQuery();
                 case UPDATE:
                     return (T) new UpdateQuery();
+                case DELETE:
+                    return (T) new DeleteQuery();
             }
         }
         throw new IllegalArgumentException("Unsupported query type: " + queryType);
@@ -81,62 +87,62 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
             switch (type) {
                 case SELECT:
                 case ATTRIBUTE:
-                    return select(part);
+                    return select(asSql(part));
                 case TABLE:
                 case SUBQUERY:
-                    return from(part);
+                    return from(asSql(part));
                 case JOIN:
-                    return join(part);
+                    return join(asSql(part));
                 case WHERE:
-                    return where(part);
+                    return where(asSql(part));
                 case GROUP_BY:
-                    return groupBy(part);
+                    return groupBy(asSql(part));
                 case HAVING:
-                    return having(part);
+                    return having(asSql(part));
                 case ORDER_BY:
-                    return orderBy(part);
+                    return orderBy(asSql(part));
             }
             return null;
         }
         
         @Override
-        public SelectQuery select(QueryPart part) {
+        public SelectQuery select(SqlQueryPart part) {
             addPart(T_SELECT, part);
             return this;
         }
 
         @Override
-        public SelectQuery from(QueryPart part) {
+        public SelectQuery from(SqlQueryPart part) {
             addPart(T_FROM, part);
             return this;
         }
 
         @Override
-        public SelectQuery join(QueryPart part) {
+        public SelectQuery join(SqlQueryPart part) {
             addPart(T_JOIN, part);
             return this;
         }
 
         @Override
-        public SelectQuery where(QueryPart part) {
+        public SelectQuery where(SqlQueryPart part) {
             addPart(T_WHERE, part);
             return this;
         }
 
         @Override
-        public SelectQuery groupBy(QueryPart part) {
+        public SelectQuery groupBy(SqlQueryPart part) {
             addPart(T_GROUP_BY, part);
             return this;
         }
 
         @Override
-        public SelectQuery having(QueryPart part) {
+        public SelectQuery having(SqlQueryPart part) {
             addPart(T_HAVING, part);
             return this;
         }
 
         @Override
-        public SelectQuery orderBy(QueryPart part) {
+        public SelectQuery orderBy(SqlQueryPart part) {
             addPart(T_ORDER_BY, part);
             return this;
         }
@@ -173,7 +179,7 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
         private static final int T_VALUES = 1;
         private static final int T_FROM =  2;
         
-        private final List<SelectableQueryPart> source = new ArrayList<>();
+        private final List<SelectableQueryPart.Selector> source = new ArrayList<>();
         private final List<AttributeQueryPart> attributes = new ArrayList<>();
         private int sourceType = -1;
 
@@ -188,35 +194,29 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
 
         @Override
         protected InsertQuery addPart(DataQueryPart type, QueryPart part) {
-            if (part instanceof AttributeQueryPart) {
-                switch (type) {
-                    case ATTRIBUTE:
-                    case VALUES:
-                        return attribute(asAttribute(part));
-                }
-            } else {
-                switch (type) {
-                    case TABLE:
-                        return into(part);
-                    case VALUES:
-                        return values(asSelectable(part));
-                    case SUBQUERY:
-                        return from(asSelectable(part));
-                }
+            switch (type) {
+                case TABLE:
+                    return into(asSql(part));
+                case ATTRIBUTE:
+                    return attribute(asAttribute(part));
+                case VALUES:
+                    return values(asSelectable(part));
+                case SUBQUERY:
+                    return from(asSelectable(part));
             }
             return null;
         }
         
         @Override
-        public InsertQuery into(QueryPart part) {
+        public InsertQuery into(SqlQueryPart part) {
             addPart(T_INTO, part);
             return this;
         }
 
         @Override
         public synchronized InsertQuery attribute(AttributeQueryPart part) {
-            for (SelectableQueryPart s: source) {
-                s.selectAttribute(part.getAttributeKey(), part.getSqlName());
+            for (SelectableQueryPart.Selector s: source) {
+                s.selectAttribute(part.getAttributeKey(), part.getColumn());
             }
             attributes.add(part);
             return this;
@@ -229,15 +229,16 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
             }
             if (sourceType != type) {
                 throw new IllegalStateException(
-                        "Expected on one of 'VALUES' or 'FROM <subquery>'");
+                        "Expected only one of 'VALUES' or 'FROM <subquery>'");
             }
         }
         
         private synchronized void addSource(int type, SelectableQueryPart part) {
+            SelectableQueryPart.Selector sel = part.selector();
             ensureSourceType(type);
-            source.add(part);
+            source.add(sel);
             for (AttributeQueryPart a: attributes) {
-                part.selectAttribute(a.getAttributeKey(), a.getSqlName());
+                sel.selectAttribute(a.getAttributeKey(), a.getColumn());
             }
         }
 
@@ -267,14 +268,32 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
             for (AttributeQueryPart a: attributes) {
                 if (first) first = false;
                 else sql.append(',');
-                sql.append(a.getSqlName());
+                sql.append(a.getColumn());
             }
             sql.append(')');
             if (sourceType == T_VALUES) {
-                buildQuery(source, " VALUES ", ", ", sql);
+                String tuple = tupleSql();
+                int count = source.size();
+                for (int i = 0; i < count; i++) {
+                    if (i == 0) sql.append(" VALUES ");
+                    else sql.append(", ");
+                    sql.append(tuple);
+                }
+//                buildQuery(source, " VALUES ", ", ", sql);
             } else {
                 buildQuery(source, " FROM ", "--", sql);
             }
+        }
+        
+        protected String tupleSql() {
+            int l = attributes.size();
+            StringBuilder sb = new StringBuilder(2+2*l);
+            sb.append('(');
+            for (int i = 0; i < l; i++) {
+                if (i != 0) sb.append(',');
+                sb.append('?');
+            }
+            return sb.append(')').toString();
         }
 
         @Override
@@ -303,7 +322,7 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
         
         private List<AttributeQueryPart> setAttributes = null;
         private List<AttributeQueryPart> filterAttributes = null;
-        private List<ValuesQueryPart> values = null;
+        private List<ValuesQueryPart.Selector> values = null;
 
         public UpdateQuery() {
             super(4);
@@ -316,49 +335,43 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
 
         @Override
         protected UpdateQuery addPart(DataQueryPart type, QueryPart part) {
-            if (part instanceof AttributeQueryPart) {
-                switch (type) {
-                    case ATTRIBUTE:
-                    case SET:
-                        return set(asAttribute(part));
-                    case WHERE:
-                        return where(asAttribute(part));
-                }
-            } else {
-                switch (type) {
-                    case TABLE:
-                        return update(part);
-                    case SET:
-                        return set(part);
-                    case WHERE:
-                        return where(part);
-                    case VALUES:
-                        return values(asValues(part));
-                }
+            switch (type) {
+                case TABLE:
+                    return update(asSql(part));
+                case SET:
+                    return set(asSql(part));
+                case ATTRIBUTE:
+                    return set(asAttribute(part));
+                case WHERE:
+                    return where(asSql(part));
+                case FILTER_ATTRIBUTE:
+                    return where(asAttribute(part));
+                case VALUES:
+                    return values(asValues(part));
             }
             return null;
         }
 
         @Override
-        public UpdateQuery update(QueryPart part) {
+        public UpdateQuery update(SqlQueryPart part) {
             addPart(T_UPDATE, part);
             return this;
         }
 
         @Override
-        public UpdateQuery join(QueryPart part) {
+        public UpdateQuery join(SqlQueryPart part) {
             addPart(T_JOIN, part);
             return this;
         }
 
         @Override
-        public UpdateQuery set(QueryPart part) {
+        public UpdateQuery set(SqlQueryPart part) {
             addPart(T_SET, part);
             return this;
         }
 
         @Override
-        public UpdateQuery where(QueryPart part) {
+        public UpdateQuery where(SqlQueryPart part) {
             addPart(T_WHERE, part);
             return this;
         }
@@ -370,8 +383,8 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
             }
             setAttributes.add(part);
             if (values != null) {
-                for (ValuesQueryPart v: values) {
-                    v.selectAttribute(part.getAttributeKey(), part.getSqlName());
+                for (ValuesQueryPart.Selector v: values) {
+                    v.selectAttribute(part.getAttributeKey(), part.getColumn());
                 }
             }
             return this;
@@ -384,8 +397,8 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
             }
             filterAttributes.add(part);
             if (values != null) {
-                for (ValuesQueryPart v: values) {
-                    v.selectAttribute(part.getAttributeKey(), part.getSqlName());
+                for (ValuesQueryPart.Selector v: values) {
+                    v.selectAttribute(part.getAttributeKey(), part.getColumn());
                 }
             }
             return this;
@@ -393,18 +406,19 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
 
         @Override
         public synchronized UpdateQuery values(ValuesQueryPart tuple) {
+            ValuesQueryPart.Selector sel = tuple.selector();
             if (values == null) {
                 values = new ArrayList<>();
             }
-            values.add(tuple);
+            values.add(sel);
             if (setAttributes != null) {
                 for (AttributeQueryPart a: setAttributes) {
-                    tuple.selectAttribute(a.getAttributeKey(), a.getSqlName());
+                    sel.selectAttribute(a.getAttributeKey(), a.getColumn());
                 }
             }
             if (filterAttributes != null) {
                 for (AttributeQueryPart f: filterAttributes) {
-                    tuple.selectAttribute(f.getAttributeKey(), f.getSqlName());
+                    sel.selectAttribute(f.getAttributeKey(), f.getColumn());
                 }
             }
             return this;
@@ -433,7 +447,7 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
                 for (AttributeQueryPart a: setAttributes) {
                     if (first) first = false;
                     else sql.append(", ");
-                    sql.append(a.getSqlName()).append(" = ?");
+                    sql.append(a.getColumn()).append(" = ?");
                 }
             }
             buildQuery(T_SET, moreSet, ", ", sql);
@@ -446,7 +460,7 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
                 for (AttributeQueryPart a: filterAttributes) {
                     if (first) first = false;
                     else sql.append(" AND ");
-                    sql.append(a.getSqlName()).append(" = ?");
+                    sql.append(a.getColumn()).append(" = ?");
                 }
             }
             buildQuery(T_WHERE, moreWhere, " AND ", sql);
@@ -471,155 +485,126 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
             collectArgumentsOfParts(args, T_WHERE);
         }
     }
-//    
-//    private static class UpdateQuery extends AbstractQueryBuilder {
-//        private final List<String> setAttributes = new ArrayList<>();
-//        private final List<String> filterAttributes = new ArrayList<>();
-//        private final List<ValuesQueryPart> values = new ArrayList<>();
-//        @Override
-//        public QueryType getQueryType() {
-//            return DataQuery.UPDATE;
-//        }
-//        
-//        @Override
-//        public synchronized void addPart(QueryPart part) {
-//            QueryPartType t = part.getPartType();
-//            if (t instanceof DataQueryPartType) {
-//                switch ((DataQueryPartType) t) {
-//                    case TABLE:
-//                    case JOIN:
-//                        addPart(t, part);
-//                        return;
-//                    case VALUES:
-//                        ValuesQueryPart v = (ValuesQueryPart) part;
-//                        for (String s: setAttributes) {
-//                            v.selectAttribute(s);
-//                        }
-//                        for (String f: filterAttributes) {
-//                            v.selectFilterValue(f);
-//                        }
-//                        values.add(v);
-//                        addPart(t, part);
-//                        return;
-//                    case SET:
-//                        if (t instanceof AttributeQueryPart) {
-//                            String a = ((AttributeQueryPart) t).getAttribute();
-//                            for (ValuesQueryPart vp: values) {
-//                                vp.selectAttribute(a);
-//                            }
-//                            setAttributes.add(a);
-//                        }
-//                        addPart(t, part);
-//                        return;
-//                    case WHERE:
-//                        if (t instanceof AttributeQueryPart) {
-//                            String a = ((AttributeQueryPart) t).getAttribute();
-//                            for (ValuesQueryPart vp: values) {
-//                                vp.selectAttribute(a);
-//                            }
-//                            setAttributes.add(a);
-//                        }
-//                        addPart(t, part);
-//                        return;
-//                }
-//            }
-//            if (t == OtherQueryPartType.VIRTUAL) {
-//                return;
-//            }
-//            throw new IllegalArgumentException("Unsupported part type: " + t);
-//        }
-//
-//        @Override
-//        protected void buildQuery(StringBuilder sql) {
-//            ensureNotEmpty(DataQueryPartType.TABLE);
-//            ensureNotEmpty(DataQueryPartType.SET);
-//            buildQuery(DataQueryPartType.TABLE, "UPDATE ", ", ", sql);
-//            buildQuery(DataQueryPartType.JOIN, " ", " ", sql);
-//            buildQuery(DataQueryPartType.SET, " SET ", ", ", sql);
-//            buildQuery(DataQueryPartType.WHERE, " WHERE ", " AND ", sql);
-//        }
-//
-//        @Override
-//        public int getBatchCount() {
-//            return values.size();
-//        }
-//
-//        @Override
-//        protected void collectArgumentsOfParts(List<Object> args, int batch) {
-//            if (getBatchCount() == 0) {
-//                collectArgumentsOfParts(args,
-//                        DataQueryPartType.TABLE,
-//                        DataQueryPartType.JOIN,
-//                        DataQueryPartType.SET,
-//                        DataQueryPartType.WHERE);
-//            } else {
-//                collectArgumentsOfParts(args,
-//                        DataQueryPartType.TABLE,
-//                        DataQueryPartType.JOIN);
-//                List<Object> tuple = new ArrayList<>();
-//                values.get(batch).appendArgsTo(tuple);
-//                Iterator<Object> itTuple = tuple.iterator();
-//                for (QueryPart setPart: getParts(DataQueryPartType.SET)) {
-//                    if (setPart instanceof AttributeQueryPart) {
-//                        args.add(itTuple.next());
-//                    } else {
-//                        setPart.appendArgsTo(args);
-//                    }
-//                }
-//                assert !itTuple.hasNext();
-//                List<Object> filter = new ArrayList<>();
-//                values.get(batch).appendFilterValuesTo(filter);
-//                Iterator<Object> itFilter = filter.iterator();
-//                for (QueryPart wPart: getParts(DataQueryPartType.WHERE)) {
-//                    if (wPart instanceof AttributeQueryPart) {
-//                        args.add(itFilter.next());
-//                    } else {
-//                        wPart.appendArgsTo(args);
-//                    }
-//                }
-//                assert !itFilter.hasNext();
-//            }
-//        }
-//    }
-//    
-//    private static class DeleteQuery extends AbstractQueryBuilder {
-//        @Override
-//        public QueryType getQueryType() {
-//            return DataQuery.DELETE;
-//        }
-//
-//        @Override
-//        public void addPart(QueryPart part) {
-//            QueryPartType t = part.getPartType();
-//            if (t instanceof DataQueryPartType) {
-//                switch ((DataQueryPartType) t) {
-//                    case TABLE:
-//                    case JOIN:
-//                    case WHERE:
-//                        addPart(t, part);
-//                        return;
-//                }
-//            }
-//            if (t == OtherQueryPartType.VIRTUAL) {
-//                return;
-//            }
-//            throw new IllegalArgumentException("Unsupported part type: " + t);
-//        }
-//
-//        @Override
-//        protected void buildQuery(StringBuilder sql) {
-//            ensureNotEmpty(DataQueryPartType.TABLE);
-//            buildQuery(DataQueryPartType.TABLE, "DELETE FROM ", ", ", sql);
-//            buildQuery(DataQueryPartType.JOIN, " ", " ", sql);
-//            buildQuery(DataQueryPartType.WHERE, " WHERE ", " AND ", sql);
-//        }
-//
-//        @Override
-//        protected void collectArgumentsOfParts(List<Object> args, int batch) {
-//            collectArgumentsOfParts(args,
-//                    DataQueryPartType.TABLE,
-//                    DataQueryPartType.JOIN,
-//                    DataQueryPartType.WHERE);
-//        }
-//    }
+    
+    public static class DeleteQuery extends AbstractQueryBuilder<DeleteBuilder<?>> implements DeleteBuilder<DeleteBuilder<?>> {
+
+        private static final int T_FROM =   0;
+        private static final int T_JOIN =   1;
+        private static final int T_WHERE =  2;
+        
+        private List<AttributeQueryPart> filterAttributes = null;
+        private List<ValuesQueryPart.Selector> values = null;
+
+        public DeleteQuery() {
+            super(3);
+        }
+        
+        @Override
+        public QueryType<DeleteBuilder<?>> getQueryType() {
+            return DataQuery.DELETE;
+        }
+
+        @Override
+        protected DeleteQuery addPart(DataQueryPart type, QueryPart part) {
+            switch (type) {
+                case TABLE:
+                    return from(asSql(part));
+                case WHERE:
+                    return where(asSql(part));
+                case FILTER_ATTRIBUTE:
+                    return where(asAttribute(part));
+                case VALUES:
+                    return values(asValues(part));
+            }
+            return null;
+        }
+
+        @Override
+        public DeleteQuery from(SqlQueryPart part) {
+            addPart(T_FROM, part);
+            return this;
+        }
+
+        @Override
+        public DeleteQuery join(SqlQueryPart part) {
+            addPart(T_JOIN, part);
+            return this;
+        }
+
+        @Override
+        public DeleteQuery where(SqlQueryPart part) {
+            addPart(T_WHERE, part);
+            return this;
+        }
+
+        @Override
+        public synchronized DeleteQuery where(AttributeQueryPart part) {
+            if (filterAttributes == null) {
+                filterAttributes = new ArrayList<>();
+            }
+            filterAttributes.add(part);
+            if (values != null) {
+                for (ValuesQueryPart.Selector v: values) {
+                    v.selectAttribute(part.getAttributeKey(), part.getColumn());
+                }
+            }
+            return this;
+        }
+
+        @Override
+        public synchronized DeleteQuery values(ValuesQueryPart tuple) {
+            ValuesQueryPart.Selector sel = tuple.selector();
+            if (values == null) {
+                values = new ArrayList<>();
+            }
+            values.add(sel);
+            if (filterAttributes != null) {
+                for (AttributeQueryPart f: filterAttributes) {
+                    sel.selectAttribute(f.getAttributeKey(), f.getColumn());
+                }
+            }
+            return this;
+        }
+        
+        @Override
+        protected void buildQuery(StringBuilder sql) {
+            ensureNotEmpty(T_FROM, "FROM");
+            if (filterAttributes != null) {
+                if (values == null) {
+                    throw new IllegalStateException(
+                            "VALUES required");
+                }
+            }
+            buildQuery(T_FROM, "DELETE FROM ", ", ", sql);
+            buildQuery(T_JOIN, " ", " ", sql);
+            
+            String moreWhere = " WHERE ";
+            if (filterAttributes != null) {
+                sql.append(" WHERE ");
+                moreWhere = " AND ";
+                boolean first = true;
+                for (AttributeQueryPart a: filterAttributes) {
+                    if (first) first = false;
+                    else sql.append(" AND ");
+                    sql.append(a.getColumn()).append(" = ?");
+                }
+            }
+            buildQuery(T_WHERE, moreWhere, " AND ", sql);
+        }
+
+        @Override
+        public int getBatchCount() {
+            return values == null ? 0 : values.size();
+        }
+
+        @Override
+        protected void collectArguments(List<Object> args, int batch) {
+            collectArgumentsOfParts(args, T_FROM);
+            collectArgumentsOfParts(args, T_JOIN);
+            if (values != null) {
+                values.get(batch).appendFilterValuesTo(args);
+            }
+            collectArgumentsOfParts(args, T_WHERE);
+        }
+    }
 }
