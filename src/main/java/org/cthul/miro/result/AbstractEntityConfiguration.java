@@ -6,7 +6,7 @@ import java.sql.SQLException;
 /**
  *
  */
-public abstract class AbstractEntitySetup<Entity> extends EntityBuilderBase implements EntityConfiguration<Entity> {
+public abstract class AbstractEntityConfiguration<Entity> extends EntityBuilderBase implements EntityConfiguration<Entity> {
     
     @Override
     public EntityInitializer<Entity> newInitializer(ResultSet rs) throws SQLException {

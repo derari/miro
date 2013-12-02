@@ -11,6 +11,7 @@ import org.cthul.miro.query.adapter.*;
 import org.cthul.miro.query.api.InternalQueryBuilder;
 import org.cthul.miro.query.api.QueryPartType;
 import org.cthul.miro.query.api.QueryType;
+import org.cthul.miro.query.parts.AttributeQueryPart;
 import org.cthul.miro.query.template.QueryTemplateProvider;
 
 public class AbstractQuery {
@@ -21,6 +22,7 @@ public class AbstractQuery {
     private final List<QueryPartType> typeList = new ArrayList<>();
     private final QueryType<?> queryType;
     private final QueryTemplate template;
+    private boolean hasAttributes = false;
 
     public AbstractQuery(QueryType<?> queryType) {
         this(queryType, (QueryTemplate) null);
@@ -37,6 +39,9 @@ public class AbstractQuery {
     }
 
     protected <T extends QueryAdapter<?>> T getAdapter(DBAdapter dbAdapter) {
+        if (!hasAttributes) {
+            put("*");
+        }
         QueryAdapter<?> a = dbAdapter.newQueryAdapter((QueryType) getQueryType());
         QueryBuilder<?> b = a.getBuilder();
         int len = partList.size();
@@ -68,6 +73,9 @@ public class AbstractQuery {
     }
     
     protected synchronized void addPart(QueryPartType partType, QueryPart part) {
+        if (!hasAttributes && (part instanceof AttributeQueryPart)) {
+            hasAttributes = true;
+        }
         typeList.add(partType);
         partList.add(part);
         parts.put(part.getKey(), part);
@@ -108,6 +116,12 @@ public class AbstractQuery {
             key = key.substring(0, dot);
         }
         part(key).put(subkey, args);
+    }
+    
+    protected void putAll(String... keys) {
+        for (String k: keys) {
+            put(k);
+        }
     }
     
     private static final Object[] NO_ARGS = {};

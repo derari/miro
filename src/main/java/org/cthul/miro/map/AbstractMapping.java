@@ -1,19 +1,15 @@
-package org.cthul.miro.map.z;
+package org.cthul.miro.map;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 
 import org.cthul.miro.cursor.ResultCursor;
-import org.cthul.miro.map.Mapping;
 import org.cthul.miro.result.*;
 import org.cthul.miro.result.ResultBuilder;
-import org.cthul.miro.result.ResultBuilders;
 
 /**
  * Maps the result of a query to instances of a class. Provides a
@@ -22,12 +18,11 @@ import org.cthul.miro.result.ResultBuilders;
  *
  * @param <Entity>
  */
-public abstract class SimpleMapping<Entity> implements EntityType<Entity>, Mapping<Entity> {
+public abstract class AbstractMapping<Entity> implements Mapping<Entity> {
 
     private final Class<Entity> entityClass;
-    private ResultBuilder<Entity[], Entity> arrayResultBuilder = null;
 
-    public SimpleMapping(Class<Entity> recordClass) {
+    public AbstractMapping(Class<Entity> recordClass) {
         this.entityClass = recordClass;
     }
 
@@ -52,31 +47,46 @@ public abstract class SimpleMapping<Entity> implements EntityType<Entity>, Mappi
         injectField(record, field, rs.getObject(i));
     }
 
-    protected void injectField(Entity record, String field, Object value) throws SQLException {
+    protected void injectField(Entity record, String field, Object value) {
         try {
-            Field f = null;
-            Class<?> clazz = record.getClass();
-            while (clazz != null && f == null) {
-                Field[] fields = clazz.getDeclaredFields();
-                for (Field df : fields) {
-                    if (df.getName().equals(field)) {
-                        f = df;
-                        break;
-                    }
-                }
-                clazz = clazz.getSuperclass();
-            }
-            if (f == null) {
-                throw new NoSuchFieldException(field);
-            }
-            f.setAccessible(true);
+            Field f = lookUpField(record, field);
             f.set(record, value);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }
+    
+    protected Object peekField(Entity record, String field) {
+        try {
+            Field f = lookUpField(record, field);
+            return f.get(record);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    private Field lookUpField(Entity record, String field) throws NoSuchFieldException {
+        Field f = null;
+        Class<?> clazz = record.getClass();
+        while (clazz != null && f == null) {
+            Field[] fields = clazz.getDeclaredFields();
+            for (Field df : fields) {
+                if (df.getName().equals(field)) {
+                    f = df;
+                    break;
+                }
+            }
+            clazz = clazz.getSuperclass();
+        }
+        if (f == null) {
+            throw new NoSuchFieldException(field);
+        }
+        f.setAccessible(true);
+        return f;
+    }
 
-    public void setField(Entity record, String field, Object value) throws SQLException {
+    @Override
+    public void setField(Entity record, String field, Object value) {
         throw new IllegalArgumentException(
                 "Cannot set field " + field + " of " + entityClass.getSimpleName());
     }
@@ -93,57 +103,28 @@ public abstract class SimpleMapping<Entity> implements EntityType<Entity>, Mappi
         return new MappedEntityFactory(rs);
     }
 
-    public EntityConfiguration<Entity> newSetup(List<String> fields) {
-        return new FieldValuesSetup(fields);
+    @Override
+    public EntityConfiguration<Entity> newFieldConfiguration(List<String> fields) {
+        return new FieldValuesConfiguration(fields);
     }
     
-    public EntityConfiguration<Entity> newFieldConfiguration(String... fields) {
-        return new FieldValuesSetup(fields);
-    }
-    
+    @Override
     public Entity[] newArray(int length) {
         return (Entity[]) Array.newInstance(entityClass, length);
-    }
-
-    public ResultBuilder<List<Entity>, Entity> asList() {
-        return ResultBuilders.getListResult();
-    }
-
-    public ResultBuilder<Entity[], Entity> asArray() {
-        if (arrayResultBuilder == null) {
-            arrayResultBuilder = ResultBuilders.getArrayResult(entityClass);
-        }
-        return arrayResultBuilder;
-    }
-    
-    public ResultBuilder<Entity[], Entity> asArray(ResultBuilder<? extends Collection<? extends Entity>, Entity> listResult) {
-        return ResultBuilders.getArrayResult(entityClass, listResult);
-    }
-
-    public ResultBuilder<ResultCursor<Entity>, Entity> asCursor() {
-        return ResultBuilders.getCursorResult();
-    }
-
-    public ResultBuilder<Entity, Entity> getSingle() {
-        return ResultBuilders.getSingleResult();
-    }
-
-    public ResultBuilder<Entity, Entity> getFirst() {
-        return ResultBuilders.getFirstResult();
     }
 
     protected String[] getConstructorParameters() {
         return null;
     }
 
-    protected class FieldValuesSetup extends AbstractEntityConfiguration<Entity> {        
+    protected class FieldValuesConfiguration extends AbstractEntityConfiguration<Entity> {        
         private final String[] fields;
 
-        public FieldValuesSetup(Collection<String> fields) {
+        public FieldValuesConfiguration(Collection<String> fields) {
             this.fields = fields.toArray(new String[fields.size()]);
         }
         
-        public FieldValuesSetup(String[] fields) {
+        public FieldValuesConfiguration(String[] fields) {
             this.fields = fields;
         }
 
@@ -169,9 +150,6 @@ public abstract class SimpleMapping<Entity> implements EntityType<Entity>, Mappi
         private final Object[] argsBuf;
 
         public MappedEntityFactory(ResultSet rs) throws SQLException {
-            PreparedStatement ps = null;
-            Connection c = null;
-            
             this.rs = rs;
             String[] params = getConstructorParameters();
             if (params != null) {
@@ -190,17 +168,17 @@ public abstract class SimpleMapping<Entity> implements EntityType<Entity>, Mappi
                     argsBuf[i] = rs.getObject(argColumns[i]);
                 }
             }
-            return SimpleMapping.this.newRecord(argsBuf);
+            return AbstractMapping.this.newRecord(argsBuf);
         }
 
         @Override
         public Entity newCursorValue(ResultCursor<? super Entity> rc) throws SQLException {
-            return SimpleMapping.this.newCursorValue(rc);
+            return AbstractMapping.this.newCursorValue(rc);
         }
 
         @Override
         public Entity copy(Entity e) throws SQLException {
-            return SimpleMapping.this.copy(e);
+            return AbstractMapping.this.copy(e);
         }
 
         @Override

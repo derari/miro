@@ -1,6 +1,5 @@
 package org.cthul.miro.result;
 
-import java.lang.reflect.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -52,35 +51,36 @@ public class ResultBuilders {
             return result;
         }
     }
+    
+    private static ArrayResult ARRAY_RESULT = null;
 
+    public static <Entity> ArrayResult<Entity> getArrayResult() {
+        if (ARRAY_RESULT == null) {
+            ARRAY_RESULT = new ArrayResult<>(getListResult());
+        }
+        return ARRAY_RESULT;
+    }
+    
     public static <Entity> ArrayResult<Entity> getArrayResult(Class<Entity> clazz) {
-        return new ArrayResult<>(clazz);
+        return getArrayResult();
     }
 
-    public static <Entity> ArrayResult<Entity> getArrayResult(Class<Entity> clazz, ResultBuilder<? extends Collection<? extends Entity>, Entity> listResult) {
-        return new ArrayResult<>(clazz, listResult);
+    public static <Entity> ArrayResult<Entity> getArrayResult(ResultBuilder<? extends Collection<? extends Entity>, Entity> listResult) {
+        return new ArrayResult<>(listResult);
     }
 
     public static class ArrayResult<Entity> implements ResultBuilder<Entity[], Entity> {
 
-        private final Class<Entity> entityClass;
-        private final Entity[] arrayTemplate;
         private final ResultBuilder<? extends Collection<? extends Entity>, Entity> listResult;
 
-        public ArrayResult(Class<Entity> entityClass) {
-            this(entityClass, getListResult(entityClass));
-        }
-
-        public ArrayResult(Class<Entity> entityClass, ResultBuilder<? extends Collection<? extends Entity>, Entity> listResult) {
-            this.entityClass = entityClass;
+        public ArrayResult(ResultBuilder<? extends Collection<? extends Entity>, Entity> listResult) {
             this.listResult = listResult;
-            this.arrayTemplate = (Entity[]) Array.newInstance(entityClass, 0);
         }
 
         @Override
         public Entity[] build(ResultSet rs, EntityType<Entity> type, EntityConfiguration<? super Entity> config) throws SQLException {
             Collection<? extends Entity> result = listResult.build(rs, type, config);
-            return result.toArray(arrayTemplate);
+            return result.toArray(type.newArray(result.size()));
         }
     }
     

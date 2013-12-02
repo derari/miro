@@ -11,4 +11,6 @@ import java.sql.SQLException;
 public interface EntityType<Entity> {
     
     EntityFactory<Entity> newFactory(ResultSet rs) throws SQLException;
+    
+    Entity[] newArray(int length);
 }

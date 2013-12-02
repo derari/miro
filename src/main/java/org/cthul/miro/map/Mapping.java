@@ -14,6 +14,4 @@ public interface Mapping<Entity> extends EntityType<Entity> {
     public Object getField(Entity entity, String field);
     
     public EntityConfiguration<Entity> newFieldConfiguration(List<String> fields);
-    
-    public Entity[] newArray(int length);
 }

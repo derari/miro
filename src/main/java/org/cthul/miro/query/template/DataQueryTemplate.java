@@ -157,6 +157,7 @@ public class DataQueryTemplate extends SimpleQueryTemplate {
                     return new PutAllTemplate("all-keys", getDefaultAttributes());
                 case "**":
                     return new PutAllTemplate("*", getOptionalAttributes());
+                case "values":
                 case "insert-values":
                     return new InsertValuesTemplate();
             }
@@ -177,6 +178,7 @@ public class DataQueryTemplate extends SimpleQueryTemplate {
                     return new PutAllTemplate(getDefaultAttributes());
                 case "**":
                     return new PutAllTemplate("*", getOptionalAttributes());
+                case "values":
                 case "update-values":
                     return new UpdateValuesTemplate();
                 case "filter-by-keys":
@@ -204,6 +206,7 @@ public class DataQueryTemplate extends SimpleQueryTemplate {
                 case "*":
                 case "**":
                     return new PutAllTemplate("require-all-keys");
+                case "values":
                 case "delete-values":
                     return new DeleteValuesTemplate();
                 case "filter-by-keys":
