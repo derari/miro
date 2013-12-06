@@ -2,7 +2,6 @@ package org.cthul.miro.query;
 
 import org.cthul.miro.doc.MultiValue;
 import org.cthul.miro.query.adapter.*;
-import org.cthul.miro.query.api.QueryType;
 import org.cthul.miro.query.sql.DataQuery;
 import org.cthul.miro.query.template.QueryTemplate;
 import org.cthul.miro.query.template.QueryTemplateProvider;

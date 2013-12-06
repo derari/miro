@@ -1,10 +1,12 @@
 package org.cthul.miro.test;
 
+import org.cthul.miro.doc.MultiValue;
 import org.cthul.miro.query.adapter.QueryString;
 import org.cthul.miro.query.AbstractQuery;
 import org.cthul.miro.query.sql.AnsiSql;
 import org.cthul.miro.query.sql.DataQuery;
 import org.cthul.miro.query.sql.SelectBuilder;
+import org.cthul.miro.dml.DataQueryKey;
 import org.cthul.miro.query.template.QueryTemplateProvider;
 
 public class TestSelectQuery extends AbstractQuery {
@@ -21,21 +23,25 @@ public class TestSelectQuery extends AbstractQuery {
         return getQuery().getQueryString();
     }
     
-    public TestSelectQuery select(String... select) {
+    public TestSelectQuery select(@MultiValue String... select) {
         for (String s: select) {
-            for (String s2: s.split(",")) {
-                put(s2.trim());
-            }
+            put(DataQueryKey.SELECT, splitKeys(s));
         }
         return this;
     }
     
-    public TestSelectQuery orderBy(String... select) {
-        for (String s: select) {
-            for (String s2: s.split(",")) {
-                put("orderBy-" + s2.trim());
-            }
+    public TestSelectQuery orderBy(@MultiValue String... attributes) {
+        for (String a: attributes) {
+            put(DataQueryKey.ORDER_BY, splitKeys(a));
         }
         return this;
+    }
+    
+    static Object[] splitKeys(String keys) {
+        String[] result = keys.split(",");
+        for (int i = 0; i < result.length; i++) {
+            result[i] = result[i].trim();
+        }
+        return result;
     }
 }

@@ -1,7 +1,7 @@
 package org.cthul.miro.query.sql;
 
 import org.cthul.miro.query.adapter.QueryBuilder;
-import org.cthul.miro.query.api.QueryPartType;
+import org.cthul.miro.query.QueryPartType;
 import org.cthul.miro.query.parts.QueryPart;
 
 public enum DataQueryPart implements QueryPartType {

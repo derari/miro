@@ -22,7 +22,7 @@ public interface SqlParser<This extends SqlParser<This>> {
     
     This join(@AutoKey String... joinClause);
     
-    This where(String key, String whereClause);
+    This where(Object key, String whereClause);
     
     This where(String whereClause);
 //    

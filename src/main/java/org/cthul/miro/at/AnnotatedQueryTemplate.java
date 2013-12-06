@@ -4,7 +4,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.*;
 import org.cthul.miro.MiConnection;
-import org.cthul.miro.graph.GraphQueryTemplate;
+import org.cthul.miro.graph.ZGraphQueryTemplate;
 import org.cthul.miro.map.ConfigurationProvider;
 import org.cthul.miro.map.ConfigurationInstance;
 import org.cthul.miro.map.z.SimpleMapping;
@@ -17,7 +17,7 @@ import org.cthul.objects.reflection.Signatures;
 /**
  *
  */
-public class AnnotatedQueryTemplate<Entity> extends GraphQueryTemplate<Entity> {
+public class AnnotatedQueryTemplate<Entity> extends ZGraphQueryTemplate<Entity> {
     
     private final Map<Method, InvocationBuilder<Entity>> handlers = new HashMap<>();
     private final Set<Class<?>> interfaces = new HashSet<>();

@@ -17,25 +17,25 @@ public class AnnotatedQueryHandler<Entity> extends GraphQuery<Entity> implements
     private final Map<Method, InvocationHandler> handlers;
 
     @SuppressWarnings("LeakingThisInConstructor")
-    public AnnotatedQueryHandler(MiConnection cnn, SimpleMapping<Entity> mapping, AnnotatedQueryTemplate<Entity> template, View<? extends SelectByKey<?>> view) {
+    public AnnotatedQueryHandler(MiConnection cnn, SimpleMapping<Entity> mapping, AnnotatedQueryTemplate<Entity> template, View<? extends ZSelectByKey<?>> view) {
         super(cnn, mapping, template, view);
         this.template = template;
         this.handlers = template.getHandlers(this);
     }
 
     @SuppressWarnings("LeakingThisInConstructor")
-    public AnnotatedQueryHandler(MiConnection cnn, AnnotatedQueryTemplate<Entity> template, View<? extends SelectByKey<?>> view) {
+    public AnnotatedQueryHandler(MiConnection cnn, AnnotatedQueryTemplate<Entity> template, View<? extends ZSelectByKey<?>> view) {
         super(cnn, template, view);
         this.template = template;
         this.handlers = template.getHandlers(this);
     }
     
-    public AnnotatedQueryHandler(MiConnection cnn, SimpleMapping<Entity> mapping, AnnotatedQueryTemplate<Entity> template, View<? extends SelectByKey<?>> view, String... fields) {
+    public AnnotatedQueryHandler(MiConnection cnn, SimpleMapping<Entity> mapping, AnnotatedQueryTemplate<Entity> template, View<? extends ZSelectByKey<?>> view, String... fields) {
         this(cnn, mapping, template, view);
         select(fields);
     }
     
-    public AnnotatedQueryHandler(MiConnection cnn, AnnotatedQueryTemplate<Entity> template, View<? extends SelectByKey<?>> view, String... fields) {
+    public AnnotatedQueryHandler(MiConnection cnn, AnnotatedQueryTemplate<Entity> template, View<? extends ZSelectByKey<?>> view, String... fields) {
         this(cnn, template, view);
         select(fields);
     }

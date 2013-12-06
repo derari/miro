@@ -2,6 +2,7 @@ package org.cthul.miro.result;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -27,5 +28,15 @@ public class EntityBuilderBase {
     
     protected int getFieldIndex(ResultSet rs, String field) throws SQLException {
         return rs.findColumn(field);
+    }
+    
+    protected Object[] getFields(ResultSet rs, int[] indices, Object[] target) throws SQLException {
+        if (target.length < indices.length) {
+            target = Arrays.copyOf(target, indices.length);
+        }
+        for (int i = 0; i < indices.length; i++) {
+            target[i] = rs.getObject(indices[i]);
+        }
+        return target;
     }
 }

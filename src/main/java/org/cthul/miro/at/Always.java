@@ -9,5 +9,23 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Always {
     
-    More[] value();
+    String key() default "";
+    
+    String[] require() default {};
+    
+    Select[] select() default {};
+    
+    Select[] optional() default {};
+    
+    Select[] internal() default {};
+    
+    Join[] join() default {};
+    
+    Where[] where() default {};
+    
+    OrderBy[] orderBy() default {};
+    
+    Config[] config() default {};
+    
+    Put[] put() default {};
 }

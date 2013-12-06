@@ -1,7 +1,7 @@
 package org.cthul.miro.query.sql;
 
 import org.cthul.miro.query.adapter.*;
-import org.cthul.miro.query.api.QueryType;
+import org.cthul.miro.query.QueryType;
 
 public interface DataQuery<Builder extends QueryBuilder<? extends Builder>> extends QueryType<Builder> {
 

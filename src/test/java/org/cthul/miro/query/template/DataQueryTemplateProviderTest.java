@@ -1,5 +1,6 @@
 package org.cthul.miro.query.template;
 
+import org.cthul.miro.dml.DataQueryTemplateProvider;
 import org.cthul.miro.test.*;
 import org.junit.Test;
 import static org.hamcrest.Matchers.*;
@@ -84,6 +85,6 @@ public class DataQueryTemplateProviderTest {
                 .tuple(2);
         assertThat(qry.getQueryString(),
                 is("DELETE FROM 'Addresses' a "
-                + "WHERE 'id' = ?"));
+                + "WHERE a.'id' = ?"));
     }
 }

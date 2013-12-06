@@ -24,7 +24,7 @@ public class TestQueryPart implements SqlQueryPart {
     }
 
     @Override
-    public void put(String key, Object... args) {
+    public void put(Object key, Object... args) {
         throw new UnsupportedOperationException();
     }
     

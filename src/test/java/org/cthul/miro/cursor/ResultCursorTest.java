@@ -1,6 +1,8 @@
 package org.cthul.miro.cursor;
 
 import org.cthul.miro.MiConnection;
+import org.cthul.miro.dml.MappedSelect;
+import org.cthul.miro.result.Results;
 import org.cthul.miro.test.TestDB;
 import org.cthul.miro.test.model.Person0;
 import org.junit.BeforeClass;
@@ -26,8 +28,8 @@ public class ResultCursorTest {
     
     @Test
     public void test_cursor() throws Exception {
-        Person0.TQuery qry = Person0.VIEW.select(cnn, "firstName");
-        try (ResultCursor<Person0> result = qry.asCursor()._execute()) {
+        MappedSelect<Person0, Results<Person0>> qry = Person0.VIEW.select("firstName");
+        try (ResultCursor<Person0> result = qry.execute(cnn).asCursor()) {
             Person0 cursor = null;
             String[] expectedNames = {"Jon", "Jane", "Alice", "Bob"};
             int i = 0;

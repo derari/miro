@@ -67,17 +67,6 @@ public class SqlUtils {
         if (!m.matches()) {
             throw new IllegalArgumentException("Cannot parse: " + select);
         }
-//        final String key, required;
-//        if (m.group(1) != null) {
-//            key = m.group(5) != null ? m.group(5) : m.group(3);
-//            required = m.group(2);
-//        } else if (m.group(6) != null) {
-//            key = m.group(7);
-//            required = null;
-//        } else {
-//            throw new AssertionError(m.toString());
-//        }
-//        return new String[]{stripQuotes(key), select, stripQuotes(required)};
         if (!m.matches()) {
             throw new IllegalArgumentException("Cannot parse: " + select);
         }
@@ -157,10 +146,13 @@ public class SqlUtils {
         return new String[]{stripQuotes(key), join};
     }
 
-    public static String[] parseGroupPart(String from) {
-        Matcher m = GROUP_PART_PATTERN.matcher(from.trim());
+    private static final Pattern GROUP_PART_PATTERN = PartPattern(
+            "(IDENT_\\._)?(IDENT)");
+    
+    public static String[] parseGroupPart(String group) {
+        Matcher m = GROUP_PART_PATTERN.matcher(group.trim());
         if (!m.matches()) {
-            throw new IllegalArgumentException("Cannot parse: " + from);
+            throw new IllegalArgumentException("Cannot parse: " + group);
         }
         final String key;
         if (m.group(2) != null) {
@@ -168,8 +160,11 @@ public class SqlUtils {
         } else {
             throw new AssertionError(m.toString());
         }
-        return new String[]{stripQuotes(key), from};
+        return new String[]{stripQuotes(key), group};
     }
+    
+    private static final Pattern ORDER_PART_PATTERN = PartPattern(
+            "((IDENT)_\\._)?(IDENT)(_ASC|_DESC)?");
     
     public static String[] parseOrderPart(String orderBy) {
         Matcher m = ORDER_PART_PATTERN.matcher(orderBy.trim());
@@ -183,18 +178,12 @@ public class SqlUtils {
             throw new AssertionError(m.toString());
         }
         if (m.group(2) != null) {
-            required = m.group(2);
+            required = stripQuotes(m.group(2)) + "." + stripQuotes(key);
         } else {
             required = null;
         }
         return new String[]{stripQuotes(key), orderBy, stripQuotes(required)};
     }
-    
-    private static final Pattern GROUP_PART_PATTERN = PartPattern(
-            "(IDENT_\\._)?(IDENT)");
-    
-    private static final Pattern ORDER_PART_PATTERN = PartPattern(
-            "((IDENT)_\\._)?(IDENT)(_ASC|_DESC)?");
     
     private static int scanUntil(int i, String select, char end) {
         for (;i < select.length(); i++) {

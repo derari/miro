@@ -1,6 +1,6 @@
 package org.cthul.miro.query.template;
 
-import org.cthul.miro.query.api.InternalQueryBuilder;
+import org.cthul.miro.query.InternalQueryBuilder;
 
 public class Attribute {
 
@@ -8,9 +8,9 @@ public class Attribute {
     private final String select;
     private final String keyLiteral;
     private final String columnLiteral;
-    private final String[] required;
+    private final Object[] required;
 
-    public Attribute(String key, String select, String keyLiteral, String columnLiteral, String... required) {
+    public Attribute(String key, String select, String keyLiteral, String columnLiteral, Object... required) {
         this.key = key;
         this.select = select;
         this.required = required;
@@ -20,10 +20,19 @@ public class Attribute {
 
     public void addRequired(InternalQueryBuilder queryBuilder) {
         if (required != null) {
-            for (String r: required) {
-                if (r != null) {
-                    queryBuilder.put(r);
-                }
+            for (Object r: required) {
+                queryBuilder.put(r);
+//                if (r instanceof String) {
+//                    String s = (String) r;
+//                    int dot = s.indexOf('.');
+//                    if (dot < 0) {
+//                        queryBuilder.put(s);
+//                    } else {
+//                        queryBuilder.put2(s.substring(0, dot), s.substring(dot+1));
+//                    }
+//                } else if (r != null) {
+//                    
+//                }
             }
         }
     }
@@ -48,8 +57,12 @@ public class Attribute {
         return columnLiteral;
     }
 
-//    /** e.g. `data` */
-//    public String getTable() {
-//        return table;
-//    }
+    //    /** e.g. `data` */
+    //    public String getTable() {
+    //        return table;
+    //    }
+    @Override
+    public String toString() {
+        return getSelect() + " AS " + getKey();
+    }
 }

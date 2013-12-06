@@ -1,6 +1,6 @@
 package org.cthul.miro.query.template;
 
-import org.cthul.miro.query.api.QueryType;
+import org.cthul.miro.query.QueryType;
 
 public interface QueryTemplateProvider {
 

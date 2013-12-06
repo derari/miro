@@ -2,7 +2,7 @@ package org.cthul.miro.query.parts;
 
 public class VirtualQueryPart extends AbstractQueryPart {
 
-    public VirtualQueryPart(String key) {
+    public VirtualQueryPart(Object key) {
         super(key);
     }
 }

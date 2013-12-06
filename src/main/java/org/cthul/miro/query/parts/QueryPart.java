@@ -2,8 +2,8 @@ package org.cthul.miro.query.parts;
 
 public interface QueryPart {
     
-    String getKey();
+    Object getKey();
     
-    void put(String key, Object... args);
+    void put(Object key, Object... args);
     
 }

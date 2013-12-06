@@ -2,7 +2,6 @@ package org.cthul.miro.query;
 
 import org.cthul.miro.query.adapter.QueryString;
 import org.cthul.miro.query.adapter.QuerySyntax;
-import org.cthul.miro.query.api.QueryType;
 import org.cthul.miro.query.template.QueryTemplate;
 import org.cthul.miro.query.template.QueryTemplateProvider;
 

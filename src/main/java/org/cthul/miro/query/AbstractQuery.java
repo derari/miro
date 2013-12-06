@@ -1,25 +1,20 @@
 package org.cthul.miro.query;
 
-import java.util.ArrayList;
+import java.util.*;
 import org.cthul.miro.query.template.QueryTemplate;
 import org.cthul.miro.query.adapter.QueryAdapter;
 import org.cthul.miro.query.parts.QueryPart;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.cthul.miro.query.adapter.*;
-import org.cthul.miro.query.api.InternalQueryBuilder;
-import org.cthul.miro.query.api.QueryPartType;
-import org.cthul.miro.query.api.QueryType;
-import org.cthul.miro.query.parts.AttributeQueryPart;
+import org.cthul.miro.query.sql.DataQueryPart;
 import org.cthul.miro.query.template.QueryTemplateProvider;
 
 public class AbstractQuery {
     
     private final Internal internal = new Internal();
-    private final Map<String, QueryPart> parts = new HashMap<>();
+    private final Map<Object, QueryPart> parts = new HashMap<>();
     private final List<QueryPart> partList = new ArrayList<>();
     private final List<QueryPartType> typeList = new ArrayList<>();
+    private final LinkedHashSet<String> resultAttributes = new LinkedHashSet<>();
     private final QueryType<?> queryType;
     private final QueryTemplate template;
     private boolean hasAttributes = false;
@@ -39,7 +34,9 @@ public class AbstractQuery {
     }
 
     protected <T extends QueryAdapter<?>> T getAdapter(DBAdapter dbAdapter) {
+//        if (resultAttributes.isEmpty()) {
         if (!hasAttributes) {
+            hasAttributes = true;
             put("*");
         }
         QueryAdapter<?> a = dbAdapter.newQueryAdapter((QueryType) getQueryType());
@@ -59,21 +56,29 @@ public class AbstractQuery {
         return internal;
     }
 
-    public List<QueryPart> getParts() {
+    protected List<String> getResultAttributes() {
+        return new ArrayList<>(resultAttributes);
+    }
+    
+    protected List<QueryPart> getParts() {
         return partList;
     }
     
-    protected QueryPart addPartFromTemplate(String key) {
+    protected QueryPart addPartFromTemplate(Object key) {
         if (template == null) return null;
         return template.addPart(key, internal());
     }
     
-    protected QueryPart addUnknownPart(String key) {
+    protected QueryPart addUnknownPart(Object key) {
         return addPartFromTemplate(key);
     }
     
+    protected void addResultAttribute(String key) {
+        resultAttributes.add(key);
+    }
+    
     protected synchronized void addPart(QueryPartType partType, QueryPart part) {
-        if (!hasAttributes && (part instanceof AttributeQueryPart)) {
+        if (partType == DataQueryPart.ATTRIBUTE) {
             hasAttributes = true;
         }
         typeList.add(partType);
@@ -81,7 +86,7 @@ public class AbstractQuery {
         parts.put(part.getKey(), part);
     }
     
-    protected synchronized QueryPart part(String key) {
+    protected synchronized QueryPart part(Object key) {
         QueryPart part = parts.get(key);
         if (part == null) {
             part = addUnknownPart(key);
@@ -92,29 +97,30 @@ public class AbstractQuery {
         return part;
     }
     
-    protected void put(String key) {
-        int dot = key.indexOf('.');
-        if (dot < 0) {
-            part(key);
-        } else {
-            put2(key.substring(0, dot), key.substring(dot+1), NO_ARGS);
-        }
+    protected void put(Object key) {
+        part(key);
+//        int dot = key.indexOf('.');
+//        if (dot < 0) {
+//            part(key);
+//        } else {
+//            put2(key.substring(0, dot), key.substring(dot+1), NO_ARGS);
+//        }
     }
 
-    protected void put(String key, Object... args) {
-        put2(key, "", args);
+    protected void put(Object key, Object... args) {
+        put2(key, null, args);
     }
 
-    protected void put2(String key, String subkey, Object... args) {
-        int dot = key.indexOf('.');
-        if (dot > 0) {
-            if (subkey.isEmpty()) {
-                subkey = key.substring(dot+1);
-            } else {
-                subkey = key.substring(dot+1) + "." + subkey;
-            }
-            key = key.substring(0, dot);
-        }
+    protected void put2(Object key, Object subkey, Object... args) {
+//        int dot = key.indexOf('.');
+//        if (dot > 0) {
+//            if (subkey.isEmpty()) {
+//                subkey = key.substring(dot+1);
+//            } else {
+//                subkey = key.substring(dot+1) + "." + subkey;
+//            }
+//            key = key.substring(0, dot);
+//        }
         part(key).put(subkey, args);
     }
     
@@ -124,7 +130,7 @@ public class AbstractQuery {
         }
     }
     
-    private static final Object[] NO_ARGS = {};
+//    private static final Object[] NO_ARGS = {};
     
     private class Internal implements InternalQueryBuilder {
 
@@ -134,17 +140,17 @@ public class AbstractQuery {
         }
 
         @Override
-        public void put(String key) {
+        public void put(Object key) {
             AbstractQuery.this.put(key);
         }
 
         @Override
-        public void put(String key, Object... args) {
+        public void put(Object key, Object... args) {
             AbstractQuery.this.put(key, args);
         }
 
         @Override
-        public void put2(String key, String subkey, Object... args) {
+        public void put2(Object key, Object subkey, Object... args) {
             AbstractQuery.this.put2(key, subkey, args);
         }
 
@@ -159,6 +165,16 @@ public class AbstractQuery {
                 i++;
             }
             return hint + i;
+        }
+
+        @Override
+        public boolean hasPart(Object key) {
+            return AbstractQuery.this.parts.containsKey(key);
+        }
+
+        @Override
+        public void addResultAttribute(String key) {
+            AbstractQuery.this.addResultAttribute(key);
         }
 
         @Override

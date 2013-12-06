@@ -5,7 +5,7 @@ import java.sql.SQLException;
 import java.util.List;
 import org.cthul.miro.cursor.ResultCursor;
 
-public class Results<Entity> {
+public class Results<Entity> implements AutoCloseable {
     
     private static final ResultBuilder RESULT_BUILDER = new ResultBuilder() {
         @Override
@@ -46,5 +46,14 @@ public class Results<Entity> {
     
     public Entity getSingle() throws SQLException {
         return ResultBuilders.<Entity>getSingleResult().build(rs, type, config);
+    }
+
+    @Override
+    public void close() throws SQLException {
+        rs.close();
+    }
+    
+    public void noResult() throws SQLException {
+        asList();
     }
 }

@@ -1,100 +1,107 @@
 package org.cthul.miro.graph;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-public abstract class KeyMap<Key, InternKey, E extends Exception> {
+public abstract class KeyMap<InternKey, Entity> {
 
-    private final Object NULL = new Object();
-    private final Map<InternKey, Object> map = new HashMap<>();
-    private final Fetch<Key, E> fetch;
+    private final Map<InternKey, Entity> map = new HashMap<>();
 
-    public KeyMap(Fetch<Key, E> fetch) {
-        this.fetch = fetch;
+    public KeyMap() {
     }
 
-    public Object peek(Key key) {
-        Object o = get(internKey(key));
-        if (o == NULL) return null;
-        return o;
-    }
-    
-    /**
-     * Returns objects for all keys.
-     * @param keys
-     * @return objects
-     * @throws E 
-     */
-    public Object[] getAll(final Key[] keys) throws E {
-        final Object[] result = new Object[keys.length];
-
-        int missingCount = fill(result, keys);
-        if (missingCount > 0) {
-            fillMissing(result, keys, missingCount);
-        }
-        
-        return result;
+    public Entity get(Object[] key) {
+        return getIntern(internKey(key));
     }
 
-    private int fill(final Object[] values, final Key[] keys) {
-        int missingCount = 0;
-        InternKey k = prepareInternKey();
-        for (int i = 0; i < keys.length; i++) {
-            if (values[i] == null) {
-                final Object o;
-                k = internKey(k, keys[i]);
-                o = get(k);
-                if (o == null) {
-                    missingCount++;
-                } else if (o != NULL) {
-                    values[i] = o;
-                }
-            }
-        }
-        return missingCount;
-    }
-
-    private void fillMissing(final Object[] result, final Key[] keys, int missingCount) throws E {
-        Set<Key> missingKeySet = new HashSet<>();
-        for (int i = 0; i < result.length; i++) {
-            if (result[i] == null) {
-                missingKeySet.add(keys[i]);
-            }
-        }
-
-        final Key[] missingKeys = (Key[]) missingKeySet.toArray();
-        final Object[] missingValues = fetchValues(missingKeys);
-
-        for (int i = 0; i < missingKeys.length; i++) {
-            Object o = missingValues[i];
-            if (o == null) {
-                o = NULL;
-            }
-            map.put(internKey(missingKeys[i]), o);
-        }
-
-        missingCount = fill(result, keys);
-        assert missingCount == 0;
-    }
-
-    protected abstract InternKey prepareInternKey();
-    
-    protected abstract InternKey internKey(InternKey prepared, Key key);
-    
-    protected abstract InternKey internKey(Key key);
-
-    protected Object[] fetchValues(Object[] keys) throws E {
-        return fetch.fetchValues(keys);
-    }
-
-    protected Object get(InternKey key) {
+    protected Entity getIntern(InternKey key) {
         return map.get(key);
     }
+    
+    public void put(Object[] key, Entity value) {
+        putIntern(internKey(key), value);
+    }
+    
+    protected void putIntern(InternKey key, Entity value) {
+        map.put(key, value);
+    }
+    
+    protected abstract InternKey prepareInternKey();
+    
+    protected abstract InternKey internKey(InternKey prepared, Object[] key);
+    
+    protected abstract InternKey internKey(Object[] key);
+    
+    public static class SingleKey<Entity> extends KeyMap<Object, Entity> {
+        @Override
+        protected Object prepareInternKey() {
+            return null;
+        }
 
-    public static interface Fetch<Key, E extends Exception> {
-        
-        Object[] fetchValues(Object[] keys) throws E;
+        @Override
+        protected Object internKey(Object prepared, Object[] key) {
+            return key[0];
+        }
+
+        @Override
+        protected Object internKey(Object[] key) {
+            return key[0];
+        }
+    }
+    
+    public static class MultiKey<Entity> extends KeyMap<KeyArray, Entity> {
+        @Override
+        protected KeyArray prepareInternKey() {
+            return new KeyArray();
+        }
+
+        @Override
+        protected KeyArray internKey(KeyArray prepared, Object[] key) {
+            prepared.become(key);
+            return prepared;
+        }
+
+        @Override
+        protected KeyArray internKey(Object[] key) {
+            return new KeyArray(key);
+        }
+    }
+    
+    protected static class KeyArray {
+
+        private Object[] keys;
+        private int hash = -1;
+
+        public KeyArray(Object[] ids) {
+            this.keys = ids.clone();
+        }
+
+        public KeyArray() {
+            keys = null;
+        }
+
+        private void become(Object key) {
+            this.keys = (Object[]) key;
+            hash = -1;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof KeyArray)) {
+                return false;
+            }
+            final KeyArray o = (KeyArray) obj;
+            return Arrays.equals(keys, o.keys);
+        }
+
+        @Override
+        public int hashCode() {
+            if (hash == -1) {
+                hash = Arrays.hashCode(keys);
+                if (hash == -1) {
+                    hash = 0;
+                }
+            }
+            return hash;
+        }
     }
 }

@@ -1,7 +1,5 @@
 package org.cthul.miro.query;
 
-import org.cthul.miro.query.api.InternalQueryBuilder;
-import org.cthul.miro.query.api.QueryPartType;
 import org.cthul.miro.query.parts.QueryPart;
 import org.cthul.miro.query.parts.SimpleQueryPart;
 import org.cthul.miro.query.sql.DataQueryPart;
@@ -19,7 +17,7 @@ public class SqlQueryBuilder<This extends SqlQueryBuilder<This>> implements SqlP
         return (This) this;
     }
     
-    protected String newKey(String hint) {
+    protected Object newKey(String hint) {
         return queryBuilder.newKey(hint);
     }
     
@@ -61,7 +59,7 @@ public class SqlQueryBuilder<This extends SqlQueryBuilder<This>> implements SqlP
     @Override
     public This table(String fromClause) {
         String[] part = SqlUtils.parseFromPart(fromClause);
-        String key = part[0] != null ?  part[0] : newKey("from");
+        Object key = part[0] != null ?  part[0] : newKey("from");
         return table(new SimpleQueryPart(key, part[1]));
     }
     
@@ -81,7 +79,7 @@ public class SqlQueryBuilder<This extends SqlQueryBuilder<This>> implements SqlP
     @Override
     public This from(String fromClause) {
         String[] part = SqlUtils.parseFromPart(fromClause);
-        String key = part[0] != null ?  part[0] : newKey("from");
+        Object key = part[0] != null ?  part[0] : newKey("from");
         return from(new SimpleQueryPart(key, part[1]));
     }
     
@@ -115,7 +113,7 @@ public class SqlQueryBuilder<This extends SqlQueryBuilder<This>> implements SqlP
     }
 
     @Override
-    public This where(String key, String whereClause) {
+    public This where(Object key, String whereClause) {
         return where(new SimpleQueryPart(key, whereClause));
     }
     

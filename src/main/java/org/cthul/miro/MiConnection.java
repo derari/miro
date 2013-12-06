@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
-import org.cthul.miro.dsl.Select;
 import org.cthul.miro.query.adapter.JdbcAdapter;
 import org.cthul.miro.query.adapter.JdbcQuery;
 import org.cthul.miro.query.sql.AnsiSql;
@@ -185,17 +184,17 @@ public class MiConnection implements AutoCloseable {
     }
     
     // DSL =====================================================================
-    
-    private Select selectAll = null;
-
-    public Select select() {
-        if (selectAll == null) {
-            selectAll = new Select(this);
-        }
-        return selectAll;
-    }
-
-    public Select select(String... fields) {
-        return new Select(this, fields);
-    }
+//    
+//    private Select selectAll = null;
+//
+//    public Select select() {
+//        if (selectAll == null) {
+//            selectAll = new Select(this);
+//        }
+//        return selectAll;
+//    }
+//
+//    public Select select(String... fields) {
+//        return new Select(this, fields);
+//    }
 }

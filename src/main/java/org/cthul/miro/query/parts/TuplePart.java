@@ -7,7 +7,7 @@ public class TuplePart extends AbstractQueryPart implements ValuesQueryPart {
     
     private final Object[] values;
 
-    public TuplePart(String key, Object... values) {
+    public TuplePart(Object key, Object... values) {
         super(key);
         this.values = values;
     }
@@ -21,7 +21,7 @@ public class TuplePart extends AbstractQueryPart implements ValuesQueryPart {
         
         private int keyCount = 0;
 
-        public Selector(String key) {
+        public Selector(Object key) {
             super(key);
         }
         

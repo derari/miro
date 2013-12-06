@@ -2,41 +2,41 @@ package org.cthul.miro.view;
 
 import java.lang.reflect.*;
 import java.util.Arrays;
-import org.cthul.miro.query.api.QueryType;
+import org.cthul.miro.query.QueryType;
 import org.cthul.miro.query.sql.DataQuery;
+import org.cthul.miro.query.template.QueryTemplate;
+import org.cthul.miro.query.template.QueryTemplateProvider;
+import org.cthul.miro.result.Results;
+import org.cthul.miro.util.GenericsUtils;
 
 public class Views {
     
     public static <V extends View> V newView(Class<V> clazz, Object... args) {
-        try {
-            QueryFactory<?> select = null;
-            QueryFactory<?> insert = null;
-            QueryFactory<?> update = null;
-            QueryFactory<?> delete = null;
-            if (ViewC.class.isAssignableFrom(clazz)) {
-                Class<?> q = clazz.getMethod("insert", String[].class).getReturnType();
-                insert = new ReflectiveQueryFactory<>(q, DataQuery.INSERT, args);
-            }
-            if (ViewR.class.isAssignableFrom(clazz)) {
-                Class<?> q = clazz.getMethod("select", String[].class).getReturnType();
-                select = new ReflectiveQueryFactory<>(q, DataQuery.SELECT, args);
-            }
-            if (ViewU.class.isAssignableFrom(clazz)) {
-                Class<?> q = clazz.getMethod("update", String[].class).getReturnType();
-                update = new ReflectiveQueryFactory<>(q, DataQuery.UPDATE, args);
-            }
-            if (ViewD.class.isAssignableFrom(clazz)) {
-                Class<?> q = clazz.getMethod("delete").getReturnType();
-                delete = new ReflectiveQueryFactory<>(q, DataQuery.DELETE, args);
-            }
-            Class[] ifaces = {clazz};
-            InvocationHandler handler = new ProxyHandlerView(clazz, insert, select, update, delete);
-            return (V) Proxy.newProxyInstance(clazz.getClassLoader(), ifaces, handler);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
+        QueryFactory<?> select = null;
+        QueryFactory<?> insert = null;
+        QueryFactory<?> update = null;
+        QueryFactory<?> delete = null;
+        if (ViewC.class.isAssignableFrom(clazz)) {
+            Class<?> q = GenericsUtils.returnType(clazz, "insert", String[].class);
+            insert = new ReflectiveQueryFactory<>(q, DataQuery.INSERT, args);
         }
+        if (ViewR.class.isAssignableFrom(clazz)) {
+            Class<?> q = GenericsUtils.returnType(clazz, "select", String[].class);
+            select = new ReflectiveQueryFactory<>(q, DataQuery.SELECT, args);
+        }
+        if (ViewU.class.isAssignableFrom(clazz)) {
+            Class<?> q = GenericsUtils.returnType(clazz, "update", String[].class);
+            update = new ReflectiveQueryFactory<>(q, DataQuery.UPDATE, args);
+        }
+        if (ViewD.class.isAssignableFrom(clazz)) {
+            Class<?> q = GenericsUtils.returnType(clazz, "delete");
+            delete = new ReflectiveQueryFactory<>(q, DataQuery.DELETE, args);
+        }
+        Class[] ifaces = {clazz};
+        InvocationHandler handler = new ProxyHandlerView(clazz, insert, select, update, delete);
+        return (V) Proxy.newProxyInstance(clazz.getClassLoader(), ifaces, handler);
     }
-    
+
 //    public static class ViewBuilder<E, C, R, U, D, RS> {
 //        
 //        private final MappedDataQueryTemplateProvider<E> provider;
@@ -113,14 +113,8 @@ public class Views {
                 final Class<?>[] params = c.getParameterTypes();
                 argValues = new ArgValue[params.length];
                 for (int i = 0; i < params.length; i++) {
-                    for (FactoryArg a: ARGS) {
-                        ArgValue av = a.get(params[i], i, type, args);
-                        if (av != null) {
-                            argValues[i] = av;
-                            break;
-                        }
-                    }
-                    if (args[i] == null) {
+                    argValues[i] = getArgValue(params[i], i, type, args);
+                    if (argValues[i] == null) {
                         continue constructors;
                     }
                 }
@@ -137,7 +131,7 @@ public class Views {
         @Override
         public Query newQuery(String[] select) {
             final Object[] cArgs = new Object[argmap.length];
-            for (int i = 0; i < args.length; i++) {
+            for (int i = 0; i < cArgs.length; i++) {
                 cArgs[i] = argmap[i].get(i, select, type, args);
             }
             try {
@@ -147,6 +141,16 @@ public class Views {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    private static ArgValue getArgValue(Class<?> param, int i, QueryType<?> type, Object[] args) {
+        for (FactoryArg a: ARGS) {
+            ArgValue av = a.get(param, i, type, args);
+            if (av != null) {
+                return av;
+            }
+        }
+        return null;
     }
     
     private interface ArgValue {
@@ -209,6 +213,40 @@ public class Views {
             @Override
             public Object get(int i, String[] select, QueryType<?> type, Object[] args) {
                 return select;
+            }
+        },
+        TEMPLATE {
+            @Override
+            public ArgValue get(Class<?> paramType, int p, QueryType<?> type, Object[] args) {
+                if (!QueryTemplate.class.isAssignableFrom(paramType)) {
+                    return null;
+                }
+                final ArgValue getProvider = getArgValue(QueryTemplateProvider.class, p, type, args);
+                if (getProvider == null) {
+                    return null;
+                }
+                ArgValue av = new ArgValue() {
+                    @Override
+                    public Object get(int i, String[] select, QueryType<?> type, Object[] args) {
+                        QueryTemplateProvider qtp = (QueryTemplateProvider) getProvider.get(i, NO_STRINGS, type, args);
+                        QueryTemplate qt = qtp.getTemplate(type);
+                        return qt;
+                    }
+                };
+                if (paramType.isInstance(av.get(p, NO_STRINGS, type, args))) {
+                    return av;
+                }
+                return null;
+            }
+            @Override
+            public Object get(int i, String[] select, QueryType<?> type, Object[] args) {
+                throw new UnsupportedOperationException();
+            }
+        },
+        RESULTS {
+            @Override
+            public Object get(int i, String[] select, QueryType<?> type, Object[] args) {
+                return Results.getBuilder();
             }
         };
         
@@ -296,4 +334,33 @@ public class Views {
             return view.getSimpleName() + "@" + Integer.toHexString(hashCode());
         }
     }
+    
+//    static Class<?> lookUpType(Type type, Class<?> actualClass, Class<?> declaringClass) {
+//        int index = -1;
+//        for (Class<?> iface: actualClass.getInterfaces()) {
+//            if (declaringClass.isAssignableFrom(iface)) {
+//                index = lookUpTypeVariable(type, iface, declaringClass);
+//            }
+//        }
+//        return null;
+//    }
+//    
+//    private static Type lookUpTypeVariable(Type type, Class<?> actualClass, Class<?> declaringClass) {
+//        if (actualClass.equals(declaringClass)) {
+//            for (TypeVariable<?> tv: actualClass.getTypeParameters()) {
+//                //if (tv.getName().equals(type.))
+//            }
+//            throw new AssertionError(type);
+//        }
+//        int index = -1;
+//         else {
+//            for (Class<?> iface: actualClass.getInterfaces()) {
+//                if (declaringClass.isAssignableFrom(iface)) {
+//                    index = lookUpTypeVariable(type, iface, declaringClass);
+//                    break;
+//                }
+//            }
+//            return index;
+//        }
+//    }
 }

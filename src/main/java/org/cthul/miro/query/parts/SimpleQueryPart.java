@@ -8,20 +8,18 @@ public class SimpleQueryPart extends AbstractQueryPart implements SqlQueryPart {
     private final String sql;
     private Object[] values = null;
 
-    public SimpleQueryPart(String key, String sql) {
+    public SimpleQueryPart(Object key, String sql) {
         super(key);
         this.sql = sql;
     }
 
     @Override
-    public void put(String key, Object... args) {
-        switch (key) {
-            case "":
-                values = args;
-                return;
-            default:
-                super.put(key, args);
+    public void put(Object key, Object... args) {
+        if (key == null) {
+            values = args;
+            return;
         }
+        super.put(key, args);
     }
 
     public String getSql() {

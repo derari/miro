@@ -116,4 +116,20 @@ public class AnsiSqlTest {
         assertThat(sql.getArguments(0), 
                 contains((Object) "X", "1", "Y", "2"));
     }
+    @Test
+    public void test_delete_sql() {
+        QueryString<DeleteBuilder<?>> sql = new AnsiSql().newQueryString(DataQuery.DELETE);
+        sql.getBuilder()
+                .from(new TestQueryPart("Data"))
+                .where(new TestQueryPart("id = ?", "2"))
+                .where(TestQueryPart.attribute("id2"))
+                .values(new TestQueryPart.Values(1, new Object[]{"X", "Y"}));
+        
+        assertThat(sql.getQueryString(), 
+                is("DELETE FROM Data "
+                + "WHERE id2 = ? AND id = ?"));
+        
+        assertThat(sql.getArguments(0), 
+                contains((Object) "Y", "2"));
+    }
 }

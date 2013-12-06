@@ -1,8 +1,9 @@
 package org.cthul.miro.query.sql;
 
+import org.cthul.miro.query.adapter.AbstractQueryBuilder;
 import java.sql.*;
 import java.util.ArrayList;
-import org.cthul.miro.query.api.QueryType;
+import org.cthul.miro.query.QueryType;
 import org.cthul.miro.query.parts.QueryPart;
 import java.util.List;
 import org.cthul.miro.query.adapter.*;
@@ -545,7 +546,7 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
             filterAttributes.add(part);
             if (values != null) {
                 for (ValuesQueryPart.Selector v: values) {
-                    v.selectAttribute(part.getAttributeKey(), part.getColumn());
+                    v.selectFilterValue(part.getAttributeKey());
                 }
             }
             return this;
@@ -560,7 +561,7 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
             values.add(sel);
             if (filterAttributes != null) {
                 for (AttributeQueryPart f: filterAttributes) {
-                    sel.selectAttribute(f.getAttributeKey(), f.getColumn());
+                    sel.selectFilterValue(f.getAttributeKey());
                 }
             }
             return this;
@@ -586,7 +587,7 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
                 for (AttributeQueryPart a: filterAttributes) {
                     if (first) first = false;
                     else sql.append(" AND ");
-                    sql.append(a.getColumn()).append(" = ?");
+                    sql.append(a.getSelect()).append(" = ?");
                 }
             }
             buildQuery(T_WHERE, moreWhere, " AND ", sql);

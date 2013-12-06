@@ -2,24 +2,24 @@ package org.cthul.miro.query.parts;
 
 public abstract class AbstractQueryPart implements QueryPart {
 
-    private final String key;
+    private final Object key;
 
-    public AbstractQueryPart(String key) {
+    public AbstractQueryPart(Object key) {
         this.key = key;
     }
     
     @Override
-    public String getKey() {
+    public Object getKey() {
         return key;
     }
 
     @Override
-    public void put(String key, Object... args) {
-        if ((key == null || key.isEmpty()) && 
+    public void put(Object key, Object... args) {
+        if (key == null && 
                 (args == null || args.length == 0)) {
             return;
         }
-        throw new IllegalArgumentException("Invalid key: " + key);
+        throw new IllegalArgumentException(getKey() + ": invalid key: " + key);
     }
 
     @Override

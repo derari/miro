@@ -6,8 +6,8 @@ import org.cthul.miro.at.More;
 import org.cthul.miro.dsl.QueryFactoryView;
 import org.cthul.miro.dsl.View;
 import org.cthul.miro.graph.GraphQuery;
-import org.cthul.miro.graph.GraphQueryTemplate;
-import org.cthul.miro.graph.SelectByKey;
+import org.cthul.miro.graph.ZGraphQueryTemplate;
+import org.cthul.miro.graph.ZSelectByKey;
 import org.cthul.miro.map.z.SimpleMapping;
 import org.cthul.miro.map.z.ReflectiveMapping;
 
@@ -41,7 +41,7 @@ public class Person1 {
     
     private static final SimpleMapping<Person1> MAPPING = new ReflectiveMapping<>(Person1.class);
     
-    private static final GraphQueryTemplate<Person1> TEMPLATE = new GraphQueryTemplate<Person1>() {{
+    private static final ZGraphQueryTemplate<Person1> TEMPLATE = new ZGraphQueryTemplate<Person1>() {{
         key("id");
         select("p.id", "firstName", "lastName");
         internal_select("addressId");

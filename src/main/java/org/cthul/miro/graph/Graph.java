@@ -1,111 +1,117 @@
 package org.cthul.miro.graph;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
-import org.cthul.miro.MiConnection;
-import org.cthul.miro.dsl.View;
+import org.cthul.miro.cursor.ResultCursor;
+import org.cthul.miro.map.MappedTemplateProvider;
+import org.cthul.miro.result.EntityFactory;
+import org.cthul.miro.result.EntityType;
 
-/**
- *
- */
 public class Graph {
 
-    private final MiConnection cnn;
-    private final Map<View<?>, EntitySet> entitySets = new HashMap<>();
+    private final Map<Object, EntitySet> entitySets = new HashMap<>();
 
-    public Graph(MiConnection cnn) {
-        this.cnn = cnn;
+    public Graph() {
+    }
+    
+    public <E> EntitySet<E> entityType(EntityGraphAdapter<E> ga) {
+        return entitySet(ga);
     }
 
-    protected EntitySet entitySet(View<? extends SelectByKey<?>> view, Object exampleKey) {
-        EntitySet es = entitySets.get(view);
+    public <E> EntitySet<E> entityType(MappedTemplateProvider<E> mtp) {
+        return entityType(mtp.getGraphAdapter());
+    }
+
+    protected <E> EntitySet<E> entitySet(EntityGraphAdapter<E> ga) {
+        EntitySet es = entitySets.get(ga);
         if (es == null) {
-            es = new EntitySet(view, exampleKey);
-            entitySets.put(view, es);
+            es = new EntitySet(ga);
+            entitySets.put(ga, es);
         }
         return es;
     }
     
-    public Object peekObject(View<? extends SelectByKey<?>> view, Object key) {
-        return entitySet(view, key).peek(key);
-    }
-
-    public List<Object> getObjects(View<? extends SelectByKey<?>> view, List<?> keys) throws SQLException {
-        if (keys.isEmpty()) return Collections.emptyList();
-        return entitySet(view, keys.get(0)).getObjects(keys);
-    }
-
-//    /* GraphQuery */ <Entity> ResultBuilder.ValueAdapter<Entity> valueAdapter(View<? extends SelectByKey<?>> view, String[] keyFields) {
-//        return new InsertIntoGraphAdapter<>(this, view, keyFields);
-//    }
-//    
-    protected class EntitySet implements KeyMap.Fetch<Object, SQLException> {
+    public class EntitySet<Entity> implements EntityType<Entity> {
         
-        private final View<? extends SelectByKey<?>> view;
-        private final KeyMap<Object,?,SQLException> map;
+        private final EntityGraphAdapter<Entity> ga;
+        private final KeyMap<?,Entity> entities;
 
-        public EntitySet(View<? extends SelectByKey<?>> view, Object exampleKey) {
-            this.view = view;
-            if (exampleKey instanceof Object[]) {
-                map = new MultiKeyMap(this);
-            } else {
-                map = new SingleKeyMap(this);
-            }
+        public EntitySet(EntityGraphAdapter<Entity> ga) {
+            this.ga = ga;
+//            if (exampleKey instanceof Object[]) {
+                entities = new KeyMap.MultiKey<>();
+//            } else {
+//                entities = new KeyMap.SingleKey<>();
+//            }
+        }    
+        
+        public Entity get(Object[] key) {
+            return entities.get(key);
+        }
+        
+        public void put(Object[] key, Entity e) {
+            entities.put(key, e);
+        }
+        
+        public Object[] getKey(Entity e) {
+            return ga.getKey(e, EMPTY);
+        }
+        
+        public void put(Entity e) {
+            Object[] key = ga.getKey(e, EMPTY);
+            put(key, e);
         }
 
         @Override
-        public Object[] fetchValues(Object[] keys) throws SQLException {
-            return view.select(cnn, SELECT_NONE)
-                    .byKeys(Graph.this, keys)
-                    .asOrderedArray().execute();
+        public EntityFactory<Entity> newFactory(ResultSet rs) throws SQLException {
+            return new CachedEntityFactory<>(rs, this);
         }
 
-        private List<Object> getObjects(List<?> keys) throws SQLException {
-            return Arrays.asList(map.getAll(keys.toArray()));
-        }
-
-        private Object peek(Object key) {
-            return map.peek(key);
+        @Override
+        public Entity[] newArray(int length) {
+            return ga.newArray(length);
         }
     }
     
-    private static final String[] SELECT_NONE = {};
+    protected class CachedEntityFactory<Entity> implements EntityFactory<Entity> {
+        
+        private final EntitySet<Entity> cache;
+        private final EntityFactory<Entity> factory;
+        private final EntityGraphAdapter.KeyReader keyReader;
+        private Object[] buf = EMPTY;
+
+        public CachedEntityFactory(ResultSet rs, EntitySet<Entity> cache) throws SQLException {
+            this.cache = cache;
+            this.factory = cache.ga.newFactory(rs);
+            this.keyReader = cache.ga.newKeyReader(rs);
+        }
+
+        @Override
+        public Entity newEntity() throws SQLException {
+            buf = keyReader.getKey(buf);
+            Object[] keys = buf;
+            Entity e = cache.get(keys);
+            if (e != null) return e;
+            e = factory.newEntity();
+            cache.put(keys, e);
+            return e;
+        }
+
+        @Override
+        public Entity newCursorValue(ResultCursor<? super Entity> rc) throws SQLException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Entity copy(Entity e) throws SQLException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void close() throws SQLException {
+        }
+    }
     
-//    protected static class InsertIntoGraphInit<Entity> extends EntityBuilderBase implements EntityInitializer<Entity> {
-//        
-//        private final EntitySet es;
-//        private final String[] keyFields;
-//        private final int[] keyIndices;
-//        private final ResultSet rs;
-//
-//        public InsertIntoGraphInit(Graph graph, View<? extends SelectByKey<?>> view, String[] keyFields, ResultSet rs) throws SQLException {
-//            this.keyFields = keyFields;
-//            this.es = graph.entitySet(view, keyFields.length > 1 ? keyFields : "");
-//            this.rs = rs;
-//            this.keyIndices = getFieldIndices(rs, keyFields);
-//        }
-//
-//        @Override
-//        public void apply(Entity entity) throws SQLException {
-//            if (keyFields.length > 1) {
-//                final Object[] key = new Object[keyFields.length];
-//                for (int i = 0; i < key.length; i++) {
-//                    key[i] = rs.getObject(keyIndices[i]);
-//                }
-//                es.put(key, entity);
-//            } else {
-//                Object key = rs.getObject(keyIndices[0]);
-//                es.put(key, entity);
-//            }
-//        }
-//
-//        @Override
-//        public void complete() throws SQLException {
-//        }
-//
-//        @Override
-//        public void close() throws SQLException {
-//        }        
-//    }
-//    
+    private static final Object[] EMPTY = {};
 }
