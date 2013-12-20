@@ -11,53 +11,74 @@ import org.cthul.miro.MiFuture;
 import org.cthul.miro.MiFutureAction;
 import org.cthul.miro.cursor.ResultCursor;
 import org.cthul.miro.graph.Graph;
-import org.cthul.miro.query.AbstractQuery;
+import org.cthul.miro.graph.GraphConfigurationProvider;
+import org.cthul.miro.query.*;
 import org.cthul.miro.query.adapter.JdbcQuery;
-import org.cthul.miro.query.QueryType;
+import org.cthul.miro.query.parts.ConfigurationQueryPart;
+import org.cthul.miro.query.parts.QueryPart;
 import org.cthul.miro.query.template.QueryTemplate;
 import org.cthul.miro.result.*;
 
 public class AbstractMappedQuery<Entity> extends AbstractQuery {
     
-    private final MappedTemplateProvider<Entity> mtp;
+    protected final MappedTemplateProvider<Entity> mappedProvider;
     private final Mapping<Entity> mapping;
-    private final List<Entity> entities = new ArrayList<>();
-//    private Graph graph = null;
+    private List<Entity> entities = null;
+    private List<ConfigurationQueryPart> configurations = null;
+    private Graph graph = null;
 
     public AbstractMappedQuery(QueryType<?> queryType, Mapping<Entity> mapping) {
         super(queryType);
-        this.mtp = null;
+        this.mappedProvider = null;
         this.mapping = mapping;
     }
 
     public AbstractMappedQuery(QueryType<?> queryType, QueryTemplate template) {
         super(queryType, template);
-        this.mtp = null;
+        this.mappedProvider = null;
         this.mapping = null;
     }
 
     public AbstractMappedQuery(QueryType<?> type, MappedTemplateProvider<Entity> templateProvider) {
         super(type, templateProvider);
-        this.mtp = templateProvider;
+        this.mappedProvider = templateProvider;
         this.mapping = templateProvider.getMapping();
     }
     
-//    protected void setGraph(Graph graph) {
-//        this.graph = graph;
-//    }
-//    
-//    protected synchronized Graph graph() {
-//        if (graph == null) graph = new Graph();
-//        return graph;
-//    }
+    protected void setGraph(Graph graph) {
+        if (this.graph != null) {
+            throw new IllegalStateException("Graph was already set");
+        }
+        this.graph = graph;
+    }
+    
+    
+    @Override
+    protected synchronized void addPart(QueryPartType partType, QueryPart part) {
+        if (part instanceof ConfigurationQueryPart) {
+            ConfigurationQueryPart cp = (ConfigurationQueryPart) part;
+            if (configurations == null) configurations = new ArrayList<>();
+            configurations.add(cp);
+            if (cp.getConfiguration() instanceof GraphConfigurationProvider) {
+                if (graph == null) graph = new Graph();
+            }
+        }
+        super.addPart(partType, part);
+    }
+    
+    protected Graph graph() {
+        if (graph == null) graph = new Graph();
+        return graph;
+    }
     
     protected void addToGraph(List<Entity> entities) {
+        if (this.entities == null) this.entities = new ArrayList<>();
         this.entities.addAll(entities);
     }
     
     protected void addToGraph(Entity... entities) {
-        this.entities.addAll(Arrays.asList(entities));
-//        Graph.EntitySet<Entity> es = graph().entityType(mtp);
+        addToGraph(Arrays.asList(entities));
+//        Graph.EntitySet<Entity> es = graph().entityType(mappedProvider);
 //        for (Entity e: entities) {
 //            es.put(e);
 //        }
@@ -65,13 +86,13 @@ public class AbstractMappedQuery<Entity> extends AbstractQuery {
     
     protected EntityType<Entity> getEntityType() {
 //        if (graph != null) {
-//            if (mtp == null) {
+//            if (mappedProvider == null) {
 //                throw new IllegalStateException(
 //                        "Has graph but no graph adapter");
 //            }
-//            return graph.entityType(mtp);
+//            return graph.entityType(mappedProvider);
 //        }
-        if (entities.isEmpty()) {
+        if (graph == null && (entities == null || entities.isEmpty())) {
             return mapping;
         } else {
             return typeForEntities(entities);
@@ -83,8 +104,7 @@ public class AbstractMappedQuery<Entity> extends AbstractQuery {
     }
     
     protected EntityType<Entity> graphTypeForEntities(List<Entity> entities) {
-        Graph graph = new Graph();
-        Graph.EntitySet<Entity> es = graph.entityType(mtp);
+        Graph.EntitySet<Entity> es = graph().entityType(mappedProvider);
         for (Entity e: entities) {
             es.put(e);
         }
@@ -125,20 +145,28 @@ public class AbstractMappedQuery<Entity> extends AbstractQuery {
     }
     
     protected EntityConfiguration<? super Entity> getConfiguration(MiConnection cnn) {
+        if (configurations == null || configurations.isEmpty()) {
+            return getFieldsConfiguration(cnn);
+        }
         List<EntityConfiguration<? super Entity>> configs = new ArrayList<>();
         configs.add(getFieldsConfiguration(cnn));
-        for (Object o: getParts()) {
-            if (o instanceof ConfigurationProvider) {
-                ConfigurationProvider<Entity> cp = (ConfigurationProvider<Entity>) o;
-                configs.add(cp.getConfiguration(cnn, mapping));
+        for (ConfigurationQueryPart c: configurations) {
+            Object o = c.getConfiguration();
+            Object[] args = c.getArguments();
+            final EntityConfiguration<? super Entity> ec;
+            if (o instanceof GraphConfigurationProvider) {
+                GraphConfigurationProvider<Entity> cp = (GraphConfigurationProvider) o;
+                ec = cp.getConfiguration(cnn, mapping, graph(), args);
+            } else {
+                ec = ConfigurationInstance.asConfiguration(o, cnn, mapping, args);
             }
+            configs.add(ec);
         }
         return CombinedEntityConfig.combine(configs);
     }
     
     protected ResultSet executeJdbc(MiConnection cnn) throws SQLException {
         JdbcQuery<?> query = getAdapter(cnn.getJdbcAdapter());
-        System.out.println(query);
         return cnn.execute(query);
     }
     
@@ -149,6 +177,6 @@ public class AbstractMappedQuery<Entity> extends AbstractQuery {
                 return arg.executeJdbc(cnn);
             }
         };
-        return cnn.submit(exec, this);
+        return cnn.submit(this, exec);
     }
 }

@@ -6,7 +6,10 @@ import org.cthul.miro.query.OtherQueryPart;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import org.cthul.miro.doc.MultiValue;
 import org.cthul.miro.graph.EntityGraphAdapter;
+import org.cthul.miro.map.ConfigurationInstance;
+import org.cthul.miro.map.ConfigurationProvider;
 import org.cthul.miro.map.EntityPart;
 import org.cthul.miro.map.MappedTemplate;
 import org.cthul.miro.map.MappedTemplateProvider;
@@ -15,8 +18,7 @@ import org.cthul.miro.query.parts.*;
 import org.cthul.miro.query.sql.DataQuery;
 import org.cthul.miro.query.sql.DataQueryPart;
 import org.cthul.miro.query.template.*;
-import org.cthul.miro.result.EntityBuilderBase;
-import org.cthul.miro.result.EntityFactory;
+import org.cthul.miro.result.*;
 import static org.cthul.miro.query.template.Templates.*;
 import static org.cthul.miro.dml.DataQueryKey.*;
 import static org.cthul.miro.dml.DataQuerySubkey.*;
@@ -34,13 +36,23 @@ public class MappedDataQueryTemplateProvider<Entity>
         this.graphAdapter = new GraphAdapter();
     }
 
+    public MappedDataQueryTemplateProvider(QueryTemplateProvider parent, Mapping<Entity> mapping) {
+        super(parent);
+        this.mapping = mapping;
+        this.graphAdapter = new GraphAdapter();
+    }
+
+    public MappedDataQueryTemplateProvider(MappedTemplateProvider<Entity> parent) {
+        this(parent, parent.getMapping());
+    }
+
     @Override
     public MappedTemplate getTemplate(QueryType<?> queryType) {
         return (MappedTemplate) super.getTemplate(queryType);
     }
 
     @Override
-    protected QueryTemplate customize(QueryTemplate template) {
+    protected MappedTemplate customize(QueryTemplate template) {
         QueryTemplate t = super.customize(template);
         return new MappedTemplateWrapper(t);
     }
@@ -59,6 +71,39 @@ public class MappedDataQueryTemplateProvider<Entity>
     protected QueryTemplate newParent(QueryTemplate parent) {
         QueryTemplate p = super.newParent(parent);
         return new MappedParent<>(p);
+    }
+    
+    protected void configure(Object key, Object config) {
+        configure(NO_DEPENDENCIES, IncludeMode.EXPLICIT, key, config);
+    }
+    
+    protected void configure(Object[] required, IncludeMode mode, Object key, Object config) {
+        QueryTemplatePart part = new EntityConfigurationTemplate(config, required);
+        add(mode, key, part);
+    }
+    
+    protected void composite(@MultiValue String foreignKey, String key, MappedDataQueryTemplateProvider<?> provider) {
+//        splitDependencyList(required)
+    }
+    
+    @Override
+    protected Using<?> using(IncludeMode include, CustomTemplateParts parts, Object... required) {
+        return new Using<>(this, include, parts, required);
+    }
+    
+    @Override
+    protected Using<?> using(Object... required) {
+        return (Using<?>) super.using(required);
+    }
+
+    @Override
+    protected Using<?> using(String... required) {
+        return (Using<?>) super.using(required);
+    }
+
+    @Override
+    protected Using<?> always(Object... requred) {
+        return (Using<?>) super.always(requred);
     }
     
     protected class GraphAdapter extends EntityBuilderBase implements EntityGraphAdapter<Entity> {
@@ -183,7 +228,7 @@ public class MappedDataQueryTemplateProvider<Entity>
             return super.addPart(key, queryBuilder);
         }
         @Override
-        protected boolean put(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
+        protected boolean putWithKey(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
             Entity e = (Entity) key;
             Object[] keys = getGraphAdapter().getKey(e, NO_DEPENDENCIES);
             queryBuilder.put2(KEYS_IN, ADD, keys);
@@ -201,7 +246,7 @@ public class MappedDataQueryTemplateProvider<Entity>
         }
 
         @Override
-        protected boolean handlePut(InternalQueryBuilder queryBuilder, Object partKey, Object key, Object... args) {
+        protected boolean put(InternalQueryBuilder queryBuilder, Object partKey, Object key, Object... args) {
             switch (asDataQuerySubkey(key)) {
                 case ADD:
                 case ADD_ALL:
@@ -213,6 +258,72 @@ public class MappedDataQueryTemplateProvider<Entity>
                     return true;
             }
             return true;
+        }
+    }
+    
+    protected static class EntityConfigurationTemplate extends AbstractTemplatePart {
+
+        private final Object cfg;
+        private final Object[] required;
+
+        public EntityConfigurationTemplate(Object cfg, Object... required) {
+            this.cfg = cfg;
+            this.required = required;
+        }
+
+        @Override
+        public QueryPart addPart(Object key, InternalQueryBuilder queryBuilder) {
+            Templates.requireAll(queryBuilder, required);
+            QueryPart part = new EntityConfigurationPart<>(cfg, key);
+            queryBuilder.addPart(OtherQueryPart.VIRTUAL, part);
+            return part;
+        }
+    }
+    
+    protected static class EntityConfigurationPart<Entity> extends AbstractQueryPart implements ConfigurationQueryPart {
+        
+        private final Object cfg;
+        private Object[] args = null;
+
+        public EntityConfigurationPart(Object cfg, Object key) {
+            super(key);
+            this.cfg = cfg;
+        }
+
+        @Override
+        public void put(Object key, Object... args) {
+            if (key == null || "".equals(key)) {
+                this.args = args;
+            } else {
+                super.put(key, args);
+            }
+        }
+
+        @Override
+        public Object getConfiguration() {
+            return cfg;
+        }
+
+        @Override
+        public Object[] getArguments() {
+            return args;
+        }
+    }
+
+    public static class Using<This extends Using<? extends This>> extends DataQueryTemplateProvider.Using<This> {
+
+        public Using(DataQueryTemplateProvider template, IncludeMode include, CustomTemplateParts actualParts, Object... required) {
+            super(template, include, actualParts, required);
+        }
+
+        @Override
+        protected MappedDataQueryTemplateProvider templateWithMode() {
+            return (MappedDataQueryTemplateProvider) super.templateWithMode();
+        }
+        
+        public This configure(Object key, Object config) {
+            templateWithMode().configure(required, include, key, config);
+            return restoreMode();
         }
     }
 }

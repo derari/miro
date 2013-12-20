@@ -19,4 +19,8 @@ public @interface Config {
     Arg[] args() default {};
     
     int[] mapArgs() default {Integer.MIN_VALUE};
+    
+    Arg[] cfgArgs() default {};
+    
+    int[] cfgMapArgs() default {};
 }

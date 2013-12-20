@@ -107,7 +107,7 @@ public abstract class FutureBase<V> implements MiFuture<V> {
 
     protected void trigger(OnComplete<? super MiFuture<V>, ?> listener) {
         if (cnn != null) {
-            cnn.submit(listener, this);
+            cnn.submit(this, listener);
         } else {
             listener.call(this);
         }
@@ -258,7 +258,7 @@ public abstract class FutureBase<V> implements MiFuture<V> {
             final MiFutureAction<? super Throwable, R> onFailure) {
         return onComplete(new MiFutureAction<MiFuture<V>, R>() {
             @Override
-            public R call(MiFuture<V> f) throws Exception {
+            public R call(MiFuture<V> f) throws Throwable {
                 if (f.hasResult()) {
                     return onSuccess.call(f.getResult());
                 } else {
@@ -272,7 +272,7 @@ public abstract class FutureBase<V> implements MiFuture<V> {
     public <R> MiFuture<R> onSuccess(final MiFutureAction<? super V, R> action) {
         return onComplete(new MiFutureAction<MiFuture<V>, R>() {
             @Override
-            public R call(MiFuture<V> f) throws Exception {
+            public R call(MiFuture<V> f) throws Throwable {
                 return action.call(f.get());
             }
         });
@@ -282,7 +282,7 @@ public abstract class FutureBase<V> implements MiFuture<V> {
     public <R> MiFuture<R> onFailure(final MiFutureAction<? super Throwable, R> action) {
         return onComplete(new MiFutureAction<MiFuture<V>, R>() {
             @Override
-            public R call(MiFuture<V> f) throws Exception {
+            public R call(MiFuture<V> f) throws Throwable {
                 if (f.hasResult()) {
                     return null;
                 } else {

@@ -25,7 +25,7 @@ public class TestSelectQuery extends AbstractQuery {
     
     public TestSelectQuery select(@MultiValue String... select) {
         for (String s: select) {
-            put(DataQueryKey.SELECT, splitKeys(s));
+            put(DataQueryKey.PUT_STRINGS, splitKeys(s));
         }
         return this;
     }

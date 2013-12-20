@@ -2,10 +2,7 @@ package org.cthul.miro.query.adapter;
 
 import java.sql.*;
 import java.util.*;
-import org.cthul.miro.query.adapter.JdbcQuery;
-import org.cthul.miro.query.adapter.QueryBuilder;
 import org.cthul.miro.query.parts.QueryPart;
-import org.cthul.miro.query.adapter.QueryString;
 import org.cthul.miro.query.OtherQueryPart;
 import org.cthul.miro.query.QueryPartType;
 import org.cthul.miro.query.parts.*;
@@ -241,6 +238,10 @@ public abstract class AbstractQueryBuilder<Builder extends QueryBuilder<? extend
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " " + getQueryString();
+        try {
+            return getClass().getSimpleName() + " " + getQueryString();
+        } catch (Exception e) {
+            return getClass().getSimpleName() + " " + e.getMessage();
+        }
     }
 }

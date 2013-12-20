@@ -69,7 +69,7 @@ public class LazyAction<V> extends FutureDelegator<V> {
             MiFutureAction<Object, ? extends V> a = (MiFutureAction) initialize();
             V result = a.call(arg);
             value = new FinalFuture<>(result);
-        } catch(Exception e) {
+        } catch(Throwable e) {
             value = new FinalFuture<>(e);
         } finally {
             synchronized (this) {
@@ -114,7 +114,7 @@ public class LazyAction<V> extends FutureDelegator<V> {
     }
 
     private MiFuture<V> initFuture() throws Exception {
-        return cnn.submit((MiFutureAction<Object, V>)initialize(), arg);
+        return cnn.submit(arg, (MiFutureAction<Object, V>)initialize());
     }
     
     protected MiFutureAction<?, ? extends V> initialize() throws Exception {

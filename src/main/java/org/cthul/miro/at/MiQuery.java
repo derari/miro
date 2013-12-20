@@ -9,13 +9,19 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface MiQuery {
     
-    Select[] select() default {};
+    String[] generatedKeys() default {};
     
-    Select[] optional() default {};
+    String[] naturalKeys() default {};
     
-    Select[] internal() default {};
+    String[] attributes() default {};
     
-    From from() default @From("");
+    String[] select() default {};
+    
+    String[] optional() default {};
+    
+    String[] internal() default {};
+    
+    String from() default "";
     
     More[] always() default {};
     
@@ -31,5 +37,5 @@ public @interface MiQuery {
     
     More[] more() default {};
     
-    Impl impl() default @Impl(void.class);
+    Class<?> impl() default void.class;
 }

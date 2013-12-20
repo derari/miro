@@ -3,7 +3,6 @@ package org.cthul.miro.map;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.cthul.miro.MiConnection;
-import org.cthul.miro.map.z.SimpleMapping;
 import org.cthul.miro.result.EntityConfiguration;
 import org.cthul.miro.result.EntityInitializer;
 
@@ -12,7 +11,7 @@ import org.cthul.miro.result.EntityInitializer;
  */
 public class ConfigurationInstance<Entity> implements ConfigurationProvider<Entity> {
     
-    public static <Entity> ConfigurationProvider<Entity> asFactory(Object o) {
+    public static <Entity> ConfigurationProvider<Entity> asProvider(Object o) {
         if (o instanceof ConfigurationProvider) {
             return (ConfigurationProvider<Entity>) o;
         } else if (o instanceof EntityConfiguration) {
@@ -28,9 +27,9 @@ public class ConfigurationInstance<Entity> implements ConfigurationProvider<Enti
         return asConfiguration(o, null, null);
     }
     
-    public static <Entity> EntityConfiguration<? super Entity> asConfiguration(Object o, MiConnection cnn, Mapping<Entity> mapping) {
+    public static <Entity> EntityConfiguration<? super Entity> asConfiguration(Object o, MiConnection cnn, Mapping<Entity> mapping, Object... args) {
         if (o instanceof ConfigurationProvider) {
-            return ((ConfigurationProvider<Entity>) o).getConfiguration(cnn, mapping);
+            return ((ConfigurationProvider<Entity>) o).getConfiguration(cnn, mapping, args);
         } else if (o instanceof EntityConfiguration) {
             return (EntityConfiguration<Entity>) o;
         } else if (o instanceof EntityInitializer) {
@@ -44,9 +43,9 @@ public class ConfigurationInstance<Entity> implements ConfigurationProvider<Enti
         return asInitializer(o, null, null, rs);
     }
     
-    public static <Entity> EntityInitializer<? super Entity> asInitializer(Object o, MiConnection cnn, SimpleMapping<Entity> mapping, ResultSet rs) throws SQLException {
+    public static <Entity> EntityInitializer<? super Entity> asInitializer(Object o, MiConnection cnn, Mapping<Entity> mapping, ResultSet rs) throws SQLException {
         if (o instanceof ConfigurationProvider) {
-            return ((ConfigurationProvider<Entity>) o).getConfiguration(cnn, mapping).newInitializer(rs);
+            return ((ConfigurationProvider<Entity>) o).getConfiguration(cnn, mapping, null).newInitializer(rs);
         } else if (o instanceof EntityConfiguration) {
             return ((EntityConfiguration<Entity>) o).newInitializer(rs);
         } else if (o instanceof EntityInitializer) {
@@ -63,7 +62,7 @@ public class ConfigurationInstance<Entity> implements ConfigurationProvider<Enti
     }
 
     @Override
-    public <E extends Entity> EntityConfiguration<Entity> getConfiguration(MiConnection cnn, Mapping<E> mapping) {
+    public <E extends Entity> EntityConfiguration<Entity> getConfiguration(MiConnection cnn, Mapping<E> mapping, Object[] args) {
         return config;
     }
     

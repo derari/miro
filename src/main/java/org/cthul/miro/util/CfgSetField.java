@@ -8,36 +8,52 @@ import org.cthul.miro.map.Mapping;
 import org.cthul.miro.result.EntityConfiguration;
 import org.cthul.miro.result.EntityInitializer;
 
-public class CfgSetField<Entity> implements ConfigurationProvider<Entity> {
+public class CfgSetField implements ConfigurationProvider<Object> {
     
-    private final String field;
-    private final Object value;
-
-    public CfgSetField(String field, Object value) {
-        this.field = field;
-        this.value = value;
+    private static final CfgSetField INSTANCE = new CfgSetField();
+    
+    public static CfgSetField getInstance() {
+        return INSTANCE;
+    }
+    
+    public static ConfigurationProvider<Object> newInstance(final String field, final Object value) {
+        return new ConfigurationProvider<Object>() {
+            @Override
+            public <E> EntityConfiguration<? super E> getConfiguration(MiConnection cnn, Mapping<E> mapping, Object[] args) {
+                return new Config<>(mapping, field, value);
+            }
+        };
     }
 
+    public CfgSetField() {
+    }
+    
     @Override
-    public <E extends Entity> EntityConfiguration<E> getConfiguration(MiConnection cnn, Mapping<E> mapping) {
-        return new Config<>(mapping);
+    public <E extends Object> EntityConfiguration<E> getConfiguration(MiConnection cnn, Mapping<E> mapping, Object[] args) {
+        String field = (String) args[0];
+        Object value = (String) args[1];
+        return new Config<>(mapping, field, value);
     }
     
-    protected class Config<E> implements EntityConfiguration<E>, EntityInitializer<E> {
+    protected static class Config<Entity> implements EntityConfiguration<Entity>, EntityInitializer<Entity> {
         
-        private final Mapping<E> mapping;
+        private final Mapping<Entity> mapping;
+        private final String field;
+        private final Object value;
 
-        public Config(Mapping<E> mapping) {
+        public Config(Mapping<Entity> mapping, String field, Object value) {
             this.mapping = mapping;
+            this.field = field;
+            this.value = value;
         }
-        
+
         @Override
-        public EntityInitializer<E> newInitializer(ResultSet rs) throws SQLException {
+        public EntityInitializer<Entity> newInitializer(ResultSet rs) throws SQLException {
             return this;
         }
 
         @Override
-        public void apply(E entity) throws SQLException {
+        public void apply(Entity entity) throws SQLException {
             mapping.setField(entity, field, value);
         }
 

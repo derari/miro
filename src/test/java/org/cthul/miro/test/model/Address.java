@@ -74,7 +74,7 @@ public class Address {
         return true;
     }
     
-    private static final Mapping<Address> MAPPING = new ReflectiveMapping<>(Address.class);
+    public static final Mapping<Address> MAPPING = new ReflectiveMapping<>(Address.class);
     
     private static final MappedTemplateProvider<Address> TEMPLATE = new MappedDataQueryTemplateProvider<Address>(MAPPING) {{
         generatedKeys("a.id");

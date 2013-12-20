@@ -56,4 +56,60 @@ public class Results<Entity> implements AutoCloseable {
     public void noResult() throws SQLException {
         asList();
     }
+    
+    public List<Entity> _asList() {
+        try {
+            return asList();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    public Entity[] _asArray() {
+        try {
+            return asArray();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    public ResultCursor<Entity> _asCursor() {
+        try {
+            return asCursor();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    public Entity _getFirst() {
+        try {
+            return getFirst();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    public Entity _getSingle() {
+        try {
+            return getSingle();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void _close() {
+        try {
+            close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    public void _noResult() {
+        try {
+            noResult();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

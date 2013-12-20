@@ -7,7 +7,7 @@ import org.cthul.miro.MiFuture;
 import org.cthul.miro.MiFutureAction;
 
 public interface FutureCursor<V> extends MiFuture<ResultCursor<V>>, Iterable<V>, AutoCloseable {
-
+                               
     /** 
      * Shortcut for {@code _get().iterator()}
      * @see #_get()

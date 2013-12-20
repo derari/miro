@@ -3,6 +3,7 @@ package org.cthul.miro.query.sql;
 import org.cthul.miro.query.adapter.AbstractQueryBuilder;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import org.cthul.miro.query.QueryType;
 import org.cthul.miro.query.parts.QueryPart;
 import java.util.List;
@@ -60,6 +61,9 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
                 case DELETE:
                     return (T) new DeleteQuery();
             }
+        }
+        if (queryType == BasicQuery.STRING) {
+            return (T) new StringQuery();
         }
         throw new IllegalArgumentException("Unsupported query type: " + queryType);
     }
@@ -606,6 +610,54 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
                 values.get(batch).appendFilterValuesTo(args);
             }
             collectArgumentsOfParts(args, T_WHERE);
+        }
+    }
+    
+    private static class StringQuery extends AbstractQueryBuilder<StringQueryBuilder<?>> implements StringQueryBuilder<StringQueryBuilder<?>> {
+
+        private final List<Object[]> batches = new ArrayList<>();
+        private String query = null;
+        
+        public StringQuery() {
+            super(0);
+        }
+
+        @Override
+        protected StringQueryBuilder<?> addPart(DataQueryPart type, QueryPart part) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        protected void buildQuery(StringBuilder sql) {
+            sql.append(query);
+        }
+
+        @Override
+        protected void collectArguments(List<Object> args, int batch) {
+            args.addAll(Arrays.asList(batches.get(batch)));
+        }
+
+        @Override
+        public QueryType<StringQueryBuilder<?>> getQueryType() {
+            return BasicQuery.STRING;
+        }
+
+        @Override
+        public StringQueryBuilder<?> query(String query) {
+            this.query = query;
+            return this;
+        }
+
+        @Override
+        public StringQueryBuilder<?> batch(Object... values) {
+            batches.add(values);
+            return this;
+        }
+
+        @Override
+        public int getBatchCount() {
+            if (batches.size() == 1) return 0;
+            return batches.size();
         }
     }
 }

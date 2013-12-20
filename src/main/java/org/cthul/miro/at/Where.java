@@ -12,7 +12,7 @@ public @interface Where {
     
     String key() default "";
     
-    String[] value();
+    String value();
     
     Arg[] args() default {};
     

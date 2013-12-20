@@ -91,7 +91,7 @@ public class MiConnection implements AutoCloseable {
         return actionExecutor.submit(queryCommand);
     }
 
-    public <P, R> MiFuture<R> submit(MiFutureAction<P, R> action, P arg) {
+    public <P, R> MiFuture<R> submit(P arg, MiFutureAction<P, R> action) {
         ActionResult<P, R> result = new ActionResult<>(action, arg);
         result.cancelDelegate = submitAction(result);
         return result;

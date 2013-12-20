@@ -2,39 +2,71 @@ package org.cthul.miro.view;
 
 import java.lang.reflect.*;
 import java.util.Arrays;
+import org.cthul.miro.at.AnnotatedQueryHandler;
+import org.cthul.miro.at.AnnotatedTemplateProvider;
+import org.cthul.miro.map.MappedQueryStringView;
+import org.cthul.miro.map.MappedTemplateProvider;
+import org.cthul.miro.map.Mapping;
 import org.cthul.miro.query.QueryType;
 import org.cthul.miro.query.sql.DataQuery;
 import org.cthul.miro.query.template.QueryTemplate;
 import org.cthul.miro.query.template.QueryTemplateProvider;
+import org.cthul.miro.result.ResultBuilder;
 import org.cthul.miro.result.Results;
 import org.cthul.miro.util.GenericsUtils;
 
 public class Views {
     
     public static <V extends View> V newView(Class<V> clazz, Object... args) {
+        Class[] ifaces = new Class[4];
+        Object[][] ifaceArgs = new Object[4][];
         QueryFactory<?> select = null;
         QueryFactory<?> insert = null;
         QueryFactory<?> update = null;
         QueryFactory<?> delete = null;
         if (ViewC.class.isAssignableFrom(clazz)) {
             Class<?> q = GenericsUtils.returnType(clazz, "insert", String[].class);
-            insert = new ReflectiveQueryFactory<>(q, DataQuery.INSERT, args);
+            if (q.isInterface()) {
+                insert = interfaceFactory(ifaces, ifaceArgs, q, DataQuery.INSERT, args);
+            } else {
+                insert = new ReflectiveQueryFactory<>(q, DataQuery.INSERT, args);
+            }
         }
         if (ViewR.class.isAssignableFrom(clazz)) {
             Class<?> q = GenericsUtils.returnType(clazz, "select", String[].class);
-            select = new ReflectiveQueryFactory<>(q, DataQuery.SELECT, args);
+            if (q.isInterface()) {
+                select = interfaceFactory(ifaces, ifaceArgs, q, DataQuery.SELECT, args);
+            } else {
+                select = new ReflectiveQueryFactory<>(q, DataQuery.SELECT, args);
+            }
         }
         if (ViewU.class.isAssignableFrom(clazz)) {
             Class<?> q = GenericsUtils.returnType(clazz, "update", String[].class);
-            update = new ReflectiveQueryFactory<>(q, DataQuery.UPDATE, args);
+            if (q.isInterface()) {
+                update = interfaceFactory(ifaces, ifaceArgs, q, DataQuery.UPDATE, args);
+            } else {
+                update = new ReflectiveQueryFactory<>(q, DataQuery.UPDATE, args);
+            }
         }
         if (ViewD.class.isAssignableFrom(clazz)) {
             Class<?> q = GenericsUtils.returnType(clazz, "delete");
-            delete = new ReflectiveQueryFactory<>(q, DataQuery.DELETE, args);
+            if (q.isInterface()) {
+                delete = interfaceFactory(ifaces, ifaceArgs, q, DataQuery.DELETE, args);
+            } else {
+                delete = new ReflectiveQueryFactory<>(q, DataQuery.DELETE, args);
+            }
         }
-        Class[] ifaces = {clazz};
+        Class[] viewApi = {clazz};
         InvocationHandler handler = new ProxyHandlerView(clazz, insert, select, update, delete);
-        return (V) Proxy.newProxyInstance(clazz.getClassLoader(), ifaces, handler);
+        return (V) Proxy.newProxyInstance(clazz.getClassLoader(), viewApi, handler);
+    }
+    
+    public static <Result> MappedQueryStringView<Result> query(Mapping<?> mapping, ResultBuilder<Result, ?> resultBuilder, String query) {
+        return new MappedQueryStringView<>(query, mapping, resultBuilder);
+    }
+    
+    public static MappedQueryStringView<Results> query(Mapping<?> mapping, String query) {
+        return new MappedQueryStringView<>(query, mapping);
     }
 
 //    public static class ViewBuilder<E, C, R, U, D, RS> {
@@ -93,8 +125,68 @@ public class Views {
 //        
 //    }
     
+    protected static QueryFactory<?> interfaceFactory(Class<?>[] prevIfaces, Object[][] cachedArgs, Class<?> iface, QueryType<?> type, Object[] args) {
+        int index = 0;
+        for (; index < prevIfaces.length; index++) {
+            if (prevIfaces[index] == iface) {
+                return new InterfaceQueryFactory<>(iface, type, cachedArgs[index]);
+            }
+            if (prevIfaces[index] == null) {
+                break;
+            }
+        }
+        args = args.clone();
+        boolean success = false;
+        for (int i = 0; i < args.length; i++) {
+            Object a = args[i];
+            if (a instanceof MappedTemplateProvider) {
+                a = new AnnotatedTemplateProvider<>((MappedTemplateProvider) a, iface);
+                args[i] = a;
+                success = true;
+                break;
+            }
+        }
+        if (!success) {
+            for (int i = 0; i < args.length; i++) {
+            Object a = args[i];
+                if (a instanceof Mapping) {
+                    a = new AnnotatedTemplateProvider<>((Mapping) a, iface);
+                    args[i] = a;
+                    success = true;
+                    break;
+                }
+            }
+        }
+        if (!success) {
+            throw new IllegalArgumentException("Mapping required");
+        }
+        if (index < prevIfaces.length) {
+            prevIfaces[index] = iface;
+            cachedArgs[index] = args;
+        }
+        return new InterfaceQueryFactory<>(iface, type, args);
+    }
+    
     public static interface QueryFactory<Query> {
         Query newQuery(String[] args);
+    }
+    
+    protected static class InterfaceQueryFactory<Query> implements QueryFactory<Query> {
+        
+        private final ReflectiveQueryFactory<AnnotatedQueryHandler> handlerFactory;
+        private final Class[] api;
+
+        public InterfaceQueryFactory(Class<Query> iface, QueryType<?> type, Object... args) {
+            handlerFactory = new ReflectiveQueryFactory<>(AnnotatedQueryHandler.class, type, args);
+            this.api = new Class[]{iface};
+        }
+
+        @Override
+        public Query newQuery(String[] args) {
+            AnnotatedQueryHandler handler = handlerFactory.newQuery(args);
+            Object proxy = Proxy.newProxyInstance(api[0].getClassLoader(), api, handler);
+            return (Query) proxy;
+        }
     }
     
     protected static class ReflectiveQueryFactory<Query> implements QueryFactory<Query> {

@@ -15,7 +15,7 @@ public class GenericsUtilsTest {
     
     @Test
     public void test_implicit() {
-        Class<?> fooClass = GenericsUtils.returnType(MyFooFactory.class, "create");
+        Class<?> fooClass = GenericsUtils.returnType(ImplicitFooFactory.class, "create");
         assertThat(fooClass, is(FooClass));
     }
     
@@ -40,8 +40,7 @@ public class GenericsUtilsTest {
         Foo create();
     }
     
-    static interface MyFooFactory extends Factory<Foo> {
-        
+    static interface ImplicitFooFactory extends Factory<Foo> {
     }
     
     static interface Indirection<S, T> extends Factory<T> {

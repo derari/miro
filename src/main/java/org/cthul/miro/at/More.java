@@ -13,11 +13,17 @@ public @interface More {
     
     String[] require() default {};
     
-    Select[] select() default {};
+    String[] generatedKeys() default {};
     
-    Select[] optional() default {};
+    String[] naturalKeys() default {};
     
-    Select[] internal() default {};
+    String[] attributes() default {};
+    
+    String[] select() default {};
+    
+    String[] optional() default {};
+    
+    String[] internal() default {};
     
     Join[] join() default {};
     

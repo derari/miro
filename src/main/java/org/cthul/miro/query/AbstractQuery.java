@@ -1,6 +1,7 @@
 package org.cthul.miro.query;
 
 import java.util.*;
+import org.cthul.miro.dml.DataQueryKey;
 import org.cthul.miro.query.template.QueryTemplate;
 import org.cthul.miro.query.adapter.QueryAdapter;
 import org.cthul.miro.query.parts.QueryPart;
@@ -17,6 +18,7 @@ public class AbstractQuery {
     private final LinkedHashSet<String> resultAttributes = new LinkedHashSet<>();
     private final QueryType<?> queryType;
     private final QueryTemplate template;
+    private int initialized = -1;
     private boolean hasAttributes = false;
 
     public AbstractQuery(QueryType<?> queryType) {
@@ -87,6 +89,7 @@ public class AbstractQuery {
     }
     
     protected synchronized QueryPart part(Object key) {
+        ensureInitialized();
         QueryPart part = parts.get(key);
         if (part == null) {
             part = addUnknownPart(key);
@@ -129,6 +132,23 @@ public class AbstractQuery {
             put(k);
         }
     }
+    
+    protected void ensureInitialized() {
+        if (initialized > 0) return;
+        synchedEnsureInitialized();
+    }
+    
+    private synchronized void synchedEnsureInitialized() {
+        if (initialized >= 0) return;
+        initialized = 0;
+        initialize();
+        initialized = 1;
+    }
+    
+    protected void initialize() {
+        put(DataQueryKey.PUT_ALWAYS);
+    }
+    
     
 //    private static final Object[] NO_ARGS = {};
     

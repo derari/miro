@@ -1,8 +1,8 @@
-package org.cthul.miro.map.z;
+package org.cthul.miro.map;
 
-import org.cthul.miro.map.z.MappedQueryString;
 import java.util.List;
 import org.cthul.miro.MiConnection;
+import org.cthul.miro.result.Results;
 import org.cthul.miro.test.TestDB;
 import org.cthul.miro.test.model.Address;
 import org.junit.AfterClass;
@@ -33,7 +33,7 @@ public class MappedStatementTest {
         MiConnection cnn = new MiConnection(TestDB.getConnection());
         MappedStatementImpl ms = new MappedStatementImpl("Street 1");
         
-        List<Address> result = ms.asList().execute(cnn);
+        List<Address> result = ms.execute(cnn).asList();
         assertThat(result, hasSize(1));
         
         Address a = result.get(0);
@@ -42,11 +42,11 @@ public class MappedStatementTest {
         assertThat(a.getCity(), is("City"));
     }
 
-    public class MappedStatementImpl extends MappedQueryString<Address> {
-
+    public class MappedStatementImpl extends MappedQueryString<Results<Address>> {
         public MappedStatementImpl(Object... args) {
-            super(null, Address.MAPPING, "SELECT * FROM Addresses WHERE street = ?", "id", "street", "city");
-            put("", args);
+            super(Address.MAPPING, "SELECT * FROM Addresses WHERE street = ?");
+            select("id", "street", "city");
+            batch(args);
         }
     }
 }

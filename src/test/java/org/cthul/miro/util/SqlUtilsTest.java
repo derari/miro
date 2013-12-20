@@ -151,6 +151,6 @@ public class SqlUtilsTest {
     public void test_parseOrderPart_complex() {
         String part = "`a`.'field' DESC";
         String[] def = SqlUtils.parseOrderPart(part);
-        assertThat(def, arrayContaining("field", part, "a"));
+        assertThat(def, arrayContaining("field", part, "a.field"));
     }    
 }

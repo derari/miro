@@ -1,6 +1,5 @@
 package org.cthul.miro.util;
 
-import java.util.List;
 import org.cthul.miro.MiConnection;
 import org.cthul.miro.MiFuture;
 import org.cthul.miro.MiFutureAction;
@@ -34,7 +33,6 @@ public class LazyActionTest {
                 assertThat(arg.getResult(), is(ACTION_RESULT));
                 return null;
             }
-        });
-        la.beDone();
+        }).beDone();
     }    
 }

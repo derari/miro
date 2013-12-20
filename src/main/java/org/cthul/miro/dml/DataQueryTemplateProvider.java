@@ -4,6 +4,7 @@ import org.cthul.miro.query.QueryType;
 import org.cthul.miro.query.InternalQueryBuilder;
 import org.cthul.miro.query.parts.SimpleQueryPart;
 import java.util.*;
+import static org.cthul.miro.dml.IncludeMode.*;
 import org.cthul.miro.doc.AutoDependencies;
 import org.cthul.miro.doc.AutoKey;
 import org.cthul.miro.doc.MultiValue;
@@ -37,6 +38,9 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
     private final List<String> optionalSelect = new ArrayList<>();
     private final LinkedHashSet<String> internalSelect = new LinkedHashSet<>();
     
+    private final QueryTemplateProvider parentProvider;
+    private final DataQueryTemplateProvider parentData;
+    
     private CustomTemplateParts currentParts = null;
 
     private QueryTemplate parent = null;
@@ -47,6 +51,18 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
     
     public DataQueryTemplateProvider() {
         currentParts = parts;
+        parentProvider = null;
+        parentData = null;
+    }
+    
+    public DataQueryTemplateProvider(QueryTemplateProvider parent) {
+        currentParts = parts;
+        parentProvider = parent;
+        if (parent instanceof DataQueryTemplateProvider) {
+            parentData = (DataQueryTemplateProvider) parent;
+        } else {
+            parentData = null;
+        }
     }
     
     protected QueryTemplate newParent(QueryTemplate parent) {
@@ -69,25 +85,28 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         return new DataQueryTemplate.Delete(this, parent);
     }
     
-    protected QueryTemplate getParent() {
+    protected QueryTemplate getParent(QueryType<?> queryType) {
+        if (parentProvider != null) {
+            return newParent(parentProvider.getTemplate(queryType));
+        }
         if (parent == null) return newParent(null);
         return parent;
     }
     
     private QueryTemplate buildSelect() {
-        return build(selectParts, parts, newSelect(getParent()));
+        return build(selectParts, parts, newSelect(getParent(DataQuery.SELECT)));
     }
     
     private QueryTemplate buildInsert() {
-        return build(insertParts, parts, newInsert(getParent()));
+        return build(insertParts, parts, newInsert(getParent(DataQuery.INSERT)));
     }
     
     private QueryTemplate buildUpdate() {
-        return build(updateParts, parts, newUpdate(getParent()));
+        return build(updateParts, parts, newUpdate(getParent(DataQuery.UPDATE)));
     }
     
     private QueryTemplate buildDelete() {
-        return build(deleteParts, parts, newDelete(getParent()));
+        return build(deleteParts, parts, newDelete(getParent(DataQuery.DELETE)));
     }
     
     private QueryTemplate build(CustomTemplateParts parts1, CustomTemplateParts parts2, QueryTemplate template) {
@@ -155,52 +174,90 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         List<Attribute> result = new ArrayList<>();
         for (List<String> list: keys) {
             for (String s: list) {
-                result.add(attributes.get(s));
+                result.add(getAttribute(s));
             }
         }
         return result;
     }
 
+    protected List<Attribute> getAttributes(List<String> keys) {
+        List<Attribute> result = new ArrayList<>();
+        for (String s: keys) {
+            result.add(getAttribute(s));
+        }
+        return result;
+    }
+
     public Attribute getAttribute(String key) {
-        return attributes.get(key);
+        Attribute a = attributes.get(key);
+        if (a == null && parentData != null) {
+            return parentData.getAttribute(key);
+        }
+        return a;
     }
 
     public List<String> getGeneratedKeys() {
+        if (parentData != null) {
+            return joinLists(generatedKeys, parentData.getGeneratedKeys());
+        }
         return generatedKeys;
     }
 
     public List<String> getNaturalKeys() {
+        if (parentData != null) {
+            return joinLists(naturalKeys, parentData.getNaturalKeys());
+        }
         return naturalKeys;
     }
 
     public List<String> getKeys() {
-        List<String> result = new ArrayList<>(getGeneratedKeys());
-        result.addAll(getNaturalKeys());
-        return result;
+        return joinLists(getGeneratedKeys(), getNaturalKeys());
     }
 
     public List<String> getDefaultAttributes() {
+        if (parentData != null) {
+            return joinLists(defaultAttributes, parentData.getDefaultAttributes());
+        }
         return defaultAttributes;
     }
 
     public List<String> getOptionalAttributes() {
+        if (parentData != null) {
+            return joinLists(optionalAttributes, parentData.getOptionalAttributes());
+        }
         return optionalAttributes;
     }
     
     public List<Attribute> getKeyAttributes() {
-        return getAttributes(generatedKeys, naturalKeys);
+        return getAttributes(getKeys());
     }
 
     public List<String> getDefaultSelect() {
+        if (parentData != null) {
+            return joinLists(defaultSelect, parentData.getDefaultSelect());
+        }
         return defaultSelect;
     }
 
     public List<String> getOptionalSelect() {
+        if (parentData != null) {
+            return joinLists(optionalSelect, parentData.getOptionalSelect());
+        }
         return optionalSelect;
     }
     
-    public LinkedHashSet<String> getInternalSelect() {
-        return internalSelect;
+    public List<String> getInternalSelect() {
+        if (parentData != null) {
+            return joinLists(internalSelect, parentData.getInternalSelect());
+        }
+        return new ArrayList<>(internalSelect);
+    }
+    
+    private <T> List<T> joinLists(Collection<T> a, Collection<T> b) {
+        List<T> result = new ArrayList<>(a.size()+b.size());
+        result.addAll(a);
+        result.addAll(b);
+        return result;
     }
     
     private List<Object> getParts(IncludeMode mode, CustomTemplateParts more) {
@@ -267,8 +324,8 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         String[][] attributeParts = SqlUtils.parseAttributes(sql);
         List<Attribute> result = new ArrayList<>(attributeParts.length);
         for (String[] p: attributeParts) {
-            required = getRequired(required, p);
-            Attribute a = new Attribute(p[0], p[1], p[4], p[5], required);
+            Object[] req = getRequired(required, p);
+            Attribute a = new Attribute(p[0], p[1], p[4], p[5], req);
             result.add(a);
             attributes.put(a.getKey(), a);
         }
@@ -279,8 +336,8 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         String[][] attributeParts = SqlUtils.parseSelectClause(sql);
         List<Attribute> result = new ArrayList<>(attributeParts.length);
         for (String[] p: attributeParts) {
-            required = getRequired(required, p);
-            Attribute a = new Attribute(p[0], p[1], p[4], p[5], required);
+            Object[] req = getRequired(required, p);
+            Attribute a = new Attribute(p[0], p[1], p[4], p[5], req);
             result.add(a);
             attributes.put(a.getKey(), a);
         }
@@ -296,6 +353,14 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
     protected void addAttributesTo(Iterable<Attribute> attributes, Map<String, Attribute> map) {
         for (Attribute a: attributes) {
             map.put(a.getKey(), a);
+        }
+    }
+    
+    protected void keys(Object[] required, boolean generated, String... attributes) {
+        if (generated) {
+            generatedKeys(required, attributes);
+        } else {
+            naturalKeys(required, attributes);
         }
     }
     
@@ -323,6 +388,19 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         }
     }
     
+    protected void attributes(Object[] required, IncludeMode mode, String... attributes) {
+        switch (mode) {
+            case DEFAULT:
+                attributes(required, attributes);
+                break;
+            case OPTIONAL:
+                optionalAttributes(required, attributes);
+                break;
+            default:
+                throw new AssertionError(mode);
+        }
+    }
+    
     protected void attributes(@MultiValue @AutoKey @AutoDependencies String... attributes) {
         attributes(AUTO_DEPENDENCIES, attributes);
     }
@@ -344,6 +422,22 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
             List<Attribute> list = newAttributes(required, a);
             addAttributeKeysTo(list, optionalAttributes);
             addAttributesTo(list, this.attributes);
+        }
+    }
+    
+    protected void select(Object[] required, IncludeMode mode, String... selects) {
+        switch (mode) {
+            case DEFAULT:
+                select(required, selects);
+                break;
+            case OPTIONAL:
+                optionalSelect(required, selects);
+                break;
+            case INTERNAL:
+                internalSelect(required, selects);
+                break;
+            default:
+                throw new AssertionError(mode);
         }
     }
     
@@ -412,11 +506,11 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         join(mode, required, p[0], p[1]);
     }
     
-    protected void join(IncludeMode mode, String key, String join) {
+    protected void join(IncludeMode mode, Object key, String join) {
         join(mode, NO_DEPENDENCIES, key, join);
     }
     
-    protected void join(IncludeMode mode, Object[] required, String key, String join) {
+    protected void join(IncludeMode mode, Object[] required, Object key, String join) {
         JoinTemplate jt = new JoinTemplate(join, required);
         add(mode, key, jt);
     }
@@ -513,23 +607,35 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         return using(IncludeMode.EXPLICIT, null, required);
     }
     
+    protected Using<?> using(@MultiValue String... required) {
+        return using(splitDependencyList(required));
+    }
+    
+    protected Using<?> always(Object... requred) {
+        Object key = new UniqueKey("always");
+        virtual(IncludeMode.ALWAYS, requred, key);
+        return using(IncludeMode.ALWAYS, currentParts, NO_DEPENDENCIES);
+    }
+    
+    protected Object[] splitDependencyList(@MultiValue String... required) {
+        return splitDependencyStrings(required);
+    }
+    
+    protected String[] splitDependencyStrings(@MultiValue String... required) {
+        List<String> list = new ArrayList<>();
+        for (String r: required) {
+            for (String r2: r.split(",")) {
+                list.add(r2.trim());
+            }
+        }
+        return list.toArray(new String[list.size()]);
+    }
+    
     protected Object[] dependenciesForUsing(Object[] required) {
-        if (required == AUTO_DEPENDENCIES || required == NO_DEPENDENCIES) {
+        if (required == null || required.length < 2) {
             return required;
         }
-        String key;
-        if (required != null && required.length > 0) {
-            StringBuilder sb = new StringBuilder();
-            int l = Math.min(3, required.length);
-            for (int i = 0; i < l; i++) {
-                if (sb.length() > 0) sb.append('+');
-                sb.append(required[i]);
-            }
-            if (required.length > 3) sb.append("+").append(required.length-3);
-            key = sb.toString();
-        } else {
-            key = "virtual";
-        }
+        String key = Templates.keyList(required);
         Object oKey = newTemplatePartKey(key);
         virtual(required, oKey);
         return new Object[]{oKey};
@@ -608,13 +714,13 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
     protected static final Object[] NO_DEPENDENCIES = {};
     protected static final Object[] ALWAYS = {1};
     
-    protected static class Using<This extends Using<? extends This>> {
+    public static class Using<This extends Using<? extends This>> {
         
         private final DataQueryTemplateProvider template;
-        private final Object[] required;
+        protected final Object[] required;
         private final CustomTemplateParts originalParts;
         private final CustomTemplateParts actualParts;
-        private final IncludeMode include;
+        protected final IncludeMode include;
 
         public Using(DataQueryTemplateProvider template, IncludeMode include, CustomTemplateParts actualParts, Object... required) {
             this.template = template;
@@ -622,6 +728,10 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
             this.actualParts = actualParts;
             this.include = include;
             this.required = template.dependenciesForUsing(required);
+        }
+
+        public Object[] getRequired() {
+            return required;
         }
         
         protected DataQueryTemplateProvider templateWithMode() {
@@ -642,6 +752,30 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
             return (This) template.using(include, actualParts, keys);
         }
         
+        public This include(IncludeMode mode) {
+            return (This) template.using(mode, actualParts, required);
+        }
+        
+        public This generatedKeys(@MultiValue @AutoKey String... attributes) {
+            templateWithMode().generatedKeys(required, attributes);
+            return restoreMode();
+        }
+        
+        public This naturalKeys(@MultiValue @AutoKey String... attributes) {
+            templateWithMode().naturalKeys(required, attributes);
+            return restoreMode();
+        }
+        
+        public This attributes(@MultiValue @AutoKey String... attributes) {
+            templateWithMode().attributes(required, attributes);
+            return restoreMode();
+        }
+        
+        public This select(IncludeMode mode, @MultiValue @AutoKey String... select) {
+            templateWithMode().select(required, mode, select);
+            return restoreMode();
+        }
+        
         public This select(@MultiValue @AutoKey String... select) {
             templateWithMode().select(required, select);
             return restoreMode();
@@ -659,6 +793,21 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         
         public This join(@AutoKey String join) {
             templateWithMode().join(include, required, join);
+            return restoreMode();
+        }
+        
+        public This join(Object key, String join) {
+            templateWithMode().join(include, required, key, join);
+            return restoreMode();
+        }
+        
+        public This where(Object key, String where) {
+            templateWithMode().where(include, required, key, where);
+            return restoreMode();
+        }
+        
+        public This orderBy(Object key, String where) {
+            templateWithMode().orderBy(include, required, key, where);
             return restoreMode();
         }
     }

@@ -31,7 +31,7 @@ public class MiConnectionTest {
             }
         };
         
-        MiFuture<String> futureString = cnn.submit(toString, 42);
+        MiFuture<String> futureString = cnn.submit(42, toString);
         assertThat(futureString.isDone(), is(false));
         synchronized (lock) {
             locked = false;

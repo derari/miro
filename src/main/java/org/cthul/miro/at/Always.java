@@ -13,11 +13,9 @@ public @interface Always {
     
     String[] require() default {};
     
-    Select[] select() default {};
+    String[] select() default {};
     
-    Select[] optional() default {};
-    
-    Select[] internal() default {};
+    String[] internal() default {};
     
     Join[] join() default {};
     

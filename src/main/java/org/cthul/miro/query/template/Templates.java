@@ -17,15 +17,20 @@ public abstract class Templates {
     
     public static abstract class StatelessQueryPart extends AbstractQueryPart implements QueryTemplatePart {
         
+        private final Object[] required;
         private final QueryPartType partType;
         
         public StatelessQueryPart(Object key) {
-            super(key);
-            partType = OtherQueryPart.VIRTUAL;
+            this(key, (Object[]) null);
+        }
+        
+        public StatelessQueryPart(Object key, Object... required) {
+            this(OtherQueryPart.VIRTUAL, key, required);
         }
 
-        public StatelessQueryPart(QueryPartType partType, Object key) {
+        public StatelessQueryPart(QueryPartType partType, Object key, Object... required) {
             super(key);
+            this.required = required;
             this.partType = partType;
         }
 
@@ -35,6 +40,7 @@ public abstract class Templates {
 
         @Override
         public QueryPart addPart(Object key, InternalQueryBuilder queryBuilder) {
+            requireAll(queryBuilder, required);
             queryBuilder.addPart(getPartType(), this);
             return this;
         }
@@ -63,7 +69,15 @@ public abstract class Templates {
             return new CombinedKey(partKey, key);
         }
         
-        protected boolean handlePut(InternalQueryBuilder queryBuilder, Object partKey, Object key, Object... args) {
+        protected boolean put(InternalQueryBuilder queryBuilder, Object partKey, Object key, Object... args) {
+            if (key == null && args != null) {
+                for (Object a: args) {
+                    if (!put(queryBuilder, partKey, a, NO_ARGS)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
             Object subKey = subKey(partKey, key);
             if (queryBuilder.hasPart(subKey)) {
                 if (args != null && args.length > 0) {
@@ -71,10 +85,10 @@ public abstract class Templates {
                 }
                 return true;
             }
-            return put(queryBuilder, subKey, key, args);
+            return putWithKey(queryBuilder, subKey, key, args);
         }
         
-        protected boolean put(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
+        protected boolean putWithKey(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
             return false;
         }
     }
@@ -92,25 +106,70 @@ public abstract class Templates {
 
         @Override
         public void put(Object key, Object... args) {
-            if (key == null && args != null) {
-                for (Object a: args) {
-                    if (!template.handlePut(queryBuilder, getKey(), a, NO_ARGS)) {
-                        super.put(a, NO_ARGS);
-                    }
-                }
-                return;
-            } else {
-                if (template.handlePut(queryBuilder, getKey(), key, args)) {
+//            if (key == null && args != null) {
+//                for (Object a: args) {
+//                    if (!template.put(queryBuilder, getKey(), a, NO_ARGS)) {
+//                        super.putWithKey(a, NO_ARGS);
+//                    }
+//                }
+//                return;
+//            } else {
+                if (template.put(queryBuilder, getKey(), key, args)) {
                     return;
                 }
-            }
+//            }
             super.put(key, args);
+        }
+    }
+    
+    public static class RequireAllTemplate extends ConfigurationTemplate {
+        
+        private final List<Object> keys  = new ArrayList<>();
+
+        public RequireAllTemplate(Object key) {
+            if (key != null) keys.add(key);
+        }
+        
+        public RequireAllTemplate(Object... keys) {
+            this.keys.addAll(Arrays.asList(keys));
+        }
+        
+        public RequireAllTemplate(List<?> keys) {
+            this.keys.addAll(keys);
+        }
+        
+        public RequireAllTemplate(Object oneMore, List<?>... keys) {
+            this(oneMore);
+            for (List<?> k: keys) {
+                this.keys.addAll(k);
+            }
+        }
+        
+        public RequireAllTemplate(List<?>... keys) {
+            this(null, keys);
+        }
+
+        @Override
+        public QueryPart addPart(Object key, InternalQueryBuilder queryBuilder) {
+            requireAll(queryBuilder, keys);
+            return super.addPart(key, queryBuilder);
+        }
+
+        @Override
+        protected boolean put(InternalQueryBuilder queryBuilder, Object partKey, Object key, Object... args) {
+            return true;
+        }
+        
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " " + keyList(keys);
         }
     }
     
     public static class PutAllTemplate extends AbstractTemplatePart {
         
         private final List<Object> keys  = new ArrayList<>();
+        private List<QueryTemplatePart> moreParts = null;
 
         public PutAllTemplate(Object key) {
             if (key != null) keys.add(key);
@@ -137,8 +196,27 @@ public abstract class Templates {
         
         @Override
         public QueryPart addPart(Object key, InternalQueryBuilder queryBuilder) {
+            List<Object> allKeys = keys;
             requireAll(queryBuilder, keys);
-            return proxyPart(key, queryBuilder, keys);
+            if (moreParts != null) {
+                allKeys = new ArrayList<>(allKeys);
+                for (QueryTemplatePart p: moreParts) {
+                    QueryPart qp = p.addPart(key, queryBuilder);
+                    allKeys.add(qp.getKey());
+                }
+            }
+            return proxyPart(key, queryBuilder, allKeys);
+        }
+        
+        public PutAllTemplate and(QueryTemplatePart... moreParts) {
+            if (this.moreParts == null) this.moreParts = new ArrayList<>();
+            this.moreParts.addAll(Arrays.asList(moreParts));
+            return this;
+        }
+        
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " " + keyList(keys);
         }
     }
     
@@ -155,6 +233,12 @@ public abstract class Templates {
         public QueryPart addPart(Object key, InternalQueryBuilder queryBuilder) {
             queryBuilder.put(this.key, values);
             return virtualPart(key, queryBuilder);
+        }
+        
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " " + key + 
+                    " -> " + keyList(values, ",");
         }
     }
     
@@ -173,6 +257,12 @@ public abstract class Templates {
         public QueryPart addPart(Object key, InternalQueryBuilder queryBuilder) {
             queryBuilder.put2(this.key, key2, values);
             return virtualPart(key, queryBuilder);
+        }
+        
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " " + key + "." + key2 +
+                    " -> " + keyList(values, ",");
         }
     }
     
@@ -198,6 +288,11 @@ public abstract class Templates {
                 queryBuilder.put2(k, key2);
             }
             return virtualPart(key, queryBuilder);
+        }
+        
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " " + keyList(keys) + " ." + key2;
         }
     }
     
@@ -229,6 +324,11 @@ public abstract class Templates {
             }
             return virtualPart(key, queryBuilder);
         }
+        
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " " + key + ". " + keyList(key2s);
+        }
     }
     
     public static class ProxyTemplate extends ConfigurationTemplate {
@@ -252,11 +352,16 @@ public abstract class Templates {
         }
         
         @Override
-        protected boolean handlePut(InternalQueryBuilder queryBuilder, Object partKey, Object key, Object... args) {
+        protected boolean put(InternalQueryBuilder queryBuilder, Object partKey, Object key, Object... args) {
             for (Object k: proxyKeys) {
                 queryBuilder.put2(k, key, args);
             }
             return true;
+        }
+        
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " --> " + keyList(proxyKeys, ",");
         }
     }
     
@@ -281,6 +386,11 @@ public abstract class Templates {
                 a.addRequired(queryBuilder);
             }
             return virtualPart(key, queryBuilder);
+        }
+        
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " " + keyList(attributes, ",");
         }
     }
     
@@ -348,4 +458,32 @@ public abstract class Templates {
     }
     
     private static final Object[] NO_ARGS = {};
+    
+    public static String keyList(Collection<?> keys) {
+        return keyList(keys.toArray());
+    }
+    
+    public static String keyList(Collection<?> keys, String sep) {
+        return keyList(keys.toArray(), sep);
+    }
+    
+    public static String keyList(Object[] keys) {
+        return keyList(keys, "+");
+    }
+    
+    public static String keyList(Object[] keys, String sep) {
+        if (keys == null) return "[]";
+        StringBuilder sb = new StringBuilder();
+        int len = Math.min(3, keys.length);
+        for (int i = 0; i < len; i++) {
+            if (i > 0) sb.append(sep);
+            sb.append(keys[i]);
+        }
+        if (len < keys.length) {
+            sb.append(sep);
+            sb.append(keys.length-len);
+            sb.append("...");
+        }
+        return sb.toString();
+    }
 }

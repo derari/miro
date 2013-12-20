@@ -92,8 +92,10 @@ public class DataQueryTemplate extends AbstractQueryTemplate {
         @Override
         protected QueryTemplatePart autoPart(Object key) {
             switch (asDataQueryKey(key)) {
-                case INCLUDE_KEYS:
-                    return new PutAllTemplate(getGeneratedKeys(), getNaturalKeys());
+                case PUT_KEYS:
+                    return new Put2AllTemplate(ATTRIBUTE, getGeneratedKeys(), getNaturalKeys());
+                case PUT_STRINGS:
+                    return new PutStringsTemplate();
                 case ATTRIBUTE_DEPENDENCIES:
                     return new PutAttributeDependenciesTemplate();
                 case INCLUDE_ATTRIBUTE:
@@ -109,7 +111,7 @@ public class DataQueryTemplate extends AbstractQueryTemplate {
             }
             Attribute at = getAttribute(key);
             if (at != null) {
-                return new Put2ValuesTemplate(ATTRIBUTE, key);
+                return new Put2ValuesTemplate(INCLUDE_ATTRIBUTE, key);
             }
             if (key instanceof String) {
                 String sKey = (String) key;
@@ -142,12 +144,14 @@ public class DataQueryTemplate extends AbstractQueryTemplate {
         @Override
         protected QueryTemplatePart autoPart(Object key) {
             switch (asDataQueryKey(key)) {
-                case INCLUDE_ALWAYS:
+                case PUT_ALWAYS:
                     return new PutAllTemplate(getSelectParts(IncludeMode.ALWAYS));
-                case INCLUDE_DEFAULT:
-                    return new PutAllTemplate(INCLUDE_KEYS, getDefaultAttributes(), getDefaultSelect(), getSelectParts(IncludeMode.DEFAULT));
-                case INCLUDE_OPTIONAL:
-                    return new PutAllTemplate(INCLUDE_DEFAULT, getOptionalAttributes(), getOptionalSelect(), getSelectParts(IncludeMode.OPTIONAL));
+                case PUT_DEFAULT:
+                    return new PutAllTemplate(PUT_KEYS, getSelectParts(IncludeMode.DEFAULT))
+                            .and(putAllAttributes(getDefaultAttributes(), getDefaultSelect()));
+                case PUT_OPTIONAL:
+                    return new PutAllTemplate(PUT_DEFAULT, getSelectParts(IncludeMode.OPTIONAL))
+                            .and(putAllAttributes(getOptionalAttributes(), getOptionalSelect()));
                 case ATTRIBUTE:
                 case SELECT:
                     return new ProxyTemplate(INCLUDE_ATTRIBUTE, ADD_TO_RESULT);
@@ -182,14 +186,14 @@ public class DataQueryTemplate extends AbstractQueryTemplate {
         @Override
         protected QueryTemplatePart autoPart(Object key) {
             switch (asDataQueryKey(key)) {
-                case INCLUDE_ALWAYS:
+                case PUT_ALWAYS:
                     return new PutAllTemplate(getInsertParts(IncludeMode.ALWAYS));
-                case INCLUDE_KEYS:
+                case PUT_KEYS:
                     return new PutAllTemplate(getNaturalKeys());
-                case INCLUDE_DEFAULT:
-                    return new PutAllTemplate(INCLUDE_KEYS, getDefaultAttributes(), getInsertParts(IncludeMode.DEFAULT));
-                case INCLUDE_OPTIONAL:
-                    return new PutAllTemplate(INCLUDE_DEFAULT, getOptionalAttributes(), getInsertParts(IncludeMode.OPTIONAL));
+                case PUT_DEFAULT:
+                    return new PutAllTemplate(PUT_KEYS, getDefaultAttributes(), getInsertParts(IncludeMode.DEFAULT));
+                case PUT_OPTIONAL:
+                    return new PutAllTemplate(PUT_DEFAULT, getOptionalAttributes(), getInsertParts(IncludeMode.OPTIONAL));
                 case ATTRIBUTE:
                 case INSERT:
                     return new ProxyTemplate(INCLUDE_ATTRIBUTE);
@@ -211,12 +215,12 @@ public class DataQueryTemplate extends AbstractQueryTemplate {
         @Override
         protected QueryTemplatePart autoPart(Object key) {
             switch (asDataQueryKey(key)) {
-                case INCLUDE_ALWAYS:
+                case PUT_ALWAYS:
                     return new PutAllTemplate(getUpdateParts(IncludeMode.ALWAYS));
-                case INCLUDE_DEFAULT:
+                case PUT_DEFAULT:
                     return new PutAllTemplate(getDefaultAttributes(), getUpdateParts(IncludeMode.DEFAULT));
-                case INCLUDE_OPTIONAL:
-                    return new PutAllTemplate(INCLUDE_DEFAULT, getOptionalAttributes(), getUpdateParts(IncludeMode.OPTIONAL));
+                case PUT_OPTIONAL:
+                    return new PutAllTemplate(PUT_DEFAULT, getOptionalAttributes(), getUpdateParts(IncludeMode.OPTIONAL));
                 case ATTRIBUTE:
                 case UPDATE:
                     return new ProxyTemplate(INCLUDE_ATTRIBUTE);
@@ -241,12 +245,12 @@ public class DataQueryTemplate extends AbstractQueryTemplate {
         @Override
         protected QueryTemplatePart autoPart(Object key) {
             switch (asDataQueryKey(key)) {
-                case INCLUDE_ALWAYS:
+                case PUT_ALWAYS:
                     return new PutAllTemplate(getDeleteParts(IncludeMode.ALWAYS));
-                case INCLUDE_DEFAULT:
+                case PUT_DEFAULT:
                     return new PutAllTemplate(FILTER_BY_KEYS, getDeleteParts(IncludeMode.DEFAULT));
-                case INCLUDE_OPTIONAL:
-                    return new PutAllTemplate(INCLUDE_DEFAULT, getDeleteParts(IncludeMode.OPTIONAL));
+                case PUT_OPTIONAL:
+                    return new PutAllTemplate(PUT_DEFAULT, getDeleteParts(IncludeMode.OPTIONAL));
                 case ATTRIBUTE:
                 case DELETE:
                     return new NoAttributesTemplate();
@@ -264,15 +268,45 @@ public class DataQueryTemplate extends AbstractQueryTemplate {
         }
     }
     
-    protected class AddToResultTemplate extends ConfigurationTemplate {
+    protected static QueryTemplatePart putAllAttributes(List<?>... keys) {
+        return new Put2AllTemplate(DataQueryKey.ATTRIBUTE, keys);
+    }
+    
+    protected class PutStringsTemplate extends ConfigurationTemplate {
         @Override
-        protected boolean put(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
+        protected boolean putWithKey(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
             switch (asDataQueryKey(key)) {
-                case INCLUDE_DEFAULT:
-                case INCLUDE_OPTIONAL:
-                    // includes are handled by INCLUDE_ATTRIBUTE
+                case PUT_DEFAULT:
+                case PUT_OPTIONAL:
+                    queryBuilder.put(key);
                     return true;
             }
+            if (!(key instanceof String)) {
+                queryBuilder.put(key, args);
+                return true;
+            }
+            for (String s: ((String) key).split(",")) {
+                s = s.trim();
+                Attribute at = getAttribute((String) s);
+                if (at != null) {
+                    queryBuilder.put2(ATTRIBUTE, s, args);
+                } else {
+                    queryBuilder.put(s, args);
+                }
+            }
+            return true;
+        }
+    }
+    
+    protected class AddToResultTemplate extends ConfigurationTemplate {
+        @Override
+        protected boolean putWithKey(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
+//            switch (asDataQueryKey(key)) {
+//                case PUT_DEFAULT:
+//                case PUT_OPTIONAL:
+//                    // includes are handled by INCLUDE_ATTRIBUTE
+//                    return true;
+//            }
             if (!(key instanceof String)) return false;
             Attribute at = getAttribute((String) key);
             if (at == null) return false;
@@ -283,10 +317,10 @@ public class DataQueryTemplate extends AbstractQueryTemplate {
     
     protected class PutAttributeDependenciesTemplate extends ConfigurationTemplate {
         @Override
-        protected boolean put(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
+        protected boolean putWithKey(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
             if (!(key instanceof String)) return false;
             Attribute at = getAttribute((String) key);
-            if (at == null) return false;
+            if (at == null) return true;
             at.addRequired(queryBuilder);
             return true;
         }
@@ -294,13 +328,13 @@ public class DataQueryTemplate extends AbstractQueryTemplate {
     
     protected class PutAttributeTemplate extends ConfigurationTemplate {
         @Override
-        protected boolean put(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
-            switch (asDataQueryKey(key)) {
-                case INCLUDE_DEFAULT:
-                case INCLUDE_OPTIONAL:
-                    queryBuilder.put(key);
-                    return true;
-            }
+        protected boolean putWithKey(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
+//            switch (asDataQueryKey(key)) {
+//                case PUT_DEFAULT:
+//                case PUT_OPTIONAL:
+//                    queryBuilder.putWithKey(key);
+//                    return true;
+//            }
             if (!(key instanceof String)) return false;
             Attribute at = getAttribute((String) key);
             if (at == null) return false;
@@ -312,13 +346,13 @@ public class DataQueryTemplate extends AbstractQueryTemplate {
     
     protected class NoAttributesTemplate extends ConfigurationTemplate {
         @Override
-        protected boolean put(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
-            switch (asDataQueryKey(key)) {
-                case INCLUDE_DEFAULT:
-                case INCLUDE_OPTIONAL:
-                    queryBuilder.put(key);
-                    return true;
-            }
+        protected boolean putWithKey(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
+//            switch (asDataQueryKey(key)) {
+//                case PUT_DEFAULT:
+//                case PUT_OPTIONAL:
+//                    queryBuilder.putWithKey(key);
+//                    return true;
+//            }
             throw new IllegalArgumentException(
                     "Cannot delete attribute: " + key);
 //            if (!(key instanceof String)) return false;
@@ -371,7 +405,7 @@ public class DataQueryTemplate extends AbstractQueryTemplate {
     protected class SetAttributeTemplate extends ConfigurationTemplate {
 
         @Override
-        protected boolean put(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
+        protected boolean putWithKey(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
             if (!(key instanceof String)) return false;
             Attribute at = getAttribute((String) key);
             if (at == null) return false;
@@ -422,7 +456,7 @@ public class DataQueryTemplate extends AbstractQueryTemplate {
         }
 
         @Override
-        protected boolean handlePut(InternalQueryBuilder queryBuilder, Object partKey, Object key, Object... args) {
+        protected boolean put(InternalQueryBuilder queryBuilder, Object partKey, Object key, Object... args) {
             switch (asDataQuerySubkey(key)) {
                 case ADD:
                     Object k = queryBuilder.newKey("values");
@@ -629,7 +663,7 @@ public class DataQueryTemplate extends AbstractQueryTemplate {
     
     protected class GroupByTemplate extends ConfigurationTemplate {
         @Override
-        protected boolean put(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
+        protected boolean putWithKey(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
             Attribute at = getAttribute(key);
             if (at == null) return false;
             at.addRequired(queryBuilder);
@@ -640,7 +674,7 @@ public class DataQueryTemplate extends AbstractQueryTemplate {
     
     protected class OrderByTemplate extends ConfigurationTemplate {
         @Override
-        protected boolean put(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
+        protected boolean putWithKey(InternalQueryBuilder queryBuilder, Object newKey, Object key, Object... args) {
             DataQuerySubkey ordering = null;
             if (key instanceof String) {
                 String sKey = (String) key;

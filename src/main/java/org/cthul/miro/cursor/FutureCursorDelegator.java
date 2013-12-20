@@ -70,7 +70,7 @@ public class FutureCursorDelegator<V> extends FutureDelegator<ResultCursor<V>> i
     public <R> MiFuture<R> onCursorComplete(final MiFutureAction<? super FutureCursor<V>, R> action) {
         return onComplete(new MiFutureAction<MiFuture<ResultCursor<V>>, R>() {
             @Override
-            public R call(MiFuture<ResultCursor<V>> arg) throws Exception {
+            public R call(MiFuture<ResultCursor<V>> arg) throws Throwable {
                 assert arg == getDelegatee();
                 return action.call(FutureCursorDelegator.this);
             }

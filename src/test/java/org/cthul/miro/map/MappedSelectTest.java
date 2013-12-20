@@ -77,4 +77,18 @@ public class MappedSelectTest {
         assertThat(p.getFirstName(), is("Bob"));
         assertThat(p.getStreet(), is("Street 2"));
     }
+    
+    @Test
+    public void test_configure() throws Exception {
+        MiConnection cnn = new MiConnection(TestDB.getConnection());
+        
+        List<Person0> list = Person0.VIEW
+                .select("fullName")
+                .where("id =", 2)
+                .execute(cnn).asList();
+        assertThat(list, hasSize(1));
+        Person0 p = list.get(0);
+        assertThat(p.getFirstName(), is(nullValue()));
+        assertThat(p.getLastName(), is("Alice Johnson"));
+    }
 }
