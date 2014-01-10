@@ -19,19 +19,19 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
     }
     
     public static SelectQuery newSelectQuery() {
-        return new SelectQuery();
+        return new SelectQuery(getInstance());
     }
 
     public static InsertQuery newInsertQuery() {
-        return new InsertQuery();
+        return new InsertQuery(getInstance());
     }
 
     public static UpdateQuery newUpdateQuery() {
-        return new UpdateQuery();
+        return new UpdateQuery(getInstance());
     }
 
     public static DeleteQuery newDeleteQuery() {
-        return new DeleteQuery();
+        return new DeleteQuery(getInstance());
     }
 
     @Override
@@ -53,22 +53,41 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
         if (queryType instanceof DataQuery.Type) {
             switch ((DataQuery.Type) queryType) {
                 case SELECT:
-                    return (T) new SelectQuery();
+                    return (T) new SelectQuery(this);
                 case INSERT:
-                    return (T) new InsertQuery();
+                    return (T) new InsertQuery(this);
                 case UPDATE:
-                    return (T) new UpdateQuery();
+                    return (T) new UpdateQuery(this);
                 case DELETE:
-                    return (T) new DeleteQuery();
+                    return (T) new DeleteQuery(this);
             }
         }
         if (queryType == BasicQuery.STRING) {
-            return (T) new StringQuery();
+            return (T) new StringQuery(this);
         }
         throw new IllegalArgumentException("Unsupported query type: " + queryType);
     }
     
-    public static class SelectQuery extends AbstractQueryBuilder<SelectBuilder<?>> implements SelectBuilder<SelectBuilder<?>> {
+    protected String postProcess(String sql) {
+        return sql;
+    }
+    
+    public static abstract class QueryBase<Builder extends QueryBuilder<? extends Builder>> extends AbstractQueryBuilder<Builder> {
+
+        private final AnsiSql dialect;
+
+        public QueryBase(AnsiSql dialect, int partCount) {
+            super(partCount);
+            this.dialect = dialect;
+        }
+
+        @Override
+        public String getQueryString() {
+            return dialect.postProcess(super.getQueryString());
+        }
+    }
+    
+    public static class SelectQuery extends QueryBase<SelectBuilder<?>> implements SelectBuilder<SelectBuilder<?>> {
         
         private static final int T_SELECT = 0;
         private static final int T_FROM =   1;
@@ -78,8 +97,8 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
         private static final int T_HAVING = 5;
         private static final int T_ORDER_BY = 6;
 
-        public SelectQuery() {
-            super(7);
+        public SelectQuery(AnsiSql dialect) {
+            super(dialect, 7);
         }
 
         @Override
@@ -178,7 +197,7 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
         }
     }
     
-    public static class InsertQuery extends AbstractQueryBuilder<InsertBuilder<?>> implements InsertBuilder<InsertBuilder<?>> {
+    public static class InsertQuery extends QueryBase<InsertBuilder<?>> implements InsertBuilder<InsertBuilder<?>> {
         
         private static final int T_INTO =  0;
         private static final int T_VALUES = 1;
@@ -188,8 +207,8 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
         private final List<AttributeQueryPart> attributes = new ArrayList<>();
         private int sourceType = -1;
 
-        public InsertQuery() {
-            super(1);
+        public InsertQuery(AnsiSql dialect) {
+            super(dialect, 1);
         }
 
         @Override
@@ -318,7 +337,7 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
         }
     }
     
-    public static class UpdateQuery extends AbstractQueryBuilder<UpdateBuilder<?>> implements UpdateBuilder<UpdateBuilder<?>> {
+    public static class UpdateQuery extends QueryBase<UpdateBuilder<?>> implements UpdateBuilder<UpdateBuilder<?>> {
 
         private static final int T_UPDATE = 0;
         private static final int T_JOIN =   1;
@@ -329,8 +348,8 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
         private List<AttributeQueryPart> filterAttributes = null;
         private List<ValuesQueryPart.Selector> values = null;
 
-        public UpdateQuery() {
-            super(4);
+        public UpdateQuery(AnsiSql dialect) {
+            super(dialect, 4);
         }
         
         @Override
@@ -491,7 +510,7 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
         }
     }
     
-    public static class DeleteQuery extends AbstractQueryBuilder<DeleteBuilder<?>> implements DeleteBuilder<DeleteBuilder<?>> {
+    public static class DeleteQuery extends QueryBase<DeleteBuilder<?>> implements DeleteBuilder<DeleteBuilder<?>> {
 
         private static final int T_FROM =   0;
         private static final int T_JOIN =   1;
@@ -500,8 +519,8 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
         private List<AttributeQueryPart> filterAttributes = null;
         private List<ValuesQueryPart.Selector> values = null;
 
-        public DeleteQuery() {
-            super(3);
+        public DeleteQuery(AnsiSql dialect) {
+            super(dialect, 3);
         }
         
         @Override
@@ -613,13 +632,13 @@ public class AnsiSql implements QuerySyntax, JdbcAdapter {
         }
     }
     
-    private static class StringQuery extends AbstractQueryBuilder<StringQueryBuilder<?>> implements StringQueryBuilder<StringQueryBuilder<?>> {
+    private static class StringQuery extends QueryBase<StringQueryBuilder<?>> implements StringQueryBuilder<StringQueryBuilder<?>> {
 
         private final List<Object[]> batches = new ArrayList<>();
         private String query = null;
-        
-        public StringQuery() {
-            super(0);
+
+        public StringQuery(AnsiSql dialect) {
+            super(dialect, 0);
         }
 
         @Override

@@ -524,6 +524,16 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         add(mode, key, vt);
     }
     
+    protected void where(Object key, String sql) {
+        where(NO_DEPENDENCIES, key, sql);
+    }
+    
+    protected void where(String... keySqlPairs) {
+        for (int i = 0; i < keySqlPairs.length; i += 2) {
+            where(keySqlPairs[i], keySqlPairs[i+1]);
+        }
+    }
+    
     protected void where(Object[] required, Object key, String sql) {
         where(IncludeMode.EXPLICIT, required, key, sql);
     }
@@ -808,6 +818,32 @@ public class DataQueryTemplateProvider implements QueryTemplateProvider {
         
         public This orderBy(Object key, String where) {
             templateWithMode().orderBy(include, required, key, where);
+            return restoreMode();
+        }
+        
+        public This orderBy(@MultiValue String... attributes) {
+            DataQueryTemplateProvider tpl = templateWithMode();
+            for (String a2: attributes) {
+                for (String a: a2.split(",")) {
+                    a = a.trim();
+                    String[] part = SqlUtils.parseOrderPart(a);
+                    String key = "orderBy-" + part[0];
+                    tpl.orderBy(include, required, key, a);
+                }
+            }
+            return restoreMode();
+        }
+        
+        public This groupBy(@MultiValue String... attributes) {
+            DataQueryTemplateProvider tpl = templateWithMode();
+            for (String a2: attributes) {
+                for (String a: a2.split(",")) {
+                    a = a.trim();
+                    String[] part = SqlUtils.parseGroupPart(a);
+                    String key = "groupBy-" + part[0];
+                    tpl.groupBy(include, required, key, a);
+                }
+            }
             return restoreMode();
         }
     }

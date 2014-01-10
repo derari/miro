@@ -21,7 +21,7 @@ public class Composite<Entity, Other> implements GraphConfigurationProvider<Enti
 
     @Override
     public <E extends Entity> EntityConfiguration<? super E> getConfiguration(MiConnection cnn, Mapping<E> mapping, Graph graph, Object[] args) {
-        return new Config<>(cnn, mapping, graph);
+        return new Config<>(cnn, mapping, graph, args);
     }
     
     protected class Config<E extends Entity> implements EntityConfiguration<E> {

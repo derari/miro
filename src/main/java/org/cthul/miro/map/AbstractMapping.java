@@ -3,6 +3,7 @@ package org.cthul.miro.map;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
@@ -105,6 +106,9 @@ public abstract class AbstractMapping<Entity> implements Mapping<Entity> {
 
     @Override
     public EntityConfiguration<Entity> newFieldConfiguration(List<String> fields) {
+        if (fields.size() == 1 && "*".equals(fields.get(0))) {
+            return configureAllFields;
+        }
         return new FieldValuesConfiguration(fields);
     }
     
@@ -137,6 +141,41 @@ public abstract class AbstractMapping<Entity> implements Mapping<Entity> {
         protected void setColumn(Entity entity, int colIndex, ResultSet rs, int index) throws SQLException {
             setField(entity, fields[colIndex], rs, index);
         }
+    }
+    
+    private final EntityConfiguration<Entity> configureAllFields = new EntityConfiguration<Entity>() {
+        @Override
+        public EntityInitializer<Entity> newInitializer(ResultSet rs) throws SQLException {
+            return new ConfigureAllFields(rs);
+        }
+    };
+    
+    protected class ConfigureAllFields implements EntityInitializer<Entity> {
+        
+        private final ResultSet rs;
+        private final String[] fields;
+
+        public ConfigureAllFields(ResultSet rs) throws SQLException {
+            this.rs = rs;
+            ResultSetMetaData meta = rs.getMetaData();
+            fields = new String[meta.getColumnCount()];
+            for (int i = 0; i < fields.length; i++) {
+                fields[i] = meta.getColumnLabel(i+1);
+            }
+        }
+
+        @Override
+        public void apply(Entity entity) throws SQLException {
+            for (int i = 0; i < fields.length; i++) {
+                setField(entity, fields[i], rs, i+1);
+            }
+        }
+
+        @Override
+        public void complete() throws SQLException { }
+
+        @Override
+        public void close() throws SQLException { }
     }
     
     /**

@@ -14,9 +14,9 @@ import org.cthul.miro.graph.Graph;
 import org.cthul.miro.graph.GraphConfigurationProvider;
 import org.cthul.miro.query.*;
 import org.cthul.miro.query.adapter.JdbcQuery;
-import org.cthul.miro.query.parts.ConfigurationQueryPart;
-import org.cthul.miro.query.parts.QueryPart;
+import org.cthul.miro.query.parts.*;
 import org.cthul.miro.query.template.QueryTemplate;
+import org.cthul.miro.query.template.UniqueKey;
 import org.cthul.miro.result.*;
 
 public class AbstractMappedQuery<Entity> extends AbstractQuery {
@@ -52,6 +52,14 @@ public class AbstractMappedQuery<Entity> extends AbstractQuery {
         this.graph = graph;
     }
     
+    protected void configure(Object config) {
+        configure(new UniqueKey("configure"), config);
+    }
+
+    protected void configure(Object key, Object config) {
+        EntityConfigurationPart<?> part = new EntityConfigurationPart<>(config, key);
+        addPart(OtherQueryPart.VIRTUAL, part);
+    }
     
     @Override
     protected synchronized void addPart(QueryPartType partType, QueryPart part) {
@@ -178,5 +186,53 @@ public class AbstractMappedQuery<Entity> extends AbstractQuery {
             }
         };
         return cnn.submit(this, exec);
+    }
+
+    @Override
+    protected Internal newInternal() {
+        return new Internal();
+    }
+    
+    protected class Internal extends AbstractQuery.Internal implements MappedInternalQueryBuilder {
+
+        @Override
+        public void configure(Object config) {
+            AbstractMappedQuery.this.configure(config);
+        }
+
+        @Override
+        public void configure(Object key, Object config) {
+            AbstractMappedQuery.this.configure(key, config);
+        }
+    }
+    
+    protected static class EntityConfigurationPart<Entity> extends AbstractQueryPart implements ConfigurationQueryPart {
+        
+        private final Object cfg;
+        private Object[] args = null;
+
+        public EntityConfigurationPart(Object cfg, Object key) {
+            super(key);
+            this.cfg = cfg;
+        }
+
+        @Override
+        public void put(Object key, Object... args) {
+            if (key == null || "".equals(key)) {
+                this.args = args;
+            } else {
+                super.put(key, args);
+            }
+        }
+
+        @Override
+        public Object getConfiguration() {
+            return cfg;
+        }
+
+        @Override
+        public Object[] getArguments() {
+            return args;
+        }
     }
 }

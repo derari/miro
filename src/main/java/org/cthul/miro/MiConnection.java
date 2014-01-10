@@ -18,6 +18,7 @@ import org.cthul.miro.util.FutureBase;
  */
 public class MiConnection implements AutoCloseable {
 
+    private final JdbcAdapter jdbcAdapter;
     private final Connection connection;
     private final ExecutorService actionExecutor;
     private final ExecutorService queryExecutor;
@@ -25,8 +26,8 @@ public class MiConnection implements AutoCloseable {
     private final List<QueryPreProcessor> preProcessors = new ArrayList<>();
     private boolean closed = false;
 
-    @SuppressWarnings("LeakingThisInConstructor")
-    public MiConnection(Connection connection) {
+    public MiConnection(JdbcAdapter jdbcAdapter, Connection connection) {
+        this.jdbcAdapter = jdbcAdapter == null ? AnsiSql.getInstance() : jdbcAdapter;
         this.connection = connection;
         openConnections.put(this, true);
         ThreadFactory tf = new ThreadFactory() {
@@ -46,8 +47,12 @@ public class MiConnection implements AutoCloseable {
             }
         };
         queryExecutor = Executors.newFixedThreadPool(3, tf);
-        actionExecutor = newDynamicThreadPool(8, tf);
-        AsynchronousFileChannel c = null;
+        actionExecutor = Executors.newFixedThreadPool(3, tf);//newDynamicThreadPool(8, tf);
+    }
+
+    @SuppressWarnings("LeakingThisInConstructor")
+    public MiConnection(Connection connection) {
+        this(null, connection);
     }
     
     private ExecutorService newDynamicThreadPool(int max, ThreadFactory tf) {
@@ -66,7 +71,7 @@ public class MiConnection implements AutoCloseable {
     }
     
     public JdbcAdapter getJdbcAdapter() {
-        return AnsiSql.getInstance();
+        return jdbcAdapter;
     }
     
     public ResultSet execute(JdbcQuery<?> query) throws SQLException {

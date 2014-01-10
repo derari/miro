@@ -8,8 +8,6 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import org.cthul.miro.doc.MultiValue;
 import org.cthul.miro.graph.EntityGraphAdapter;
-import org.cthul.miro.map.ConfigurationInstance;
-import org.cthul.miro.map.ConfigurationProvider;
 import org.cthul.miro.map.EntityPart;
 import org.cthul.miro.map.MappedTemplate;
 import org.cthul.miro.map.MappedTemplateProvider;

@@ -133,7 +133,11 @@ public class MappedQueryString<Result> implements QueryWithResult<Result> {
     }
     
     protected EntityConfiguration<?> getFieldsConfiguration(MiConnection cnn) {
-        return mapping.newFieldConfiguration(getSelected());
+        List<String> result = getSelected();
+        if (result.isEmpty()) {
+            return mapping.newFieldConfiguration(Arrays.asList("*"));
+        }
+        return mapping.newFieldConfiguration(result);
     }
     
     protected EntityConfiguration<?> getConfiguration(MiConnection cnn) {

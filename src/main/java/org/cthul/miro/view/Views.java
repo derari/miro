@@ -61,69 +61,108 @@ public class Views {
         return (V) Proxy.newProxyInstance(clazz.getClassLoader(), viewApi, handler);
     }
     
-    public static <Result> MappedQueryStringView<Result> query(Mapping<?> mapping, ResultBuilder<Result, ?> resultBuilder, String query) {
-        return new MappedQueryStringView<>(query, mapping, resultBuilder);
+    public static <Result> MappedQueryStringView<Result> query(Mapping<?> mapping, ResultBuilder<Result, ?> resultBuilder, String query, Object... args) {
+        return new MappedQueryStringView<>(mapping, resultBuilder, query, args);
     }
     
-    public static MappedQueryStringView<Results> query(Mapping<?> mapping, String query) {
-        return new MappedQueryStringView<>(query, mapping);
+    public static <E> MappedQueryStringView<Results<E>> query(Mapping<E> mapping, String query, Object... args) {
+        return new MappedQueryStringView<>(mapping, query, args);
+    }
+    
+    public static ViewBuilder<?,?,?,?> build(Object... args) {
+        return new ViewBuilder<>(args);
     }
 
-//    public static class ViewBuilder<E, C, R, U, D, RS> {
-//        
-//        private final MappedDataQueryTemplateProvider<E> provider;
-//        private final ResultBuilder<RS, E> resultBuilder;
-//        private QueryFactory<C> insert;
-//        private QueryFactory<R> select;
-//        private QueryFactory<U> update;
-//        private QueryFactory<D> delete;
-//
-//        public ViewBuilder(MappedDataQueryTemplateProvider<E> provider, ResultBuilder<RS, E> resultBuilder) {
-//            this.provider = provider;
-//            this.resultBuilder = resultBuilder;
-//        }
-//
-//        public ViewBuilder(MappedDataQueryTemplateProvider<E> provider) {
-//            this(provider, null);
-//        }
-//        
-//        private <T> T self() {
-//            return (T) this;
-//        }
-//        
-//        private <Q> QueryFactory<Q> qf(Class<Q> queryClass) {
-//            return new ReflectiveQueryFactory<>(queryClass, DataQuery.SELECT, provider, resultBuilder);
-//        }
-//        
-//        public <C2> ViewBuilder<E, C2, R, U, D, RS> c(Class<C2> queryClass) {
-//            ViewBuilder<E, C2, R, U, D, RS> self = self();
-//            self.insert = qf(queryClass);
-//            return self;
-//        }
-//        
-//        public <R2> ViewBuilder<E, C, R2, U, D, RS> r(Class<R2> queryClass) {
-//            ViewBuilder<E, C, R2, U, D, RS> self = self();
-//            self.select = qf(queryClass);
-//            return self;
-//        }
-//        
-//        public <U2> ViewBuilder<E, C, R, U2, D, RS> u(Class<U2> queryClass) {
-//            ViewBuilder<E, C, R, U2, D, RS> self = self();
-//            self.update = qf(queryClass);
-//            return self;
-//        }
-//        
-//        public <D2> ViewBuilder<E, C, R, U, D2, RS> d(Class<D2> queryClass) {
-//            ViewBuilder<E, C, R, U, D2, RS> self = self();
-//            self.delete = qf(queryClass);
-//            return self;
-//        }
-//        
-//        public <Q> ViewBuilder<E, Q, Q, Q, Q, RS> crud(Class<Q> queryClass) {
-//            return c(queryClass).r(queryClass).u(queryClass).d(queryClass);
-//        }
-//        
-//    }
+    public static class ViewBuilder<C, R, U, D> extends AbstractViewCRUD<C, R, U, D> {
+        
+        private final Object[] args;
+        private QueryFactory<C> insert;
+        private QueryFactory<R> select;
+        private QueryFactory<U> update;
+        private QueryFactory<D> delete;
+
+        public ViewBuilder(Object[] args) {
+            this.args = args;
+        }
+        
+        private <T> T self() {
+            return (T) this;
+        }
+        
+        private <Q> QueryFactory<Q> qf(Class<Q> queryClass, QueryType<?> type) {
+            if (queryClass.isInterface()) {
+                return interfaceFactory(queryClass, type, args);
+            } else {
+                return new ReflectiveQueryFactory<>(queryClass, type, args);
+            }
+        }
+        
+        public <C2> ViewBuilder<C2, R, U, D> c(Class<C2> queryClass) {
+            ViewBuilder<C2, R, U, D> self = self();
+            self.insert = qf(queryClass, DataQuery.INSERT);
+            return self;
+        }
+        
+        public <R2> ViewBuilder<C, R2, U, D> r(Class<R2> queryClass) {
+            ViewBuilder<C, R2, U, D> self = self();
+            self.select = qf(queryClass, DataQuery.SELECT);
+            return self;
+        }
+        
+        public <U2> ViewBuilder<C, R, U2, D> u(Class<U2> queryClass) {
+            ViewBuilder<C, R, U2, D> self = self();
+            self.update = qf(queryClass, DataQuery.UPDATE);
+            return self;
+        }
+        
+        public <D2> ViewBuilder<C, R, U, D2> d(Class<D2> queryClass) {
+            ViewBuilder<C, R, U, D2> self = self();
+            self.delete = qf(queryClass, DataQuery.DELETE);
+            return self;
+        }
+        
+        public <Q> ViewBuilder<Q, Q, Q, Q> crud(Class<Q> queryClass) {
+            return c(queryClass).r(queryClass).u(queryClass).d(queryClass);
+        }
+        
+        public <Q> ViewBuilder<Q, R, Q, Q> cud(Class<Q> queryClass) {
+            return c(queryClass).u(queryClass).d(queryClass);
+        }
+        
+        public ViewCRUD<C, R, U, D> build() {
+            return build(ViewCRUD.class);
+        }
+        
+        public <View> View build(Class<View> clazz) {
+            Class[] viewApi = {clazz};
+            InvocationHandler handler = new ProxyHandlerView(clazz, insert, select, update, delete);
+            return (View) Proxy.newProxyInstance(clazz.getClassLoader(), viewApi, handler);
+        }
+
+        @Override
+        public C insert(String... attributes) {
+            if (insert == null) throw new IllegalStateException("not configured");
+            return insert.newQuery(attributes);
+        }
+
+        @Override
+        public R select(String... attributes) {
+            if (select == null) throw new IllegalStateException("not configured");
+            return select.newQuery(attributes);
+        }
+
+        @Override
+        public U update(String... attributes) {
+            if (update == null) throw new IllegalStateException("not configured");
+            return update.newQuery(attributes);
+        }
+
+        @Override
+        public D delete() {
+            if (delete == null) throw new IllegalStateException("not configured");
+            return delete.newQuery(NO_STRINGS);
+        }
+    }
     
     protected static QueryFactory<?> interfaceFactory(Class<?>[] prevIfaces, Object[][] cachedArgs, Class<?> iface, QueryType<?> type, Object[] args) {
         int index = 0;
@@ -163,6 +202,35 @@ public class Views {
         if (index < prevIfaces.length) {
             prevIfaces[index] = iface;
             cachedArgs[index] = args;
+        }
+        return new InterfaceQueryFactory<>(iface, type, args);
+    }
+    
+    protected static <Q> QueryFactory<Q> interfaceFactory(Class<Q> iface, QueryType<?> type, Object[] args) {
+        args = args.clone();
+        boolean success = false;
+        for (int i = 0; i < args.length; i++) {
+            Object a = args[i];
+            if (a instanceof MappedTemplateProvider) {
+                a = new AnnotatedTemplateProvider<>((MappedTemplateProvider) a, iface);
+                args[i] = a;
+                success = true;
+                break;
+            }
+        }
+        if (!success) {
+            for (int i = 0; i < args.length; i++) {
+                Object a = args[i];
+                if (a instanceof Mapping) {
+                    a = new AnnotatedTemplateProvider<>((Mapping) a, iface);
+                    args[i] = a;
+                    success = true;
+                    break;
+                }
+            }
+        }
+        if (!success) {
+            throw new IllegalArgumentException("Mapping or template required");
         }
         return new InterfaceQueryFactory<>(iface, type, args);
     }

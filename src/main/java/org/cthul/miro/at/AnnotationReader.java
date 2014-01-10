@@ -12,6 +12,7 @@ import org.cthul.miro.dml.MappedDataQueryTemplateProvider.Using;
 import org.cthul.miro.dml.IncludeMode;
 import org.cthul.miro.map.ConfigurationInstance;
 import org.cthul.miro.map.ConfigurationProvider;
+import org.cthul.miro.map.MappedInternalQueryBuilder;
 import org.cthul.miro.map.Mapping;
 import org.cthul.miro.query.InternalQueryBuilder;
 import org.cthul.miro.query.parts.QueryPart;
@@ -290,7 +291,7 @@ public class AnnotationReader {
             params = m.getParameterTypes();
         }
         Class[] params1 = new Class[params.length+1];
-        params1[0] = InternalQueryBuilder.class;
+        params1[0] = MappedInternalQueryBuilder.class;
         System.arraycopy(params, 0, params1, 1, params.length);
         Method[] candidates = Signatures.collectMethods(impl, method, Signatures.STATIC | Signatures.PUBLIC, Signatures.NONE);
         final Method implM = Signatures.bestMethod(candidates, params1);
@@ -680,8 +681,9 @@ public class AnnotationReader {
     private static final Put[] NO_PUTS = {}; 
     private static final More[] NO_MORES = {}; 
     private static final Arg[] NO_ARGS = {}; 
+    private static final Object[] NO_OBJECTS = {};
     
-    private static final Object[] NO_DEPENDENCIES = {};
+    private static final Object[] NO_DEPENDENCIES = NO_OBJECTS;
     private static final Object[] AUTODETECT_DEPENDENCIES = null;
 
     private static final Keys NO_KEYS = new Keys() {
@@ -919,6 +921,7 @@ public class AnnotationReader {
     
     private static Object[] getMappedArgs(int[] map, Object[] values, Object context) {
         if (map == null || isDefaultArgsMapping(map)) {
+            if (values == null) return NO_OBJECTS;
             return values;
         } else {
             final List<Object> result = new ArrayList<>();

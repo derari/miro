@@ -11,13 +11,13 @@ import org.cthul.miro.query.template.QueryTemplateProvider;
 
 public class AbstractQuery {
     
-    private final Internal internal = new Internal();
     private final Map<Object, QueryPart> parts = new HashMap<>();
     private final List<QueryPart> partList = new ArrayList<>();
     private final List<QueryPartType> typeList = new ArrayList<>();
     private final LinkedHashSet<String> resultAttributes = new LinkedHashSet<>();
     private final QueryType<?> queryType;
     private final QueryTemplate template;
+    private Internal internal = null;
     private int initialized = -1;
     private boolean hasAttributes = false;
 
@@ -55,6 +55,9 @@ public class AbstractQuery {
     }
     
     protected InternalQueryBuilder internal() {
+        if (internal == null) {
+            internal = newInternal();
+        }
         return internal;
     }
 
@@ -149,10 +152,13 @@ public class AbstractQuery {
         put(DataQueryKey.PUT_ALWAYS);
     }
     
+    protected Internal newInternal() {
+        return new Internal();
+    }
     
 //    private static final Object[] NO_ARGS = {};
     
-    private class Internal implements InternalQueryBuilder {
+    protected class Internal implements InternalQueryBuilder {
 
         @Override
         public QueryType<?> getQueryType() {
