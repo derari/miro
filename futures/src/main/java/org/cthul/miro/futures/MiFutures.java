@@ -3,6 +3,8 @@ package org.cthul.miro.futures;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
 import java.util.function.Consumer;
 
 public class MiFutures {
@@ -11,7 +13,7 @@ public class MiFutures {
     
     private static final MiFunction<?, ?> EXPECTED_FAIL = new ExpectedFail<>();
     
-    private static final Executor RUN_NOW_EXECUTOR = Runnable::run;
+//    private static final Executor RUN_NOW_EXECUTOR = Runnable::run;
     
     @SuppressWarnings("unchecked")
     public static <R> MiFunction<Throwable, R> expectedSuccess() {
@@ -59,19 +61,26 @@ public class MiFutures {
         return c::accept;
     }
     
-    public static Executor runNowExecutor() {
-        return RUN_NOW_EXECUTOR;
+    public static Executor defaultExecutor() {
+        Executor ex = ForkJoinTask.getPool();
+        if (ex != null) return ex;
+        return ForkJoinPool.commonPool();
+    }
+    
+    public static <T, R> MiAction<R> action(Executor executor, T arg, MiFunction<? super T, ? extends R> function) {
+        return new SimpleMiAction<>(executor, arg, function);
     }
     
     public static <T, R> MiFuture<R> submit(Executor executor, T arg, MiFunction<? super T, ? extends R> function) {
-        return new MiAction<>(executor, arg, function).submit();
+        return action(executor, arg, function).submit();
     }
     
     protected static class ExpectedSuccess<R> implements MiFunction<Throwable, R> {
         @Override
         public R call(Throwable arg) throws Throwable {
-            throw new IllegalStateException(
-                "Expected success, but operation failed", arg);
+            throw arg;
+//            throw new IllegalStateException(
+//                "Expected success, but operation failed", arg);
         }
     }
     

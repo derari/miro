@@ -41,6 +41,40 @@ public interface MiFuture<V> extends Future<V> {
             return false;
         }
     }
+    
+    /**
+     * Waits for the operation to complete.
+     * Throws an {@code IllegalStateException} if the operation does not 
+     * complete or fails.
+     * @throws IllegalStateException if no success
+     */
+    default void awaitSuccess() {
+        try {
+            await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        if (hasResult()) return;
+        throw new IllegalStateException("Failed.");
+    }
+    
+    /**
+     * Waits for the operation to complete.
+     * Throws an {@code IllegalStateException} if the operation does not 
+     * complete or fails.
+     * @param timeout
+     * @param unit
+     * @throws IllegalStateException if no success
+     */
+    default void awaitSuccess(long timeout, TimeUnit unit) {
+        try {
+            await(timeout, unit);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (TimeoutException e) { }
+        if (hasResult()) return;
+        throw new IllegalStateException("Failed.");
+    }
 
     /**
      * Waits until execution is complete or the thread is interrupted.
@@ -58,11 +92,23 @@ public interface MiFuture<V> extends Future<V> {
      */
     void await(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException;
     
+    /**
+     * Throws an {@code IllegalStateException} if not {@linkplain #isDone() done}.
+     * @throws IllegalStateException if not done
+     */
     default void assertIsDone() {
         if (isDone()) return;
+        if (isCancelled()) {
+            throw new IllegalStateException("Cancelled.");
+        }
         throw new IllegalStateException("Not done yet.");
     }
     
+    /**
+     * Cancels computation of this value and all input values.
+     * @param mayInterruptIfRunning
+     * @return 
+     */
     boolean deepCancel(boolean mayInterruptIfRunning);
     
     /**
@@ -107,6 +153,13 @@ public interface MiFuture<V> extends Future<V> {
         }
     }
     
+    /**
+     * Like {@link #get()}, but immediately throws an 
+     * {@code IllegalStateException} if no result is available.
+     * @return result
+     * @throws ExecutionException 
+     * @throws IllegalStateException if not done
+     */
     @SuppressWarnings("ThrowableResultIgnored")
     default V getNow() throws ExecutionException {
         assertIsDone();

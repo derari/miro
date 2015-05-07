@@ -44,6 +44,11 @@ public class MiFutureDelegator<V> implements MiFuture<V> {
     public void await(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
         getDelegatee().await(timeout, unit);
     }
+    
+    @Override
+    public boolean isDone() {
+        return getDelegatee().isDone();
+    }
 
     @Override
     public boolean hasResult() {
@@ -79,10 +84,5 @@ public class MiFutureDelegator<V> implements MiFuture<V> {
     @Override
     public boolean deepCancel(boolean mayInterruptIfRunning) {
         return getCancelDelegatee().deepCancel(mayInterruptIfRunning);
-    }
-    
-    @Override
-    public boolean isDone() {
-        return getDelegatee().isDone();
     }
 }

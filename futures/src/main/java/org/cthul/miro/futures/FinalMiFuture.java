@@ -6,7 +6,7 @@ import java.util.concurrent.Executor;
  * A {@link MiFuture Future} with final value.
  * @param <V> 
  */
-public class FinalMiFuture<V> extends SimpleMiFuture<V> {
+public class FinalMiFuture<V> extends AbstractMiFuture<V> {
     
     public static <V> FinalMiFuture<V> cancelled() {
         return new FinalMiFuture<>();

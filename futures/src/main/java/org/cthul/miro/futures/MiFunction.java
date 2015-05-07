@@ -21,28 +21,32 @@ public interface MiFunction<T, R> extends Function<T, R> {
             throw MiFutures.rethrowUnchecked(e);
         }
     }
+    
+    default MiSupplier<R> withArg(T arg) {
+        return () -> apply(arg);
+    }
 
     default MiFuture<R> submit(Executor executor, T arg) {
         return MiFutures.submit(executor, arg, this);
     }
     
-    default MiAction<T, R> asAction(Executor executor, T arg) {
-        return new MiAction<>(executor, arg, this);
+    default MiAction<R> asAction(Executor executor, T arg) {
+        return MiFutures.action(executor, arg, this);
     }
     
     default MiFuture<R> getTrigger(Executor executor, T arg) {
         return asAction(executor, arg).getTrigger();
     }
     
-    default MiFuture<R> execute(T arg) {
-        return submit(MiFutures.runNowExecutor(), arg);
+    default MiFuture<R> submit(T arg) {
+        return MiFunction.this.submit(MiFutures.defaultExecutor(), arg);
     }
     
-    default MiAction<T, R> asAction(T arg) {
-        return asAction(MiFutures.runNowExecutor(), arg);
+    default MiAction<R> asAction(T arg) {
+        return asAction(MiFutures.defaultExecutor(), arg);
     }
     
     default MiFuture<R> getTrigger(T arg) {
-        return getTrigger(MiFutures.runNowExecutor(), arg);
+        return getTrigger(MiFutures.defaultExecutor(), arg);
     }
 }
