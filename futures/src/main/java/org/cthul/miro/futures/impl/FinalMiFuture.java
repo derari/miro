@@ -1,4 +1,4 @@
-package org.cthul.miro.futures;
+package org.cthul.miro.futures.impl;
 
 import java.util.concurrent.Executor;
 

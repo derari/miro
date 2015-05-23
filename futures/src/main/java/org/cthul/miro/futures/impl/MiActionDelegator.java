@@ -1,32 +1,37 @@
-package org.cthul.miro.futures;
+package org.cthul.miro.futures.impl;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.cthul.miro.futures.MiAction;
+import org.cthul.miro.futures.MiFunction;
+import org.cthul.miro.futures.MiFuture;
 
 /**
  * Base class for implementations that want to decorate a {@link MiFuture}.
  * @param <V>
  */
-public class MiFutureDelegator<V> implements MiFuture<V> {
+public class MiActionDelegator<V> implements MiAction<V> {
     
-    private final MiFuture<V> delegatee;
+    private final MiAction<V> delegatee;
     private final Executor defaultExecutor;
 
-    public MiFutureDelegator(MiFuture<V> delegatee) {
+    public MiActionDelegator(MiAction<? extends V> delegatee) {
         this(delegatee, null);
     }
 
-    public MiFutureDelegator(MiFuture<V> delegatee, Executor defaultExecutor) {
-        this.delegatee = delegatee;
+    @SuppressWarnings("unchecked")
+    public MiActionDelegator(MiAction<? extends V> delegatee, Executor defaultExecutor) {
+        this.delegatee = (MiAction) delegatee;
         this.defaultExecutor = defaultExecutor;
     }
 
-    protected MiFuture<V> getDelegatee() {
+    protected MiAction<V> getDelegatee() {
         return delegatee;
     }
     
-    protected MiFuture<V> getCancelDelegatee() {
+    protected MiAction<V> getCancelDelegatee() {
         return getDelegatee();
     }
     
@@ -66,9 +71,15 @@ public class MiFutureDelegator<V> implements MiFuture<V> {
     }
 
     @Override
-    public <R> MiFuture<R> onComplete(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> action) {
+    public <R> MiAction<R> onComplete(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> action) {
         executor = replaceExecutor(executor);
         return getDelegatee().onComplete(executor, action);
+    }
+
+    @Override
+    public <R> MiAction<R> onCompleteAlways(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> action) {
+        executor = replaceExecutor(executor);
+        return getDelegatee().onCompleteAlways(executor, action);
     }
 
     @Override
@@ -84,5 +95,15 @@ public class MiFutureDelegator<V> implements MiFuture<V> {
     @Override
     public boolean deepCancel(boolean mayInterruptIfRunning) {
         return getCancelDelegatee().deepCancel(mayInterruptIfRunning);
+    }
+
+    @Override
+    public MiFuture<V> getTrigger() {
+        return getDelegatee().getTrigger();
+    }
+
+    @Override
+    public MiFuture<V> submit() {
+        return getDelegatee().submit();
     }
 }

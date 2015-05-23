@@ -1,13 +1,14 @@
-package org.cthul.miro.futures;
+package org.cthul.miro.futures.impl;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.cthul.miro.futures.MiFunction;
+import org.cthul.miro.futures.MiFuture;
 
 /**
  * Base class for {@link MiFuture}s.
@@ -72,7 +73,7 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
      * Indicates if the underlying action should continue.
      * @return false if operation should be cancelled
      */
-    protected boolean continueWork() {
+    protected boolean beginWork() {
         if (isCancelled()) {
             result(null);
             return false;
@@ -94,8 +95,7 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
                 cancelSuccess = true;
             } else {
                 if (done) {
-                    throw new IllegalArgumentException(
-                            "Is already done.");
+                    throw new IllegalStateException("Is already done.");
                 }
                 done = true;
                 this.result = result;
@@ -115,8 +115,7 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
                 cancelSuccess = true;
             } else { 
                 if (done) {
-                    throw new IllegalArgumentException(
-                            "Is already done.");
+                    throw new IllegalStateException("Is already done.");
                 }
                 done = true;
                 this.exception = exception;
@@ -221,8 +220,17 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
 
     @Override
     public <R> MiFuture<R> onComplete(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> action) {
+        return onComplete(true, executor, action);
+    }
+
+    @Override
+    public <R> MiFuture<R> onCompleteAlways(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> action) {
+        return onComplete(false, executor, action);
+    }
+    
+    protected <R> MiFuture<R> onComplete(boolean canCancel, Executor executor, MiFunction<? super MiFuture<V>, ? extends R> action) {
         executor = replaceExecutor(executor);
-        OnComplete<R> onComplete = new OnComplete<>(executor, action);
+        OnComplete<R> onComplete = new OnComplete<>(canCancel, executor, action);
         if (!enqueue(onComplete)) {
             onComplete.submit();
         }
@@ -262,19 +270,33 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
     }
 
     protected class OnComplete<R> extends SubmittableMiFuture<MiFuture<V>, R> {
+        
+        private final boolean canCancel;
 
-        public OnComplete(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> function) {
+        public OnComplete(boolean canCancel, Executor executor, MiFunction<? super MiFuture<V>, ? extends R> function) {
             super(executor, function);
+            this.canCancel = canCancel;
         }
 
         public void submit() {
-            if (AbstractMiFuture.this.cancelled) {
+            if (canCancel && AbstractMiFuture.this.cancelled) {
                 cancel(false);
             } else {
                 submit(AbstractMiFuture.this);
             }
         }
 
+        @Override
+        protected boolean beginWork() {
+            return true;
+        }
+
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) {
+            if (!canCancel) return false;
+            return super.cancel(mayInterruptIfRunning);
+        }
+        
         @Override
         public boolean deepCancel(boolean mayInterruptIfRunning) {
             AbstractMiFuture.this.deepCancel(mayInterruptIfRunning);

@@ -21,31 +21,31 @@ public interface MiConsumer<T> extends Consumer<T> {
         }
     }
     
-    default MiFunction<T, Void> asFunction() {
-        return v -> {accept(v); return null;};
+    default MiFunction<T, T> asFunction() {
+        return v -> {accept(v); return v;};
     }
 
-    default MiFuture<Void> submit(Executor executor, T value) {
+    default MiFuture<T> submit(Executor executor, T value) {
         return asAction(executor, value).submit();
     }
     
-    default MiAction<Void> asAction(Executor executor, T value) {
+    default MiAction<T> asAction(Executor executor, T value) {
         return asFunction().asAction(value);
     }
     
-    default MiFuture<Void> getTrigger(Executor executor, T value) {
+    default MiFuture<T> getTrigger(Executor executor, T value) {
         return asAction(executor, value).getTrigger();
     }
     
-    default MiFuture<Void> submit(T value) {
+    default MiFuture<T> submit(T value) {
         return submit(null, value);
     }
     
-    default MiAction<Void> asAction(T value) {
+    default MiAction<T> asAction(T value) {
         return asAction(null, value);
     }
     
-    default MiFuture<Void> getTrigger(T value) {
+    default MiFuture<T> getTrigger(T value) {
         return getTrigger(null, value);
     }
 }

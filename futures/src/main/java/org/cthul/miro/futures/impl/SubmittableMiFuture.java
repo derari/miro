@@ -1,4 +1,4 @@
-package org.cthul.miro.futures;
+package org.cthul.miro.futures.impl;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -7,6 +7,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.cthul.miro.futures.MiFunction;
+import org.cthul.miro.futures.MiFutures;
 
 public abstract class SubmittableMiFuture<T, R> extends AbstractMiFuture<R> {
 
@@ -40,15 +42,15 @@ public abstract class SubmittableMiFuture<T, R> extends AbstractMiFuture<R> {
         synchronized (lock()) {
             if (isStarted() || isCancelled()) return this;
             Runner r = new Runner(arg);
-            Future<?> f = null;
+            Future<?> cancelDelegate = null;
             if (exec instanceof ExecutorService) {
                 ExecutorService es = (ExecutorService) exec;
-                f = es.submit(r);
+                cancelDelegate = es.submit(r);
             } else {
                 exec.execute(r);
-                f = r;
+                cancelDelegate = r;
             }
-            start(f);
+            start(cancelDelegate);
         }
         return this;
     }
@@ -62,21 +64,29 @@ public abstract class SubmittableMiFuture<T, R> extends AbstractMiFuture<R> {
         @Override
         public void run() {
             // don't start before #submit is done
-            Thread thread = Thread.currentThread();
             synchronized (lock()) {
-                if (!continueWork()) return;
+                thread = Thread.currentThread();
+                if (!beginWork()) return;
             }
             try {
                 R r = function.call(arg);
                 result(r);
             } catch (Throwable t) {
                 fail(t);
+            } finally {
+                thread = null;
             }
         }
 
         @Override
         public boolean cancel(boolean mayInterruptIfRunning) {
-            throw new UnsupportedOperationException("Not supported yet.");
+            synchronized (lock()) {
+                if (thread == null) return true;
+                if (mayInterruptIfRunning) {
+                    thread.interrupt();
+                }
+                return false;
+            }
         }
 
         @Override

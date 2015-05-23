@@ -1,10 +1,14 @@
 package org.cthul.miro.futures;
 
+import org.cthul.miro.futures.impl.MiFutureDelegator;
+import org.cthul.miro.futures.impl.SimpleMiAction;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 public class MiFutures {
@@ -75,6 +79,42 @@ public class MiFutures {
         return action(executor, arg, function).submit();
     }
     
+    public static <V> MiFuture<V> trigger(MiAction<V> action) {
+        return new MiFutureDelegator<V>(action) {
+            @Override
+            protected MiFuture<V> getDelegatee() {
+                action.submit();
+                return super.getDelegatee();
+            }
+            @Override
+            protected MiFuture<V> getCancelDelegatee() {
+                return super.getDelegatee();
+            }
+        };
+    }
+    
+    public static <T> MiFunction<MiFuture<T>, T> reportException() {
+        return reportException(t -> t.printStackTrace(System.err));
+    }
+    
+    public static <T> MiFunction<MiFuture<T>, T> reportException(Consumer<Throwable> handler) {
+        return f -> {
+            if (f.hasFailed()) {
+                Throwable t = f.getException();
+                handler.accept(t);
+                throw t;
+            }
+            return f.getResult();
+        };
+    }
+    
+    public static <V> MiAction<V> futureAsAction(MiFuture<V> future) {
+        if (future instanceof MiAction) {
+            return (MiAction<V>) future;
+        }
+        return new FutureAsAction<>(future);
+    }
+    
     protected static class ExpectedSuccess<R> implements MiFunction<Throwable, R> {
         @Override
         public R call(Throwable arg) throws Throwable {
@@ -126,6 +166,35 @@ public class MiFutures {
     protected static class OnFailure<T, R> extends OnComplete<T, R> {
         public OnFailure(MiFunction<? super Throwable, ? extends R> onFail) {
             super(expectedFail(), onFail);
+        }
+    }
+    
+    static class FutureAsAction<V> extends MiFutureDelegator<V> implements MiAction<V> {
+
+        public FutureAsAction(MiFuture<? extends V> delegatee) {
+            super(delegatee);
+        }
+
+        @Override
+        public MiFuture<V> getTrigger() {
+            return getDelegatee();
+        }
+
+        @Override
+        public MiFuture<V> submit() {
+            return getDelegatee();
+        }
+
+        @Override
+        public <R> MiAction<R> onComplete(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> function) {
+            MiFuture<R> f = getDelegatee().onComplete(executor, function);
+            return futureAsAction(f);
+        }
+
+        @Override
+        public <R> MiAction<R> onCompleteAlways(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> function) {
+            MiFuture<R> f = getDelegatee().onCompleteAlways(executor, function);
+            return futureAsAction(f);
         }
     }
 }

@@ -1,7 +1,6 @@
 package org.cthul.miro.futures;
 
 import java.util.concurrent.Executor;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -22,7 +21,7 @@ public interface MiSupplier<T> extends Supplier<T> {
         }
     }
     
-    default MiFunction<Void, T> asFunction() {
+    default MiFunction<Object, T> asFunction() {
         return v -> call();
     }
 

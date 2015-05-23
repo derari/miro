@@ -39,14 +39,14 @@ public interface MiFunction<T, R> extends Function<T, R> {
     }
     
     default MiFuture<R> submit(T arg) {
-        return MiFunction.this.submit(MiFutures.defaultExecutor(), arg);
+        return submit(null, arg);
     }
     
     default MiAction<R> asAction(T arg) {
-        return asAction(MiFutures.defaultExecutor(), arg);
+        return asAction(null, arg);
     }
     
     default MiFuture<R> getTrigger(T arg) {
-        return getTrigger(MiFutures.defaultExecutor(), arg);
+        return getTrigger(null, arg);
     }
 }

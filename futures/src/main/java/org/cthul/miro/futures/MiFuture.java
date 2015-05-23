@@ -184,33 +184,50 @@ public interface MiFuture<V> extends Future<V> {
         return getNow();
     }
 
-    <R> MiFuture<R> onComplete(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> action);
+    <R> MiFuture<R> onComplete(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> function);
+
+    <R> MiFuture<R> onCompleteAlways(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> function);
     
     default <R> MiFuture<R> onComplete(Executor executor, MiFunction<? super V, ? extends R> onSuccess, MiFunction<? super Throwable, ? extends R> onFailure) {
         return onComplete(executor, MiFutures.onComplete(onSuccess, onFailure));
     }
 
-    default <R> MiFuture<R> onSuccess(Executor executor, MiFunction<? super V, ? extends R> action) {
-        return onComplete(executor, action, MiFutures.expectedSuccess());
+    default <R> MiFuture<R> onSuccess(Executor executor, MiFunction<? super V, ? extends R> function) {
+        return onComplete(executor, function, MiFutures.expectedSuccess());
     }
 
-    default <R> MiFuture<R> onFailure(Executor executor, MiFunction<? super Throwable, ? extends R> action) {
-        return onComplete(executor, MiFutures.expectedFail(), action);
+    default <R> MiFuture<R> onFailure(Executor executor, MiFunction<? super Throwable, ? extends R> function) {
+        return onComplete(executor, MiFutures.expectedFail(), function);
     }
     
-    default <R> MiFuture<R> onComplete(MiFunction<? super MiFuture<V>, ? extends R> action) {
-        return onComplete(null, action);
+    default <R> MiFuture<R> andDo(MiFunction<? super MiFuture<V>, ? extends R> function) {
+        return onComplete(null, function);
     }
 
-    default <R> MiFuture<R> onComplete(MiFunction<? super V, ? extends R> onSuccess, MiFunction<? super Throwable, ? extends R> onFailure) {
+    default <R> MiFuture<R> andDo(MiFunction<? super V, ? extends R> onSuccess, MiFunction<? super Throwable, ? extends R> onFailure) {
         return onComplete(null, onSuccess, onFailure);
     }
-
-    default <R> MiFuture<R> onSuccess(MiFunction<? super V, ? extends R> action) {
-        return onSuccess(null, action);
+    
+    default <R> MiFuture<R> andThen(MiFunction<? super V, ? extends R> function) {
+        return onSuccess(null, function);
     }
 
-    default <R> MiFuture<R> onFailure(MiFunction<? super Throwable, R> action) {
-        return onFailure(null, action);
+    default <R, F> F andThen(MiFutureFunction<? super V, R, ? extends F> function) {
+        MiFuture<R> f = andThen((MiFunction<? super V, R>) function);
+        return function.wrap(f);
+    }
+
+    default <R, F> F andThen(MiActionFunction<? super V, R, ? extends F> function) {
+        MiFuture<R> f = andThen((MiFunction<? super V, R>) function);
+        MiAction<R> a = MiFutures.futureAsAction(f);
+        return function.wrap(a);
+    }
+
+    default <R> MiFuture<R> andFinally(MiFunction<? super MiFuture<V>, ? extends R> function) {
+        return onCompleteAlways(null, function);
+    }
+
+    default <R> MiFuture<R> orCatch(MiFunction<? super Throwable, R> function) {
+        return onFailure(null, function);
     }
 }

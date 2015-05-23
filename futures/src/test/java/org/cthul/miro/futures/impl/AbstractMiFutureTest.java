@@ -1,11 +1,13 @@
-package org.cthul.miro.futures;
+package org.cthul.miro.futures.impl;
 
+import org.cthul.miro.futures.impl.AbstractMiFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.cthul.miro.futures.MiFuture;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -21,6 +23,8 @@ public class AbstractMiFutureTest {
     private static ExecutorService executor;
     
     private TestFuture<String> instance;
+    private int temp1 = 0;
+    private int temp2 = 0;
     
     public AbstractMiFutureTest() {
     }
@@ -59,7 +63,7 @@ public class AbstractMiFutureTest {
     
     @Test
     public void test_cancel_chain() {
-        MiFuture<String> f2 = instance.onComplete((f) -> "hello");
+        MiFuture<String> f2 = instance.andDo((f) -> "hello");
         instance.cancel(false);
         assertThat(f2.isCancelled(), is(true));
         assertThat(f2.hasResult(), is(false));
@@ -67,14 +71,14 @@ public class AbstractMiFutureTest {
     
     @Test
     public void test_shallow_cancel() {
-        MiFuture<String> f2 = instance.onComplete((f) -> "hello");
+        MiFuture<String> f2 = instance.andDo((f) -> "hello");
         f2.cancel(false);
         assertThat(instance.isCancelled(), is(false));
     }
     
     @Test
     public void test_deep_cancel() {
-        MiFuture<String> f2 = instance.onComplete((f) -> "hello");
+        MiFuture<String> f2 = instance.andDo((f) -> "hello");
         f2.deepCancel(false);
         assertThat(instance.isCancelled(), is(true));
     }
@@ -189,7 +193,7 @@ public class AbstractMiFutureTest {
 
     @Test
     public void test_onComplete() {
-        MiFuture<Integer> f2 = instance.onComplete((f) -> {
+        MiFuture<Integer> f2 = instance.andDo((f) -> {
             sleep(10);
             assertThat(f.get(), is("hello"));
             return 42;
@@ -200,12 +204,25 @@ public class AbstractMiFutureTest {
     
     @Test
     public void test_onSuccess() throws InterruptedException {
-        MiFuture<Integer> f2 = instance.onSuccess((s) -> {
+        MiFuture<Integer> f2 = instance.andThen((s) -> {
             return 42;
         });
         instance.fail(new RuntimeException());
         f2.await();
         assertThat(f2.hasFailed(), is(true));
+    }
+    
+    @Test
+    public void test_finallyDo() throws InterruptedException {
+        MiFuture<Integer> f = instance.andThen(s -> {
+            return temp1 = 1;
+        }).andFinally(f2 -> {
+           return temp2 = 2; 
+        });
+        f.deepCancel(true);
+        f.await();
+        assertThat(temp1, is(0));
+        assertThat(temp2, is(2));
     }
     
     public static void sleep(long millis) {
