@@ -10,6 +10,7 @@ import org.cthul.miro.result.EntityType;
 
 public class Graph {
 
+    @SuppressWarnings("rawtypes")
     private final Map<Object, EntitySet> entitySets = new HashMap<>();
 
     public Graph() {
@@ -23,6 +24,7 @@ public class Graph {
         return entityType(mtp.getGraphAdapter());
     }
 
+    @SuppressWarnings("rawtypes")
     protected <E> EntitySet<E> entitySet(EntityGraphAdapter<E> ga) {
         EntitySet es = entitySets.get(ga);
         if (es == null) {
