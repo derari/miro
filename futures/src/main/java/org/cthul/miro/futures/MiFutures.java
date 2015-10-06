@@ -7,8 +7,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 public class MiFutures {
@@ -71,6 +69,10 @@ public class MiFutures {
         return ForkJoinPool.commonPool();
     }
     
+    public static <R> MiAction<R> action(MiSupplier<? extends R> supplier) {
+        return (MiAction) supplier.asAction();
+    }
+    
     public static <T, R> MiAction<R> action(Executor executor, T arg, MiFunction<? super T, ? extends R> function) {
         return new SimpleMiAction<>(executor, arg, function);
     }
@@ -112,7 +114,23 @@ public class MiFutures {
         if (future instanceof MiAction) {
             return (MiAction<V>) future;
         }
-        return new FutureAsAction<>(future);
+        return new FutureAsAction<>(future, null);
+    }
+    
+    public static <V> MiAction<V> futureAsAction(MiFuture<V> future, Executor defaultExecutor) {
+        Runnable submit = null;
+        if (future instanceof MiAction) {
+            submit = ((MiAction) future)::submit;
+        }
+        return new FutureAsAction<>(submit, future, defaultExecutor);
+    }
+    
+    public static <V> MiAction<V> futureAsAction(MiFuture<V> future, Runnable submit) {
+        return new FutureAsAction<>(submit, future, null);
+    }
+    
+    public static <V> MiAction<V> futureAsAction(MiFuture<V> future, Executor defaultExecutor, Runnable submit) {
+        return new FutureAsAction<>(submit, future, defaultExecutor);
     }
     
     protected static class ExpectedSuccess<R> implements MiFunction<Throwable, R> {
@@ -170,31 +188,48 @@ public class MiFutures {
     }
     
     static class FutureAsAction<V> extends MiFutureDelegator<V> implements MiAction<V> {
+        
+        private final Runnable submitAction;
+        private MiFuture<V> trigger = null;
 
-        public FutureAsAction(MiFuture<? extends V> delegatee) {
-            super(delegatee);
+        public FutureAsAction(MiFuture<? extends V> delegatee, Executor defaultExecutor) {
+            this(null, delegatee, defaultExecutor);
+        }
+
+        public FutureAsAction(Runnable submitAction, MiFuture<? extends V> delegatee, Executor defaultExecutor) {
+            super(delegatee, defaultExecutor);
+            this.submitAction = submitAction;
+            if (submitAction == null) {
+                this.trigger = (MiFuture) delegatee;
+            }
         }
 
         @Override
         public MiFuture<V> getTrigger() {
-            return getDelegatee();
+            if (trigger == null) {
+                trigger = trigger(this);
+            }
+            return trigger;
         }
 
         @Override
         public MiFuture<V> submit() {
-            return getDelegatee();
+            if (submitAction != null) {
+                submitAction.run();
+            }
+            return this;
         }
 
         @Override
         public <R> MiAction<R> onComplete(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> function) {
             MiFuture<R> f = getDelegatee().onComplete(executor, function);
-            return futureAsAction(f);
+            return futureAsAction(f, executor, this::submit);
         }
 
         @Override
         public <R> MiAction<R> onCompleteAlways(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> function) {
             MiFuture<R> f = getDelegatee().onCompleteAlways(executor, function);
-            return futureAsAction(f);
+            return futureAsAction(f, executor, this::submit);
         }
     }
 }

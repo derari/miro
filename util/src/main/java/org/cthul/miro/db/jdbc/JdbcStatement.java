@@ -1,29 +1,44 @@
 package org.cthul.miro.db.jdbc;
 
-import org.cthul.miro.db.syntax.RequestString;
-import org.cthul.miro.db.syntax.MiQueryString;
-import java.sql.ResultSet;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.List;
 import org.cthul.miro.db.*;
-import org.cthul.miro.db.syntax.MiStatementString;
-import org.cthul.miro.futures.MiAction;
+import org.cthul.miro.db.syntax.BasicCoreStmtBuilder;
+import org.cthul.miro.db.syntax.CoreStmtBuilder;
+import org.cthul.miro.db.syntax.CoreStmtBuilderDelegator;
 
 /**
  *
  */
-public class JdbcStatement extends JdbcRequest<MiStatementString> implements MiStatementString {
+public abstract class JdbcStatement<This extends CoreStmtBuilder> extends CoreStmtBuilderDelegator<This> {
     
-    public JdbcStatement(JdbcConnection connection, RequestString queryString) {
-        super(connection, queryString);
+    protected final JdbcConnection connection;
+    private final BasicCoreStmtBuilder coreBuilder = new BasicCoreStmtBuilder();
+
+    public JdbcStatement(JdbcConnection connection) {
+        this.connection = connection;
     }
 
     @Override
-    public Long execute() throws MiException {
-        return connection.executeStatement(preparedStatement());
+    protected CoreStmtBuilder getDelegatee() {
+        return coreBuilder;
     }
 
-    @Override
-    public MiAction<Long> asAction() {
-        return connection
-                .stmtAction(this::preparedStatement);
+    protected List<Object> getArguments() {
+        return coreBuilder.getArguments();
+    }
+    
+    protected PreparedStatement preparedStatement() throws MiException {
+        PreparedStatement stmt = connection.prepareStatement(toString());
+        List<Object> arguments = getArguments();
+        for (int i = 0; i < arguments.size(); i++) {
+            try {
+                stmt.setObject(i+1, arguments.get(i));
+            } catch (SQLException e) {
+                throw new MiException(e);
+            }
+        }
+        return stmt;
     }
 }

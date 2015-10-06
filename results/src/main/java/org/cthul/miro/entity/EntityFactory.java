@@ -10,6 +10,11 @@ import org.cthul.miro.util.Completable;
  */
 public interface EntityFactory<Entity> extends Completable, AutoCloseable {
     
+    /**
+     * Creates a new entity.
+     * @return new entity
+     * @throws MiException 
+     */
     Entity newEntity() throws MiException;
 
     /**
@@ -31,7 +36,12 @@ public interface EntityFactory<Entity> extends Completable, AutoCloseable {
         return EntityTypes.batch(this);
     }
     
-    default EntityFactory<Entity> with(EntityInitializer<Entity> initializer) {
+    /**
+     * Creates a factory that applies an initializer to new entities.
+     * @param initializer
+     * @return initializing factory
+     */
+    default EntityFactory<Entity> with(EntityInitializer<? super Entity> initializer) {
         return EntityTypes.initializingFactory(this, initializer);
     }
 }

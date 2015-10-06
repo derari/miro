@@ -4,7 +4,8 @@ import org.cthul.miro.db.MiException;
 import org.cthul.miro.util.Completable;
 
 /**
- *
+ * Finds or creates nodes based on their key.
+ * @param <Node>
  */
 public interface NodeSelector<Node> extends AutoCloseable, Completable {
     

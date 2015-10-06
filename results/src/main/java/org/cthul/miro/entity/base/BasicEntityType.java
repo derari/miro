@@ -1,19 +1,73 @@
 package org.cthul.miro.entity.base;
 
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.function.IntFunction;
+import java.util.function.Supplier;
 import org.cthul.miro.entity.EntityFactory;
 import org.cthul.miro.entity.EntityType;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
 
 /**
- *
+ * A simple entity type that can create new entities without input
+ * from the query result.
+ * @param <Entity> entity type
  */
 public abstract class BasicEntityType<Entity> implements EntityType<Entity> {
+    
+    public static <Entity> BasicEntityType<Entity> build(Supplier<Entity> factory, IntFunction<Entity[]> arrayFactory) {
+        String name = null;
+        try {
+            name = factory.getClass().getMethod("get")
+                    .getReturnType().getSimpleName();
+        } catch (Exception e) { /* not important */}
+        return new BasicEntityType<Entity>(name) {
+            @Override
+            protected Entity newEntity() {
+                return factory.get();
+            }
+            @Override
+            public Entity[] newArray(int length) {
+                return arrayFactory.apply(length);
+            }
+        };
+    }
+    
+    public static <Entity> BasicEntityType<Entity> build(Class<? extends Entity> clazz) {
+        String name = clazz.getSimpleName();
+        Constructor<? extends Entity> newEntity; 
+        try {
+            newEntity = clazz.getConstructor();
+        } catch (NoSuchMethodException ex) {
+            throw new RuntimeException(ex);
+        }
+        return new BasicEntityType<Entity>(name) {
+            @Override
+            protected Entity newEntity() {
+                try {
+                    return newEntity.newInstance();
+                } catch (IllegalAccessException | InstantiationException | InvocationTargetException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+            @Override
+            public Entity[] newArray(int length) {
+                return (Entity[]) Array.newInstance(clazz, length);
+            }
+        };
+    }
 
     private final String shortString;
 
     public BasicEntityType() {
-        this.shortString = null;
+        String name = null;
+        try {
+            name = getClass().getMethod("newEntity")
+                    .getReturnType().getSimpleName();
+        } catch (Exception e) { /* not important */}
+        this.shortString = name;
     }
 
     public BasicEntityType(String shortString) {
@@ -59,7 +113,7 @@ public abstract class BasicEntityType<Entity> implements EntityType<Entity> {
 
         @Override
         public String toString() {
-            return "-> " + getShortString();
+            return "(new " + getShortString() + ")";
         }
     }
 }

@@ -18,16 +18,10 @@ public class ResultBuilders {
 
     protected ResultBuilders() {
     }
- 
-    @SuppressWarnings("rawtypes")
-    private static ListResult LIST_RESULT = null;
 
     @SuppressWarnings("unchecked")
     public static <Entity> ListResult<Entity> getListResult() {
-        if (LIST_RESULT == null) {
-            LIST_RESULT = new ListResult<>();
-        }
-        return LIST_RESULT;
+        return ListResult.LIST_RESULT;
     }
 
     public static <Entity> ListResult<Entity> getListResult(Class<Entity> clazz) {
@@ -35,12 +29,14 @@ public class ResultBuilders {
     }
 
     public static class ListResult<Entity> implements EntityResultBuilder<List<Entity>, Entity> {
+        
+        private static final ListResult LIST_RESULT = new ListResult<>();
 
         @Override
-        public List<Entity> build(MiResultSet rs, EntityType<Entity> type) throws MiException {
+        public List<Entity> build(MiResultSet rs, EntityType<? extends Entity> type) throws MiException {
             final List<Entity> result = new ArrayList<>();
             try (MiResultSet __ = rs;
-                    EntityFactory<Entity> factory = type.newFactory(rs)) {
+                    EntityFactory<? extends Entity> factory = type.newFactory(rs)) {
                 while (rs.next()) {
                     final Entity record = factory.newEntity();
                     result.add(record);
@@ -51,47 +47,38 @@ public class ResultBuilders {
         }
     }
     
-    private static ArrayResult ARRAY_RESULT = null;
-
     public static <Entity> ArrayResult<Entity> getArrayResult() {
-        if (ARRAY_RESULT == null) {
-            ARRAY_RESULT = new ArrayResult<>(getListResult());
-        }
-        return ARRAY_RESULT;
+        return ArrayResult.ARRAY_RESULT;
     }
     
     public static <Entity> ArrayResult<Entity> getArrayResult(Class<Entity> clazz) {
         return getArrayResult();
     }
 
-    public static <Entity> ArrayResult<Entity> getArrayResult(EntityResultBuilder<? extends Collection<? extends Entity>, Entity> listResult) {
+    public static <Entity> ArrayResult<Entity> getArrayResult(EntityResultBuilder<? extends Collection<Entity>, Entity> listResult) {
         return new ArrayResult<>(listResult);
     }
 
     public static class ArrayResult<Entity> implements EntityResultBuilder<Entity[], Entity> {
+        
+        private static final ArrayResult ARRAY_RESULT = new ArrayResult<>(getListResult());
 
-        private final EntityResultBuilder<? extends Collection<? extends Entity>, Entity> listResult;
+        private final EntityResultBuilder<? extends Collection<Entity>, Entity> listResult;
 
-        public ArrayResult(EntityResultBuilder<? extends Collection<? extends Entity>, Entity> listResult) {
+        public ArrayResult(EntityResultBuilder<? extends Collection<Entity>, Entity> listResult) {
             this.listResult = listResult;
         }
 
         @Override
-        public Entity[] build(MiResultSet rs, EntityType<Entity> type) throws MiException {
-            Collection<? extends Entity> result = listResult.build(rs, type);
+        public Entity[] build(MiResultSet rs, EntityType<? extends Entity> type) throws MiException {
+            Collection<Entity> result = listResult.build(rs, type);
             return result.toArray(type.newArray(result.size()));
         }
     }
-    
-    @SuppressWarnings("rawtypes")
-    private static CursorResult CURSOR_RESULT = null;
 
     @SuppressWarnings("unchecked")
     public static <Entity> CursorResult<Entity> getCursorResult() {
-        if (CURSOR_RESULT == null) {
-            CURSOR_RESULT = new CursorResult<>();
-        }
-        return CURSOR_RESULT;
+        return CursorResult.CURSOR_RESULT;
     }
 
     public static <Entity> CursorResult<Entity> getCursorResult(Class<Entity> clazz) {
@@ -100,8 +87,11 @@ public class ResultBuilders {
 
     public static class CursorResult<Entity> implements EntityResultBuilder<ResultCursor<Entity>, Entity> {
 
+        @SuppressWarnings("rawtypes")
+        private static final CursorResult CURSOR_RESULT = new CursorResult<>();
+
         @Override
-        public ResultCursor<Entity> build(MiResultSet rs, EntityType<Entity> type) throws MiException {
+        public ResultCursor<Entity> build(MiResultSet rs, EntityType<? extends Entity> type) throws MiException {
             return new MappedResultCursor<>(rs, type);
         }
     }
@@ -109,12 +99,12 @@ public class ResultBuilders {
     protected static class MappedResultCursor<Entity> extends ResultCursorBase<Entity> {
 
         private final MiResultSet rs;
-        private final EntityFactory<Entity> factory;
+        private final EntityFactory<? extends Entity> factory;
         private boolean nextIsExpected = true;
         private boolean isAtNext = false;
 
         @SuppressWarnings("LeakingThisInConstructor")
-        public MappedResultCursor(MiResultSet rs, EntityType<Entity> type) throws MiException {
+        public MappedResultCursor(MiResultSet rs, EntityType<? extends Entity> type) throws MiException {
             this.rs = rs;
             this.factory = type.newFactory(rs);
 //            setCursorValue(factory.newCursorValue(this));
@@ -168,30 +158,18 @@ public class ResultBuilders {
         }
     }
     
-    @SuppressWarnings("rawtypes")
-    private static SingleResult SINGLE_RESULT = null;
-
     @SuppressWarnings("unchecked")
     public static <Entity> SingleResult<Entity> getSingleResult() {
-        if (SINGLE_RESULT == null) {
-            SINGLE_RESULT = new SingleResult<>(true);
-        }
-        return SINGLE_RESULT;
+        return SingleResult.SINGLE_RESULT;
     }
 
     public static <Entity> SingleResult<Entity> getSingleResult(Class<Entity> clazz) {
         return getSingleResult();
     }
     
-    @SuppressWarnings("rawtypes")
-    private static SingleResult FIRST_RESULT = null;
-
     @SuppressWarnings("unchecked")
     public static <Entity> SingleResult<Entity> getFirstResult() {
-        if (FIRST_RESULT == null) {
-            FIRST_RESULT = new SingleResult<>(false);
-        }
-        return FIRST_RESULT;
+        return SingleResult.FIRST_RESULT;
     }
 
     public static <Entity> SingleResult<Entity> getFirstResult(Class<Entity> clazz) {
@@ -200,6 +178,12 @@ public class ResultBuilders {
 
     public static class SingleResult<Entity> implements EntityResultBuilder<Entity, Entity> {
 
+        @SuppressWarnings("rawtypes")
+        private static final SingleResult SINGLE_RESULT = new SingleResult<>(true);
+
+        @SuppressWarnings("rawtypes")
+        private static final SingleResult FIRST_RESULT = new SingleResult<>(false);
+
         private final boolean forceSingle;
 
         public SingleResult(boolean forceSingle) {
@@ -207,12 +191,12 @@ public class ResultBuilders {
         }
 
         @Override
-        public Entity build(MiResultSet rs, EntityType<Entity> type) throws MiException {
+        public Entity build(MiResultSet rs, EntityType<? extends Entity> type) throws MiException {
             if (!rs.next()) {
                 return null;
             }
             try (MiResultSet __ = rs;
-                    EntityFactory<Entity> factory = type.newFactory(rs)) {
+                    EntityFactory<? extends Entity> factory = type.newFactory(rs)) {
                 final Entity record = factory.newEntity();
                 if (forceSingle && rs.next()) {
                     throw new IllegalArgumentException("Result not unique");

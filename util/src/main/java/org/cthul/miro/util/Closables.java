@@ -64,6 +64,14 @@ public class Closables {
         return throwable;
     }
     
+    public static void completeUnchecked(Completable... completables) {
+        completeUnchecked(Arrays.asList(completables));
+    }
+    
+    public static void completeUnchecked(Iterable<? extends Completable> completables) {
+        completeAll(RuntimeException.class, completables);
+    }
+    
     public static void completeAll(Completable... completables) throws Exception {
         completeAll(Arrays.asList(completables));
     }

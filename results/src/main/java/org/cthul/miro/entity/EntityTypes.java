@@ -10,33 +10,63 @@ import org.cthul.miro.db.MiException;
 import org.cthul.miro.util.Closables;
 
 /**
- *
+ * Contains utility methods related to entity types.
  */
 public class EntityTypes {
     
+    /**
+     * Combines multiple configurations into one.
+     * @param <Entity>
+     * @param configurations
+     * @return combined configuration
+     */
     @SafeVarargs
-    public static <Entity> EntityConfiguration<Entity> multiConfiguration(EntityConfiguration<Entity>... configurations) {
+    public static <Entity> EntityConfiguration<Entity> multiConfiguration(EntityConfiguration<? super Entity>... configurations) {
         return multiConfiguration(Arrays.asList(configurations));
     }
     
-    public static <Entity> EntityConfiguration<Entity> multiConfiguration(Collection<EntityConfiguration<Entity>> configurations) {
-        List<EntityConfiguration<Entity>> cfg = new ArrayList<>();
-        configurations.stream().forEach((c) -> {
-            if (c instanceof MultiConfiguration) {
-                cfg.addAll(((MultiConfiguration<Entity>) c).configurations);
-            } else if (cfg != NO_CONFIGURATION) {
-                cfg.add(c);
-            }
-        });
+    /**
+     * Combines multiple configurations into one.
+     * @param <Entity>
+     * @param configurations
+     * @return combined configuration
+     */
+    public static <Entity> EntityConfiguration<Entity> multiConfiguration(Collection<EntityConfiguration<? super Entity>> configurations) {
+        List<EntityConfiguration<? super Entity>> cfg = new ArrayList<>();
+        collectConfigurations(configurations, cfg);
         if (cfg.isEmpty()) return noConfiguration();
         return new MultiConfiguration<>(cfg);
     }
-    
+
+    private static <Entity> void collectConfigurations(Collection<EntityConfiguration<? super Entity>> configurations, List<EntityConfiguration<? super Entity>> target) {
+        configurations.forEach(c -> {
+            if (c instanceof MultiConfiguration) {
+                target.addAll(((MultiConfiguration<Entity>) c).configurations);
+            } else if (target != NO_CONFIGURATION) {
+                target.add(c);
+            }
+        });
+    }
+
+    /**
+     * Creates a configured type.
+     * @param <Entity>
+     * @param type
+     * @param configurations
+     * @return configured type
+     */
     @SafeVarargs
     public static <Entity> EntityType<Entity> configuredType(EntityType<Entity> type, EntityConfiguration<? super Entity>... configurations) {
         return configuredType(type, Arrays.asList(configurations));
     }
     
+    /**
+     * Creates a configured type.
+     * @param <Entity>
+     * @param type
+     * @param configurations
+     * @return configured type
+     */
     public static <Entity> EntityType<Entity> configuredType(EntityType<Entity> type, Collection<EntityConfiguration<? super Entity>> configurations) {
         List<EntityConfiguration<? super Entity>> cfg = new ArrayList<>();
         if (type instanceof ConfiguredType) {
@@ -45,17 +75,18 @@ public class EntityTypes {
             cfg.addAll(ct.configurations);
             type = ct.type;
         }
-        configurations.stream().forEach((c) -> {
-            if (c instanceof MultiConfiguration) {
-                cfg.addAll(((MultiConfiguration<? super Entity>) c).configurations);
-            } else if (c != NO_CONFIGURATION) {
-                cfg.add(c);
-            }
-        });
+        collectConfigurations(configurations, cfg);
         if (cfg.isEmpty()) return type;
         return new ConfiguredType<>(type, cfg);
     }
     
+    /**
+     * Creates an initializing factory.
+     * @param <Entity>
+     * @param factory
+     * @param initializers
+     * @return initializing factory
+     */
     @SafeVarargs
     public static <Entity> EntityFactory<Entity> initializingFactory(EntityFactory<Entity> factory, EntityInitializer<? super Entity>... initializers) {
         return initializingFactory(factory, Arrays.asList(initializers));
@@ -94,6 +125,10 @@ public class EntityTypes {
         return NO_INITIALIZATION;
     }
     
+    public static <Entity> EntityConfiguration<Entity> asConfiguration(EntityInitializer<Entity> init) {
+        return rs -> init;
+    }
+    
     public static <Entity> EntityConfiguration<Entity> subResultConfiguration(String prefix, EntityConfiguration<Entity> cfg) {
         return rs -> {
             rs = new PrefixedResultSet(prefix, rs);
@@ -130,17 +165,17 @@ public class EntityTypes {
     
     protected static class MultiConfiguration<Entity> implements EntityConfiguration<Entity> {
         
-        private final List<EntityConfiguration<Entity>> configurations;
+        private final List<EntityConfiguration<? super Entity>> configurations;
 
-        public MultiConfiguration(List<EntityConfiguration<Entity>> configurations) {
+        public MultiConfiguration(List<EntityConfiguration<? super Entity>> configurations) {
             this.configurations = configurations;
         }
 
         @Override
         public EntityInitializer<Entity> newInitializer(MiResultSet rs) throws MiException {
-            List<EntityInitializer<Entity>> initializers = new ArrayList<>(configurations.size());
+            List<EntityInitializer<? super Entity>> initializers = new ArrayList<>(configurations.size());
             try {
-                for (EntityConfiguration<Entity> cfg: configurations) {
+                for (EntityConfiguration<? super Entity> cfg: configurations) {
                     initializers.add(cfg.newInitializer(rs));
                 }
             } catch (MiException e) {
@@ -163,24 +198,22 @@ public class EntityTypes {
     
     protected static class MultiInitializer<Entity> implements EntityInitializer<Entity> {
 
-        private final List<EntityInitializer<Entity>> initializers;
+        private final List<EntityInitializer<? super Entity>> initializers;
 
-        public MultiInitializer(List<EntityInitializer<Entity>> initializers) {
+        public MultiInitializer(List<EntityInitializer<? super Entity>> initializers) {
             this.initializers = initializers;
         }
         
         @Override
         public void apply(Entity entity) throws MiException {
-            for (EntityInitializer<Entity> i: initializers) {
+            for (EntityInitializer<? super Entity> i: initializers) {
                 i.apply(entity);
             }
         }
 
         @Override
         public void complete() throws MiException {
-            for (EntityInitializer<Entity> i: initializers) {
-                i.complete();
-            }
+            Closables.completeAll(MiException.class, initializers);
         }
 
         @Override
@@ -193,9 +226,13 @@ public class EntityTypes {
         public String toString() {
             StringBuilder sb = new StringBuilder();
             sb.append('(');
-            initializers.stream().forEach(i -> {
-                sb.append(i).append(", ");
-            });
+            try {
+                initializers.stream().forEach(i -> {
+                    sb.append(i).append(", ");
+                });
+            } catch (Exception e) {
+                sb.append(e.getMessage());
+            }
             sb.setLength(sb.length()-2);
             return sb.append(')').toString();
         }

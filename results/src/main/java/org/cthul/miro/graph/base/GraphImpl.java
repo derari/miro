@@ -7,6 +7,8 @@ import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.syntax.MiQueryString;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
+import org.cthul.miro.db.syntax.MiUpdateString;
+import org.cthul.miro.db.syntax.RequestType;
 import org.cthul.miro.entity.EntityConfiguration;
 import org.cthul.miro.entity.EntityFactory;
 import org.cthul.miro.entity.EntityType;
@@ -40,6 +42,16 @@ public class GraphImpl implements GraphApi {
     @Override
     public MiQueryString newQuery() {
         return connection.newQuery();
+    }
+
+    @Override
+    public MiUpdateString newUpdate() {
+        return connection.newUpdate();
+    }
+
+    @Override
+    public <Stmt> Stmt newStatement(RequestType<Stmt> type) {
+        return connection.newStatement(type);
     }
 
     @SuppressWarnings("unchecked")

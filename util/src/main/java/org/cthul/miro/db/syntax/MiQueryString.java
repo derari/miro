@@ -1,19 +1,21 @@
 package org.cthul.miro.db.syntax;
 
-import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiQuery;
 
 /**
  *
  */
-public interface MiQueryString extends MiQuery, RequestBuilder<MiQueryString> {
+public interface MiQueryString extends MiQuery, CoreStmtBuilder {
 
-    static final Type TYPE = new Type();
+    @Override
+    MiQueryString append(CharSequence chars);
     
-    static class Type implements RequestType<MiQueryString> {
-        @Override
-        public MiQueryString newStatement(MiConnection connection) {
-            return connection.newQuery();
-        }
-    }
+//    static final Type TYPE = new Type();
+//    
+//    static class Type implements RequestType<MiQueryString> {
+//        @Override
+//        public MiQueryString newStatement(MiConnection connection) {
+//            return connection.newQuery();
+//        }
+//    }
 }

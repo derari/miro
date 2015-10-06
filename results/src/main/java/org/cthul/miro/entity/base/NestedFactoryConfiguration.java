@@ -7,9 +7,11 @@ import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
 
 /**
- *
+ * An entity configuration that applies values from an internal factory.
+ * @param <Entity> entity type
+ * @param <Inner> type of internal factory
  */
-public abstract class NestedFactoryConfiguration<Outer, Inner> implements EntityConfiguration<Outer> {
+public abstract class NestedFactoryConfiguration<Entity, Inner> implements EntityConfiguration<Entity> {
     
     private final String shortString;
 
@@ -22,13 +24,13 @@ public abstract class NestedFactoryConfiguration<Outer, Inner> implements Entity
     }
 
     @Override
-    public EntityInitializer<Outer> newInitializer(MiResultSet rs) throws MiException {
+    public EntityInitializer<Entity> newInitializer(MiResultSet rs) throws MiException {
         return new NestedInitializer(nestedFactory(rs));
     }
     
     protected abstract EntityFactory<Inner> nestedFactory(MiResultSet rs) throws MiException;
     
-    protected abstract void apply(Outer entity, EntityFactory<Inner> factory) throws MiException;
+    protected abstract void apply(Entity entity, EntityFactory<Inner> factory) throws MiException;
 
     @Override
     public String toString() {
@@ -39,7 +41,7 @@ public abstract class NestedFactoryConfiguration<Outer, Inner> implements Entity
         return shortString != null ? shortString : super.toString();
     }
     
-    protected class NestedInitializer implements EntityInitializer<Outer> {
+    protected class NestedInitializer implements EntityInitializer<Entity> {
 
         private final EntityFactory<Inner> factory;
 
@@ -48,7 +50,7 @@ public abstract class NestedFactoryConfiguration<Outer, Inner> implements Entity
         }
         
         @Override
-        public void apply(Outer entity) throws MiException {
+        public void apply(Entity entity) throws MiException {
             NestedFactoryConfiguration.this.apply(entity, factory);
         }
 

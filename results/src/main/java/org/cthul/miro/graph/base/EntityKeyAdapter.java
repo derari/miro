@@ -2,7 +2,7 @@ package org.cthul.miro.graph.base;
 
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
-import org.cthul.miro.entity.base.AttributeMapping;
+import org.cthul.miro.entity.base.ResultColumns;
 
 public interface EntityKeyAdapter<Entity> {
     
@@ -19,7 +19,7 @@ public interface EntityKeyAdapter<Entity> {
     
     @SuppressWarnings({"ConfusingArrayVararg", "PrimitiveArrayArgumentToVariableArgMethod"})
     public static KeyReader newKeyReader(MiResultSet resultSet, String... columns) throws MiException {
-        int[] indices = AttributeMapping.findAllColumns(resultSet, columns);
+        int[] indices = ResultColumns.findAllColumns(resultSet, columns);
         return newKeyReader(resultSet, indices);
     }
     

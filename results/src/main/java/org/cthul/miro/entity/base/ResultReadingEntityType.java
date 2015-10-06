@@ -7,7 +7,8 @@ import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
 
 /**
- *
+ * Creates entities based on columns of a result set.
+ * Optionally applies a configuration.
  */
 public abstract class ResultReadingEntityType<Entity> implements EntityType<Entity> {
     

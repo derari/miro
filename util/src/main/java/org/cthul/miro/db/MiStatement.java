@@ -6,13 +6,13 @@ import org.cthul.miro.futures.MiFuture;
 /**
  *
  */
-public interface MiStatement {
+public interface MiStatement<Result> {
     
-    Long execute() throws MiException;
+    Result execute() throws MiException;
     
-    MiAction<Long> asAction();
+    MiAction<Result> asAction();
     
-    default MiFuture<Long> submit() {
+    default MiFuture<Result> submit() {
         return asAction().submit();
     }
 }

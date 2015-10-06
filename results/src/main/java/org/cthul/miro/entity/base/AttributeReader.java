@@ -9,7 +9,7 @@ import org.cthul.miro.util.Closables;
 import org.cthul.miro.util.Completable;
 
 /**
- * Configures an entity with columns from a result set.
+ * Initializes an entity with columns from a result set.
  * @param <Entity>
  */
 public class AttributeReader<Entity> extends AttributeMappingBase<Entity, MiException, AttributeReader<Entity>> implements EntityInitializer<Entity> {

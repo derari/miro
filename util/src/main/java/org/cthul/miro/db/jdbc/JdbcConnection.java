@@ -1,6 +1,5 @@
 package org.cthul.miro.db.jdbc;
 
-import org.cthul.miro.db.syntax.RequestString;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,7 +11,9 @@ import java.util.function.Supplier;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.syntax.MiQueryString;
 import org.cthul.miro.db.MiException;
-import org.cthul.miro.db.syntax.MiStatementString;
+import org.cthul.miro.db.syntax.MiUpdateString;
+import org.cthul.miro.db.syntax.RequestType;
+import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.futures.MiAction;
 import org.cthul.miro.futures.MiFunction;
 import org.cthul.miro.futures.MiSupplier;
@@ -26,11 +27,11 @@ public class JdbcConnection implements MiConnection {
     private final MiFunction<MiSupplier<PreparedStatement>, ResultSet> fExecuteQuery = this::executeQuery;
     private final MiFunction<MiSupplier<PreparedStatement>, Long> fExecuteStmt = this::executeStatement;
     private final Supplier<Connection> connectionSupplier;
-    private final Supplier<RequestString> queryDialect;
+    private final Syntax syntax;
 
-    public JdbcConnection(Supplier<Connection> connectionSupplier, Supplier<RequestString> queryDialect) {
+    public JdbcConnection(Supplier<Connection> connectionSupplier, Syntax syntax) {
         this.connectionSupplier = connectionSupplier;
-        this.queryDialect = queryDialect;
+        this.syntax = syntax;
     }
     
     public Connection getConnection() {
@@ -39,14 +40,19 @@ public class JdbcConnection implements MiConnection {
 
     @Override
     public MiQueryString newQuery() {
-        return new JdbcQuery(this, queryDialect.get());
+        return new JdbcQuery(this);
     }
 
     @Override
-    public MiStatementString newStatement() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public MiUpdateString newUpdate() {
+        return new JdbcUpdate(this);
     }
-    
+
+    @Override
+    public <Stmt> Stmt newStatement(RequestType<Stmt> type) {
+        return syntax.newStatement(this, type);
+    }
+
     public PreparedStatement prepareStatement(String sql) throws MiException {
         try {
             return getConnection()

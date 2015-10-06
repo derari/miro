@@ -1,8 +1,18 @@
 package org.cthul.miro.view;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 public interface ViewR<R> extends View {
     
-    R select();
+    default R select() {
+        return select(Collections.emptyList());
+    }
     
-    R select(Object... attributes);
+    default R select(Object... attributes) {
+        return select(Arrays.asList(attributes));
+    }
+    
+    R select(List<?> attributes);
 }

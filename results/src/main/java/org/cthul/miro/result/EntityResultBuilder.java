@@ -12,7 +12,7 @@ import org.cthul.miro.entity.EntityType;
  */
 public interface EntityResultBuilder<Result, Entity> {
     
-    Result build(MiResultSet rs, EntityType<Entity> type) throws MiException;
+    Result build(MiResultSet rs, EntityType<? extends Entity> type) throws MiException;
     
 //    default Result build(EntityResult<Entity> result) throws MiException {
 //        return result.buildWith(this);

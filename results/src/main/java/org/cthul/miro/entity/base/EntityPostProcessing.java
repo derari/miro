@@ -8,7 +8,9 @@ import org.cthul.miro.db.MiException;
 import org.cthul.miro.util.Closables;
 
 /**
- *
+ * A stateless entity initializer that does not require input from the
+ * query result.
+ * @param <Entity> entity type
  */
 public abstract class EntityPostProcessing<Entity> implements EntityConfiguration<Entity>, EntityInitializer<Entity> {
     
