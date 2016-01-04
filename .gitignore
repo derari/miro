@@ -4,3 +4,28 @@
 /integrationtests/target/
 /util/target/
 /queries/target/
+/util/test/target/
+/util/misc/target/
+/util/futures/target/
+/db/api/target/
+/db/jdbc/target/
+/db/sql/target/
+/db/sql-mysql/target/
+/result/entity/target/
+/result/graph/target/
+/query/api/target/
+/zz___queries/target/
+/composer/api/target/
+/view/dsl/target/
+/composer/sql/target/
+/map/api/target/
+/view/dsl - Copy/target/
+/view/mapped-sql/target/
+/at/model/target/
+/at/query/target/
+/map/sql/target/
+/view/mapped-sql - Copy/target/
+/it-test/target/
+/db/sql-mysql - Copy/target/
+/db/sql-hana/target/
+/lib/all/target/

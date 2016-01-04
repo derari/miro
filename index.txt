@@ -1,0 +1,30 @@
+ *                 AnnotationReader
+ *                        v
+ * EntityQuery <|- Mapped Views ------+
+ *  v                                 |
+ * QueryComposer <|- SqlTemplates     |
+ * |                                  |
+ * |   Results <|---------------------+
+ * v    ^
+ * Database Syntax Abstraction <|- SqlSyntax
+ *  |
+ * Database Connection Abstraction <|- JdbcConnection
+
+  util/futures
+  util/misc
+  db/api
+  db/jdbc
+  db/sql
+  db/sql-mysql
+  result/entity
+  result/graph
+  query/api
+  query/sql
+  mapping/api
+  mapping/sql
+  at/api		
+  at/query		create templates from iface
+  at/mapping	create e-type, templates from class
+  view/dsl
+  view/at
+  it-test

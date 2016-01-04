@@ -1,0 +1,18 @@
+package org.cthul.miro.db.stmt;
+
+import org.cthul.miro.db.MiConnection;
+import org.cthul.miro.db.syntax.RequestType;
+import org.cthul.miro.db.syntax.Syntax;
+
+/**
+ * An update string builder.
+ */
+public interface MiUpdateString extends MiUpdate, MiDBString {
+    
+    static RequestType<MiUpdateString> TYPE = new RequestType<MiUpdateString>() {
+        @Override
+        public MiUpdateString createDefaultRequest(Syntax syntax, MiConnection cnn) {
+            return cnn.newUpdate();
+        }
+    };
+}
