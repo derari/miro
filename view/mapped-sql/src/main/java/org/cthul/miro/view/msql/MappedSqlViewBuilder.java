@@ -6,7 +6,7 @@ import org.cthul.miro.at.compose.MappedInterfaceStatementBuilder;
 import org.cthul.miro.at.model.EntitySchemaBuilder;
 import org.cthul.miro.composer.Composer;
 import org.cthul.miro.composer.StatementFactory;
-import org.cthul.miro.composer.Template;
+import org.cthul.miro.composer.template.Template;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.sql.SelectQueryBuilder;
 import org.cthul.miro.entity.EntityType;

@@ -2,20 +2,20 @@ package org.cthul.miro.map.impl;
 
 import org.cthul.miro.entity.EntityConfiguration;
 import org.cthul.miro.entity.EntityType;
-import org.cthul.miro.map.MappedStatementBuilder;
+import org.cthul.miro.map.MappedBuilder;
 
 /**
  *
  * @param <Entity>
- * @param <Statement>
+ * @param <Builder>
  */
-public class MappedStatement<Entity, Statement> 
-                implements MappedStatementBuilder<Entity, Statement> {
+public class SimpleMappedBuilder<Entity, Builder> 
+                implements MappedBuilder<Entity, Builder> {
     
     private EntityType<Entity> entityType;
-    private final Statement statement;
+    private final Builder statement;
 
-    public MappedStatement(EntityType<Entity> entityType, Statement statement) {
+    public SimpleMappedBuilder(EntityType<Entity> entityType, Builder statement) {
         this.entityType = entityType;
         this.statement = statement;
     }
@@ -30,7 +30,7 @@ public class MappedStatement<Entity, Statement>
     }
 
     @Override
-    public Statement getStatement() {
+    public Builder getStatement() {
         return statement;
     }
 }

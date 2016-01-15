@@ -9,33 +9,33 @@ import org.cthul.miro.db.MiResultSet;
  *
  * @param <Entity>
  */
-public interface AttributeConfiguration<Entity> {
+public interface EntityAttributes<Entity> {
     
-    default EntityConfiguration<Entity> forAttributes(List<?> attributes) {
+    default EntityConfiguration<Entity> newConfiguration(List<?> attributes) {
         List<Object> list = new ArrayList<>(attributes);
         return new EntityConfiguration<Entity>() {
             @Override
             public EntityInitializer<Entity> newInitializer(MiResultSet resultSet) throws MiException {
-                return AttributeConfiguration.this.newInitializer(resultSet, list);
+                return EntityAttributes.this.newInitializer(resultSet, list);
             }
             @Override
             public String toString() {
-                return AttributeConfiguration.this.toString() + list;
+                return EntityAttributes.this.toString() + list;
             }
         };
     }
     
     EntityInitializer<Entity> newInitializer(MiResultSet rs, List<?> attributes) throws MiException;
     
-    default EntityConfiguration<Entity> all() {
-        return new All<>(this);
+    default EntityConfiguration<Entity> star() {
+        return new Star<>(this);
     }
     
-    class All<E> implements EntityConfiguration<E> {
+    class Star<E> implements EntityConfiguration<E> {
 
-        final AttributeConfiguration<E> aCfg;
+        final EntityAttributes<E> aCfg;
 
-        public All(AttributeConfiguration<E> aCfg) {
+        public Star(EntityAttributes<E> aCfg) {
             this.aCfg = aCfg;
         }
 

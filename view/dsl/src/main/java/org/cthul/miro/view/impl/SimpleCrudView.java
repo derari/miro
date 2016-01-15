@@ -1,7 +1,7 @@
 package org.cthul.miro.view.impl;
 
 import java.util.List;
-import org.cthul.miro.composer.Template;
+import org.cthul.miro.composer.template.Template;
 import org.cthul.miro.view.composer.CRUDStatementFactory;
 import org.cthul.miro.view.composer.CRUDTemplates;
 import org.cthul.miro.view.ViewCRUD;

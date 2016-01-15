@@ -5,7 +5,7 @@ import org.cthul.miro.db.syntax.QlBuilder;
 /**
  *
  */
-public interface SelectQueryBuilder extends SqlJoinableClause, SqlFilterableClause {
+public interface SelectBuilder extends SqlJoinableClause, SqlFilterableClause {
     
     Select select();
     
@@ -38,26 +38,26 @@ public interface SelectQueryBuilder extends SqlJoinableClause, SqlFilterableClau
     
     OrderBy orderBy();
     
-    interface Composite<This extends Composite<This>> extends SelectQueryBuilder, SqlJoinableClause.Composite<This> {
+    interface Composite<This extends Composite<This>> extends SelectBuilder, SqlJoinableClause.Composite<This> {
     }
     
     interface Select extends Composite<Select> {
-        boolean isEmpty();
+//        boolean isEmpty();
     }
     
-    interface From extends SelectQueryBuilder, QlBuilder<From> {
+    interface From extends SelectBuilder, QlBuilder<From> {
     }
     
     interface Join extends Composite<Join>, SqlJoinableClause.Join<Join> {
 
         @Override
-        SelectQueryBuilder.Join left();
+        SelectBuilder.Join left();
         
         @Override
-        SelectQueryBuilder.Join right();
+        SelectBuilder.Join right();
         
         @Override
-        SelectQueryBuilder.Join outer();
+        SelectBuilder.Join outer();
         
         @Override
         Where on();

@@ -1,5 +1,6 @@
-package org.cthul.miro.composer;
+package org.cthul.miro.composer.template;
 
+import org.cthul.miro.composer.template.Template;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -12,6 +13,8 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.cthul.miro.composer.InternalComposer;
+import org.cthul.miro.composer.StatementPart;
 import org.cthul.miro.util.Key;
 
 /**

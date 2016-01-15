@@ -1,4 +1,4 @@
-package org.cthul.miro.db.impl;
+package org.cthul.miro.db.syntax;
 
 /**
  *

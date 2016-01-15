@@ -2,7 +2,7 @@ package org.cthul.miro.view.composer;
 
 import org.cthul.miro.composer.StatementFactory;
 import java.util.List;
-import org.cthul.miro.composer.Template;
+import org.cthul.miro.composer.template.Template;
 
 /**
  *

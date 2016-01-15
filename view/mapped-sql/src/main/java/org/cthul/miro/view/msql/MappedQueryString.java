@@ -10,7 +10,7 @@ import org.cthul.miro.db.impl.MiQueryQlBuilder;
 import org.cthul.miro.db.sql.syntax.MiSqlParser;
 import org.cthul.miro.db.stmt.MiStatement;
 import org.cthul.miro.db.syntax.QlCode;
-import org.cthul.miro.entity.AttributeConfiguration;
+import org.cthul.miro.entity.EntityAttributes;
 import org.cthul.miro.entity.EntityConfiguration;
 import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.entity.EntityType;
@@ -133,7 +133,7 @@ public class MappedQueryString<Entity> implements ViewR<MappedQueryString.Query<
         
         private Graph defGraph = null;
         private EntityType<Entity> defType = null;
-        private AttributeConfiguration<Entity> attributeCfg = null;
+        private EntityAttributes<Entity> attributeCfg = null;
         private EntityConfiguration<Entity> configuration = EntityTypes.noConfiguration();
         private Object typeKey = null;
         private List<?> attributes = TRY_ALL;
@@ -173,7 +173,7 @@ public class MappedQueryString<Entity> implements ViewR<MappedQueryString.Query<
             return this;
         }
         
-        public Builder<Entity> allAttributes(AttributeConfiguration<Entity> cfg) {
+        public Builder<Entity> allAttributes(EntityAttributes<Entity> cfg) {
             this.attributeCfg = cfg;
             return allAttributes();
         }
@@ -183,7 +183,7 @@ public class MappedQueryString<Entity> implements ViewR<MappedQueryString.Query<
             return this;
         }
         
-        public Builder<Entity> attributes(AttributeConfiguration<Entity> cfg, Object... attributes) {
+        public Builder<Entity> attributes(EntityAttributes<Entity> cfg, Object... attributes) {
             this.attributeCfg = cfg;
             return attributes(attributes);
         }
@@ -208,14 +208,14 @@ public class MappedQueryString<Entity> implements ViewR<MappedQueryString.Query<
                     defType = defGraph.entityType(typeKey);
                 }
                 if (attributes != null) {
-                    if (attributeCfg == null && (defType instanceof AttributeConfiguration)) {
-                        attributeCfg = (AttributeConfiguration<Entity>) defType;
+                    if (attributeCfg == null && (defType instanceof EntityAttributes)) {
+                        attributeCfg = (EntityAttributes<Entity>) defType;
                     }
                     if (attributeCfg != null) {
                         if (attributes.equals(ALL)) {
-                            with(attributeCfg.all());
+                            with(attributeCfg.star());
                         } else {
-                            with(attributeCfg.forAttributes(attributes));
+                            with(attributeCfg.newConfiguration(attributes));
                         }
                         attributeCfg = null;
                         attributes = null;
@@ -276,9 +276,9 @@ public class MappedQueryString<Entity> implements ViewR<MappedQueryString.Query<
             EntityType<Entity> type = (g != null) ? g.entityType(typeKey) : defType;
             EntityConfiguration<Entity> cfg = configuration;
             if (attributes != null) {
-                AttributeConfiguration<Entity> aCfg = null;
-                if (type instanceof AttributeConfiguration) {
-                    aCfg = (AttributeConfiguration<Entity>) type;
+                EntityAttributes<Entity> aCfg = null;
+                if (type instanceof EntityAttributes) {
+                    aCfg = (EntityAttributes<Entity>) type;
                 }
                 if (aCfg == null && attributes != TRY_ALL) {
                     throw new IllegalArgumentException(
@@ -286,9 +286,9 @@ public class MappedQueryString<Entity> implements ViewR<MappedQueryString.Query<
                 }
                 if (aCfg != null) {
                     if (attributes.equals(ALL)) {
-                        cfg = cfg.and(aCfg.all());
+                        cfg = cfg.and(aCfg.star());
                     } else {
-                        cfg = cfg.and(aCfg.forAttributes(attributes));
+                        cfg = cfg.and(aCfg.newConfiguration(attributes));
                     }
                 }
             }
@@ -298,9 +298,9 @@ public class MappedQueryString<Entity> implements ViewR<MappedQueryString.Query<
     }
     
     static class AllAttributesConfiguration<Entity> implements EntityConfiguration<Entity> {
-        final AttributeConfiguration<Entity> aCfg;
+        final EntityAttributes<Entity> aCfg;
 
-        public AllAttributesConfiguration(AttributeConfiguration<Entity> aCfg) {
+        public AllAttributesConfiguration(EntityAttributes<Entity> aCfg) {
             this.aCfg = aCfg;
         }
 

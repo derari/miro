@@ -10,7 +10,7 @@ import org.cthul.miro.entity.EntityTypes;
  * @param <Entity>
  * @param <Statement>
  */
-public interface MappedStatementBuilder<Entity, Statement>
+public interface MappedBuilder<Entity, Statement>
                  extends StatementHolder<Statement> {
 
     void configureWith(EntityConfiguration<? super Entity> config);

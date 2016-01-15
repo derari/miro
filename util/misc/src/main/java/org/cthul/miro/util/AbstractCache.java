@@ -1,5 +1,7 @@
-package org.cthul.miro.composer.impl;
+package org.cthul.miro.util;
 
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -39,6 +41,18 @@ public abstract class AbstractCache<K, V> {
     protected V putNew(K key) {
         V value = create(key);
         return tryPut(key, value);
+    }
+    
+    protected boolean emptyCache() {
+        return cache.isEmpty();
+    }
+    
+    protected Set<Map.Entry<K, V>> entrySet() {
+        return cache.entrySet();
+    }
+    
+    protected int size() {
+        return cache.size();
     }
     
     protected abstract V create(K key);

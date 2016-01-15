@@ -1,7 +1,7 @@
 package org.cthul.miro.view.composer;
 
 import java.util.function.Function;
-import org.cthul.miro.composer.Template;
+import org.cthul.miro.composer.template.Template;
 import org.cthul.miro.view.impl.NoTemplates;
 
 /**

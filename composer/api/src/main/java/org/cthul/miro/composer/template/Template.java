@@ -1,6 +1,7 @@
-package org.cthul.miro.composer;
+package org.cthul.miro.composer.template;
 
 import java.util.function.Function;
+import org.cthul.miro.composer.InternalComposer;
 import org.cthul.miro.composer.impl.AdaptedTemplate;
 
 /**

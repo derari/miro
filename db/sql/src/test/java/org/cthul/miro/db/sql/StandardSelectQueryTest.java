@@ -1,16 +1,29 @@
 package org.cthul.miro.db.sql;
 
+import org.cthul.miro.db.MiConnection;
+import org.cthul.miro.db.MiException;
+import org.cthul.miro.db.MiResultSet;
+import org.cthul.miro.db.impl.MiDBStringBuilder;
+import org.cthul.miro.db.impl.MiDBStringDelegator;
+import org.cthul.miro.db.sql.impl.StandardSelectQuery;
 import org.cthul.miro.db.sql.syntax.AnsiSqlSyntax;
+import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.stmt.MiQueryString;
+import org.cthul.miro.db.stmt.MiUpdateString;
+import org.cthul.miro.db.syntax.ClauseType;
+import org.cthul.miro.db.syntax.RequestType;
+import org.cthul.miro.db.syntax.Syntax;
+import org.cthul.miro.futures.MiAction;
+import org.junit.Test;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import org.junit.Test;
 
 /**
  *
  */
-public class SelectQueryImplTest {
+public class StandardSelectQueryTest {
     
-    SelectQuery sql = new AnsiSqlSyntax().newSelectQuery(null);
+    SelectQuery sql = new StandardSelectQuery(new AnsiSqlSyntax(), (MiQueryString) null);
     
     @Test
     public void test_select_from() {
@@ -45,4 +58,14 @@ public class SelectQueryImplTest {
                 .join().ql("Baz").on().and().ql("f = b");
         assertThat(sql.toString(), is("SELECT foo, bar FROM Foo JOIN Bar JOIN Baz ON f = b"));
     }
+    
+    @Test
+    public void test_create() throws MiException {
+        SelectQuery qry = SelectQuery.create(new TestConnection());
+        qry.select().ql("foo");
+        qry.execute();
+        assertThat(TestConnection.lastQuery, is("SELECT foo"));
+    }
+    
+    
 }

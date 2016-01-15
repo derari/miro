@@ -1,7 +1,7 @@
 package org.cthul.miro.view.impl;
 
-import org.cthul.miro.composer.ComposerParts;
-import org.cthul.miro.composer.Template;
+import org.cthul.miro.composer.template.ComposerParts;
+import org.cthul.miro.composer.template.Template;
 import org.cthul.miro.view.composer.CRUDTemplates;
 
 /**

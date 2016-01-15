@@ -3,33 +3,21 @@ package org.cthul.miro.db.sql.impl;
 import java.util.ArrayList;
 import java.util.List;
 import org.cthul.miro.db.*;
+import org.cthul.miro.db.sql.SelectBuilder;
 import org.cthul.miro.db.sql.SelectQuery;
-import org.cthul.miro.db.sql.SelectQueryBuilder;
-import org.cthul.miro.db.sql.SelectQueryBuilder.Join;
-import org.cthul.miro.db.sql.syntax.SqlSyntax;
+import org.cthul.miro.db.sql.SelectBuilder.Join;
 import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.stmt.MiQueryString;
 import org.cthul.miro.db.syntax.QlBuilder;
-import org.cthul.miro.db.syntax.RequestType;
 import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.futures.MiAction;
 
 /**
  *
  */
-public class SimpleSelectQuery extends AbstractSqlStatement implements SelectQuery {
+public class StandardSelectQuery extends AbstractSqlStatement<MiQueryString> implements SelectQuery {
     
-    public static RequestType<SimpleSelectQuery> TYPE = new RequestType<SimpleSelectQuery>() {
-        @Override
-        public SimpleSelectQuery createDefaultRequest(Syntax syntax, MiConnection cnn) {
-            return new SimpleSelectQuery(cnn, (SqlSyntax) syntax);
-        }
-    };
-    
-    public static SimpleSelectQuery create(MiConnection cnn) {
-        return cnn.newStatement(TYPE);
-    }
-    
-    private SelectBuilder select = null;
+    private SelectClBuilder select = null;
     private FromBuilder from = null;
     private final List<JoinBuilder> joins = new ArrayList<>();
     private WhereBuilder where = null;
@@ -37,12 +25,20 @@ public class SimpleSelectQuery extends AbstractSqlStatement implements SelectQue
     private HavingBuilder having = null;
     private OrderByBuilder orderBy = null;
 
-    public SimpleSelectQuery(MiConnection connection, SqlSyntax syntax) {
-        super(connection, syntax);
+    public StandardSelectQuery(Syntax syntax, MiConnection connection) {
+        super(syntax, connection::newQuery);
     }
 
+    public StandardSelectQuery(Syntax syntax, MiQueryString dbString) {
+        super(syntax, dbString);
+    }
+
+    public StandardSelectQuery(Syntax syntax, MiDBString dbString, MiQueryString request) {
+        super(syntax, dbString, request);
+    }
+    
     @Override
-    protected void close() {
+    protected void closeSubclauses() {
         if (select != null) select.close();
         if (from != null) from.close();
         joins.forEach(JoinBuilder::close);
@@ -65,15 +61,15 @@ public class SimpleSelectQuery extends AbstractSqlStatement implements SelectQue
     
     @Override
     public MiResultSet execute() throws MiException {
-        return request(MiConnection::newQuery).execute();
+        return request().execute();
     }
 
     @Override
     public MiAction<MiResultSet> asAction() {
-        return request(MiConnection::newQuery).asAction();
+        return request().asAction();
     }
 
-    public void appendTo(SelectQueryBuilder sql) {
+    public void appendTo(SelectBuilder sql) {
         append(sql.select(), select);
         append(sql.from(), from);
         joins.forEach(j -> j.appendTo(sql));
@@ -89,8 +85,8 @@ public class SimpleSelectQuery extends AbstractSqlStatement implements SelectQue
         return select.and();
     }
 
-    protected SelectBuilder newSelectBuilder() {
-        return new SelectBuilder();
+    protected SelectClBuilder newSelectBuilder() {
+        return new SelectClBuilder();
     }
 
     @Override
@@ -154,7 +150,7 @@ public class SimpleSelectQuery extends AbstractSqlStatement implements SelectQue
         return new OrderByBuilder();
     }
     
-    protected class ClauseBuilder<This extends QlBuilder<This>> extends AbstractSqlStatement.ClauseBuilder<This> implements SelectQueryBuilder {
+    protected class ClauseBuilder<This extends QlBuilder<This>> extends AbstractSqlStatement<MiQueryString>.ClauseBuilder<This> implements SelectBuilder {
 
         public ClauseBuilder() {
         }
@@ -169,43 +165,43 @@ public class SimpleSelectQuery extends AbstractSqlStatement implements SelectQue
 
         @Override
         public Select select() {
-            return SimpleSelectQuery.this.select();
+            return StandardSelectQuery.this.select();
         }
 
         @Override
         public From from() {
-            return SimpleSelectQuery.this.from();
+            return StandardSelectQuery.this.from();
         }
 
         @Override
         public Join join() {
-            return SimpleSelectQuery.this.join();
+            return StandardSelectQuery.this.join();
         }
 
         @Override
         public Where where() {
-            return SimpleSelectQuery.this.where();
+            return StandardSelectQuery.this.where();
         }
 
         @Override
         public GroupBy groupBy() {
-            return SimpleSelectQuery.this.groupBy();
+            return StandardSelectQuery.this.groupBy();
         }
 
         @Override
         public Having having() {
-            return SimpleSelectQuery.this.having();
+            return StandardSelectQuery.this.having();
         }
 
         @Override
         public OrderBy orderBy() {
-            return SimpleSelectQuery.this.orderBy();
+            return StandardSelectQuery.this.orderBy();
         }
     }
     
-    protected class SelectBuilder extends ClauseBuilder<Select> implements Select {
+    protected class SelectClBuilder extends ClauseBuilder<Select> implements Select {
 
-        public SelectBuilder() {
+        public SelectClBuilder() {
             super(", ");
         }
     }
@@ -213,7 +209,7 @@ public class SimpleSelectQuery extends AbstractSqlStatement implements SelectQue
     protected class FromBuilder extends ClauseBuilder<From> implements From {
     }
     
-    protected class JoinBuilder extends AbstractSqlStatement.JoinBuilder<Join, WhereBuilder> implements Join {
+    protected class JoinBuilder extends AbstractSqlStatement<MiQueryString>.JoinBuilder<Join, WhereBuilder> implements Join {
 
         @Override
         protected WhereBuilder newOnCondition() {
@@ -222,37 +218,37 @@ public class SimpleSelectQuery extends AbstractSqlStatement implements SelectQue
 
         @Override
         public Select select() {
-            return SimpleSelectQuery.this.select();
+            return StandardSelectQuery.this.select();
         }
 
         @Override
         public From from() {
-            return SimpleSelectQuery.this.from();
+            return StandardSelectQuery.this.from();
         }
 
         @Override
-        public SimpleSelectQuery.Join join() {
-            return SimpleSelectQuery.this.join();
+        public StandardSelectQuery.Join join() {
+            return StandardSelectQuery.this.join();
         }
 
         @Override
-        public SimpleSelectQuery.Where where() {
-            return SimpleSelectQuery.this.where();
+        public StandardSelectQuery.Where where() {
+            return StandardSelectQuery.this.where();
         }
 
         @Override
         public GroupBy groupBy() {
-            return SimpleSelectQuery.this.groupBy();
+            return StandardSelectQuery.this.groupBy();
         }
 
         @Override
         public Having having() {
-            return SimpleSelectQuery.this.having();
+            return StandardSelectQuery.this.having();
         }
 
         @Override
         public OrderBy orderBy() {
-            return SimpleSelectQuery.this.orderBy();
+            return StandardSelectQuery.this.orderBy();
         }
     }
     
