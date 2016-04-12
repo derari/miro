@@ -7,6 +7,10 @@ public interface SqlJoinableClause extends SqlClause {
 
     Join<?> join();
     
+    default Join<?> join(JoinType jt) {
+        return join().as(jt);
+    }
+    
     default Join<?> leftJoin() {
         return join().left();
     }
@@ -23,14 +27,46 @@ public interface SqlJoinableClause extends SqlClause {
     }
     
     interface Join<This extends Join<This>> extends Composite<This> {
+//        
+//        Join<This> left();
+//        
+//        Join<This> right();
+//        
+//        Join<This> outer();
         
-        Join<This> left();
+        This as(JoinType jt);
         
-        Join<This> right();
+        default This left() {
+            return as(JoinType.LEFT);
+        }
         
-        Join<This> outer();
+        default This right() {
+            return as(JoinType.RIGHT);
+        }
+        
+        default This outer() {
+            return as(JoinType.OUTER);
+        }
         
         SqlJoinableClause.Where<?> on();
+    }
+    
+    enum JoinType {
+        INNER,
+        LEFT,
+        RIGHT,
+        OUTER;
+        
+        public static JoinType parse(String s) {
+            if (s == null) return INNER;
+            s = s.trim().toUpperCase();
+            if (s.isEmpty()) return INNER;
+            if (s.startsWith("LEFT")) return LEFT;
+            if (s.startsWith("OUTER")) return OUTER;
+            if (s.startsWith("RIGHT")) return RIGHT;
+            if (s.startsWith("INNER")) return INNER;
+            throw new IllegalArgumentException(s);
+        }
     }
     
     interface Where<This extends Where<This>> extends SqlJoinableClause, SqlClause.Where<This> {

@@ -5,8 +5,9 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
-import org.cthul.miro.db.impl.NestedBuilder;
+import org.cthul.miro.db.syntax.NestedBuilder;
 import org.cthul.miro.db.syntax.ClauseType;
+import org.cthul.miro.util.Key;
 
 /**
  *
@@ -21,19 +22,19 @@ public interface SqlClause {
     interface BooleanExpression<This extends BooleanExpression<This>> extends SqlClause, SqlBuilder<This> {
         
         default Junction either() {
-            return begin(EITHER);
+            return begin(SqlClause.either());
         }
         
         default This either(Consumer<? super Junction> action) {
-            return clause(EITHER, action);
+            return clause(SqlClause.either(), action);
         }
         
         default Conjunction all() {
-            return begin(ALL);
+            return begin(SqlClause.all());
         }
         
         default This all(Consumer<? super Conjunction> action) {
-            return clause(ALL, action);
+            return clause(SqlClause.all(), action);
         }
     }
     
@@ -85,15 +86,21 @@ public interface SqlClause {
         
     }
     
-    final ClauseType<In<?>> IN = Clauses.IN;
-    final ClauseType<IsNull<?>> IS_NULL = Clauses.IS_NULL;
-    final ClauseType<Junction> EITHER = Clauses.JUNCTION;
-    final ClauseType<Conjunction> ALL = Clauses.CONJUNCTION;
+    static Type type(Object type) {
+        return Key.castDefault(type, Type.NIL);
+    }
     
-    enum Clauses implements ClauseType {
+    static ClauseType<In<?>> in() { return Type.IN; }
+    static ClauseType<IsNull<?>> isNull() { return Type.IS_NULL; }
+    static ClauseType<Junction> either() { return Type.JUNCTION; }
+    static ClauseType<Conjunction> all() { return Type.CONJUNCTION; }
+    
+    enum Type implements ClauseType {
         IS_NULL,
         IN,
         JUNCTION,
-        CONJUNCTION;
+        CONJUNCTION,
+        
+        NIL;
     }
 }

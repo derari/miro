@@ -39,6 +39,11 @@
     </build>
     <dependencies>
         <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-library</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.cthul.matchers.fluent</groupId>
             <artifactId>cthul-fluent-matchers-lib8</artifactId>
             <scope>test</scope>

@@ -40,16 +40,7 @@
     <dependencies>
         <dependency>
             <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-util-misc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-util-futures</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.cthul.miro</groupId>
             <artifactId>miro-db-api</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.cthul.matchers.fluent</groupId>

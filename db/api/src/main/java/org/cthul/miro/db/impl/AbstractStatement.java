@@ -9,6 +9,7 @@ import org.cthul.miro.db.syntax.Syntax;
 /**
  * A complex statement consisting of several sub-clauses.
  * Can be used as a request or a clause.
+ * @param <Request>
  */
 public abstract class AbstractStatement<Request extends MiDBString> implements AutocloseableBuilder {
     

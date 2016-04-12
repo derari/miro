@@ -20,6 +20,8 @@ public interface MiResultSet extends AutoCloseable {
     long getLong(int columnIndex) throws MiException;
 
     String getString(int columnIndex) throws MiException;
+    
+    boolean isAfterLast() throws MiException;
 
     @Override
     void close() throws MiException;

@@ -13,13 +13,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import org.cthul.miro.composer.ComposerParts;
+import org.cthul.miro.composer.template.Templates;
 import org.cthul.miro.composer.ConfigureKey;
-import org.cthul.miro.composer.Template;
+import org.cthul.miro.composer.template.Template;
 import org.cthul.miro.composer.sql.SqlTemplateKey;
 import org.cthul.miro.db.sql.SqlFilterableClause;
 import org.cthul.miro.db.sql.syntax.MiSqlParser;
-import org.cthul.miro.map.MappedStatementBuilder;
+import org.cthul.miro.map.MappedBuilder;
 import org.cthul.objects.instance.Arg;
 
 /**
@@ -31,9 +31,9 @@ public class AnnotationReader<E, S extends SqlFilterableClause> {
     
     private Class<?> iface;
     private final Set<Class<?>> interfaces = new HashSet<>();
-    private final BiConsumer<Object, Template<? super MappedStatementBuilder<E, ? extends S>>> addTemplate;
+    private final BiConsumer<Object, Template<? super MappedBuilder<E, ? extends S>>> addTemplate;
     
-    public AnnotationReader(BiConsumer<Object, Template<? super MappedStatementBuilder<E, ? extends S>>> addTemplate) {
+    public AnnotationReader(BiConsumer<Object, Template<? super MappedBuilder<E, ? extends S>>> addTemplate) {
         this.addTemplate = addTemplate;
     }
 
@@ -47,22 +47,22 @@ public class AnnotationReader<E, S extends SqlFilterableClause> {
         return iface;
     }
     
-    public void add(Object key, Template<? super MappedStatementBuilder<E, ? extends S>> template) {
+    public void add(Object key, Template<? super MappedBuilder<E, ? extends S>> template) {
         addTemplate.accept(key, template);
     }
     
-    public ConfigureKey addNewKey(String keyName, Template<? super MappedStatementBuilder<E, ? extends S>> template) {
+    public ConfigureKey addNewKey(String keyName, Template<? super MappedBuilder<E, ? extends S>> template) {
         ConfigureKey key = ConfigureKey.unique(keyName);
         add(key, template);
         return key;
     }
     
-    public void add(List<ConfigureKey> keys, ConfigureKey key, Template<? super MappedStatementBuilder<E, ? extends S>> template) {
+    public void add(List<ConfigureKey> keys, ConfigureKey key, Template<? super MappedBuilder<E, ? extends S>> template) {
         add(key, template);
         keys.add(key);
     }
     
-    public ConfigureKey addNewKey(List<ConfigureKey> keys, String keyName, Template<? super MappedStatementBuilder<E, ? extends S>> template) {
+    public ConfigureKey addNewKey(List<ConfigureKey> keys, String keyName, Template<? super MappedBuilder<E, ? extends S>> template) {
         ConfigureKey key = addNewKey(keyName, template);
         keys.add(key);
         return key;
@@ -120,7 +120,7 @@ public class AnnotationReader<E, S extends SqlFilterableClause> {
         if (keys.isEmpty()) return null;
         if (keys.size() == 1) return keys.get(0);
         return addNewKey(name(prefix, "[" + keys.size() + "]"),
-                ComposerParts.newNode(ic -> new ConfigureKey.Configurable() {
+                Templates.newNode(ic -> new ConfigureKey.Configurable() {
             @Override
             public void set(Object... values) {
                 keys.forEach(k -> ic.node(k).set(values));

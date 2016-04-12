@@ -8,30 +8,6 @@ import java.sql.Statement;
 
 public class TestDB {
     
-    /*
-     * select("street").from(ADDRESSES).where().inCity("Berlin");
-     * 
-     * insertInto(ADDRESSES, "street", "city").values(
-     *      "Street 1", "City",
-     *      "Street 2", "City",
-     *      new Address("Street 3", "City"));
-     * 
-     * insertInto(ADDRESSES, "street", "city")
-     *      .select("streetName", "town")
-     *      .from(LOCATIONS)
-     *      .where().inCountry("Germany");
-     * 
-     * update(ADDRESSES).set("street", "city").valuesById(a1, a2)
-     * 
-     * update(ADDRESSES)
-     *      .set("street = x.streetName",
-     *           "city = x.town")
-     *      .from(LOCATIONS)
-     * 
-     * delete().from(ADDRESSES).where().
-     *  
-     */
-
     private static Connection c;
 
     public static synchronized Connection getConnection() {

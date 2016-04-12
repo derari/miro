@@ -5,9 +5,17 @@ import org.cthul.miro.db.stmt.MiDBString;
 /**
  * Wraps a {@link MiDBString}.
  */
-public abstract class MiDBStringDelegator<This extends MiDBString> implements MiDBString {
+public abstract class MiDBStringDelegator<This extends MiDBString> extends AbstractComposableBuilder implements MiDBString {
+
+    public MiDBStringDelegator() {
+    }
 
     protected abstract MiDBString getDelegatee();
+
+    @Override
+    protected MiDBString getBuilderForNestedClause() {
+        return getDelegatee();
+    }
     
     protected MiDBString getWriteDelegatee() {
         return getDelegatee();

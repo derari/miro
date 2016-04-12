@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.cthul.miro.futures.MiAction;
 import org.cthul.miro.futures.MiFuture;
-import org.cthul.miro.futures.MiSupplier;
+import org.cthul.miro.function.MiSupplier;
 
 public interface FutureCursor<V> extends MiFuture<ResultCursor<V>>, Iterable<V>, AutoCloseable {
                                

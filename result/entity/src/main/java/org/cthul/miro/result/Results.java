@@ -10,7 +10,7 @@ import java.util.function.Supplier;
 import org.cthul.miro.entity.EntityConfiguration;
 import org.cthul.miro.entity.EntityTypes;
 import org.cthul.miro.futures.MiAction;
-import org.cthul.miro.futures.MiActionFunction;
+import org.cthul.miro.function.MiActionFunction;
 import org.cthul.miro.futures.impl.MiActionDelegator;
 import org.cthul.miro.result.cursor.ResultCursor;
 
@@ -36,11 +36,11 @@ public class Results<Entity> implements AutoCloseable {
         this.type = type;
     }
     
-    protected <Result> Result build(EntityResultBuilder<Result, Entity> builder) throws MiException {
+    public <Result> Result build(EntityResultBuilder<Result, Entity> builder) throws MiException {
         return builder.build(rs, type);
     }
     
-    protected <Result> Result _build(EntityResultBuilder<Result, Entity> builder) {
+    public <Result> Result _build(EntityResultBuilder<Result, Entity> builder) {
         try {
             return builder.build(rs, type);
         } catch (MiException e) {

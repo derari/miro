@@ -1,7 +1,6 @@
 package org.cthul.miro.util;
 
 import java.util.Arrays;
-import java.util.function.Supplier;
 
 /**
  * Helpful methods for closing or completing multiple objects at once,
@@ -25,11 +24,15 @@ public class Closables {
         closeAll(Exception.class, closeables);
     }
     
+    public static <E extends Exception> void closeAll(Class<E> exType, AutoCloseable... closeables) throws E {
+        closeAll(exType, Arrays.asList(closeables));
+    }
+    
     public static <E extends Exception> void closeAll(Class<E> exType, Iterable<? extends AutoCloseable> closeables) throws E {
         Exception exception = null;
         for (AutoCloseable ac: closeables) {
             try {
-                ac.close();
+                if (ac != null) ac.close();
             } catch (Exception e) {
                 if (exception == null) {
                     exception = e;
@@ -53,9 +56,9 @@ public class Closables {
         if (container == null) {
             container = npe = new NullPointerException("throwable");
         }
-        for (AutoCloseable c: closeables) {
+        for (AutoCloseable ac: closeables) {
             try {
-                c.close();
+                if (ac != null) ac.close();
             } catch (Exception e) {
                 container.addSuppressed(e);
             }
@@ -89,7 +92,7 @@ public class Closables {
     public static <E extends Exception> void completeAll(Class<E> exType, Iterable<? extends Completable> completables) throws E {
         for (Completable ac: completables) {
             try {
-                ac.complete();
+                if (ac != null) ac.complete();
             } catch (Exception e) {
                 throw exceptionAs(e, exType);
             }

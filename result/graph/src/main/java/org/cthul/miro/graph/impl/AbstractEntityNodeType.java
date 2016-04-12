@@ -12,7 +12,6 @@ import org.cthul.miro.entity.EntityFactory;
 import org.cthul.miro.entity.EntityType;
 import org.cthul.miro.entity.EntityTypes;
 import org.cthul.miro.entity.base.ResultColumns;
-import org.cthul.miro.graph.EntityNodeType;
 import org.cthul.miro.graph.GraphApi;
 import org.cthul.miro.graph.NodeSelector;
 import org.cthul.miro.graph.NodeType;
@@ -23,7 +22,7 @@ import org.cthul.miro.util.Completable;
  * 
  * @param <Entity> 
  */
-public abstract class AbstractEntityNodeType<Entity> implements EntityNodeType<Entity> {
+public abstract class AbstractEntityNodeType<Entity> implements EntityType<Entity>, NodeType<Entity> {
 
     private final String shortString;
 
@@ -38,31 +37,47 @@ public abstract class AbstractEntityNodeType<Entity> implements EntityNodeType<E
     @Override
     public abstract Entity[] newArray(int length);
 
+    //<editor-fold defaultstate="collapsed" desc="NodeType implementation">
     @Override
     public NodeSelector<Entity> newNodeFactory(GraphApi graph) throws MiException {
         return new NodeFactory<>(this);
     }
-
+    
     @Override
-    public EntityInitializer<Entity> newAttributeInitializer(GraphApi graph, List<?> attributes) throws MiException {
+    public EntityInitializer<Entity> newAttributeLoader(GraphApi graph, List<?> attributes) throws MiException {
         if (attributes.isEmpty()) return EntityTypes.noInitialization();
-        return actualNewAttributeInitializer(graph, attributes);
+        return createAttributeLoader(graph, attributes);
     }
     
-    protected EntityInitializer<Entity> actualNewAttributeInitializer(GraphApi graph, List<?> attributes) throws MiException {
-        return new AttributeInitializer(newBatchLoader(graph, attributes));
+    protected EntityInitializer<Entity> createAttributeLoader(GraphApi graph, List<?> attributes) throws MiException {
+        return new AttributeLoader(newBatchLoader(graph, attributes));
     }
+    
+    @Override
+    public EntityConfiguration<Entity> getAttributeReader(GraphApi graph, List<?> attributes) {
+        if (attributes.isEmpty()) return EntityTypes.noConfiguration();
+        return createAttributeReader(graph, attributes);
+    }
+    
+    protected abstract EntityConfiguration<Entity> createAttributeReader(GraphApi graph, List<?> attributes);
 
     @Override
-    public EntityFactory<Entity> newEntityFactory(GraphApi graph, NodeSelector<Entity> nodeFactory, MiResultSet resultSet) throws MiException {
-        return new FactorySelector<>(this.newKeyReader(resultSet), nodeFactory);
+    public EntityType<Entity> asEntityType(GraphApi graph, NodeSelector<Entity> nodeSelector) {
+        return new SelectorAsType<>(this, nodeSelector);
+    }
+    //</editor-fold>
+    
+    //<editor-fold defaultstate="collapsed" desc="EntityType implementation">
+    protected KeyReader getConstructorArguments(MiResultSet rs) throws MiException {
+        return n -> null;
     }
     
     @Override
     public EntityFactory<Entity> newFactory(MiResultSet rs) throws MiException {
-        KeyReader kr = n -> n;
-        return new FactorySelector<>(kr, new NodeFactory<>(this));
+        KeyReader kr = getConstructorArguments(rs);
+        return new SelectorAsFactory<>(kr, new NodeFactory(this));
     }
+    //</editor-fold>
 
     /**
      * Creates a new entity, with the given key if {@code key} is not null.
@@ -81,8 +96,8 @@ public abstract class AbstractEntityNodeType<Entity> implements EntityNodeType<E
     
     /**
      * Creates a key reader for the result set.
-     * @see #newKeyReader(org.cthul.miro.db.MiResultSet, java.lang.String...) 
-     * @see #newKeyReader(org.cthul.miro.db.MiResultSet, int...) 
+     * @see #newKeyReader(MiResultSet, String...) 
+     * @see #newKeyReader(MiResultSet, int...) 
      * @param resultSet
      * @return key reader
      * @throws MiException 
@@ -201,15 +216,12 @@ public abstract class AbstractEntityNodeType<Entity> implements EntityNodeType<E
     
     protected abstract class SimpleBatchLoader extends AbstractBatchLoader {
 
-        public SimpleBatchLoader() {
-            super();
+        public SimpleBatchLoader(GraphApi graph, List<?> attributes) throws MiException {
+            this(getAttributeReader(graph, attributes));
         }
 
-        protected abstract EntityInitializer<Entity> attributeInitializer(MiResultSet resultSet) throws MiException;
-
-        @Override
-        protected EntityFactory<Entity> newFactory(MiResultSet resultSet) throws MiException {
-            return super.newFactory(resultSet).with(attributeInitializer(resultSet));
+        public SimpleBatchLoader(EntityConfiguration<Entity> configuration) {
+            super(configuration);
         }
         
         @Override
@@ -252,7 +264,7 @@ public abstract class AbstractEntityNodeType<Entity> implements EntityNodeType<E
         @Override
         public EntityFactory<Entity> newFactory(MiResultSet rs) throws MiException {
             KeyReader kr = newKeyReader(rs);
-            return new FactorySelector<>(kr, this);
+            return new SelectorAsFactory<>(kr, this);
         }
 
         @Override
@@ -266,11 +278,11 @@ public abstract class AbstractEntityNodeType<Entity> implements EntityNodeType<E
         }
     }
     
-    protected class AttributeInitializer implements EntityInitializer<Entity> {
+    protected class AttributeLoader implements EntityInitializer<Entity> {
 
         private final BatchLoader<Entity> attributeQuery;
 
-        public AttributeInitializer(BatchLoader<Entity> attributeQuery) {
+        public AttributeLoader(BatchLoader<Entity> attributeQuery) {
             this.attributeQuery = attributeQuery;
         }
 
@@ -287,6 +299,7 @@ public abstract class AbstractEntityNodeType<Entity> implements EntityNodeType<E
 
         @Override
         public void close() throws MiException {
+            complete();
         }
 
         @Override
@@ -295,13 +308,43 @@ public abstract class AbstractEntityNodeType<Entity> implements EntityNodeType<E
         }
     }
     
-    protected static class FactorySelector<Entity> implements EntityFactory<Entity> {
+    protected static class SelectorAsType<Entity> implements EntityType<Entity> {
+        private final AbstractEntityNodeType<Entity> type;
+        private final NodeSelector<Entity> nodeSelector;
+
+        public SelectorAsType(AbstractEntityNodeType<Entity> type, NodeSelector<Entity> nodeSelector) {
+            this.type = type;
+            this.nodeSelector = nodeSelector;
+        }
+
+        @Override
+        public Entity[] newArray(int length) {
+            return type.newArray(length);
+        }
+
+        @Override
+        public EntityFactory<Entity> newFactory(MiResultSet rs) throws MiException {
+            KeyReader kr = type.newKeyReader(rs);
+            return new SelectorAsFactory<>(kr, nodeSelector);
+        }
+
+        @Override
+        public String toString() {
+            return type.toString();
+        }
+    }
+    
+    protected static class SelectorAsFactory<Entity> implements EntityFactory<Entity> {
         
         private final KeyReader keyReader;
         private final NodeSelector<Entity> nodeFactory;
         private Object[] tmpKey = null;
 
-        public FactorySelector(KeyReader keyReader, NodeSelector<Entity> nodeFactory) {
+//        public SelectorAsFactory(KeyReader keyReader, AbstractEntityNodeType<Entity> type) {
+//            this(keyReader, new NodeFactory<>(type));
+//        }
+        
+        public SelectorAsFactory(KeyReader keyReader, NodeSelector<Entity> nodeFactory) {
             this.keyReader = keyReader;
             this.nodeFactory = nodeFactory;
         }
@@ -376,14 +419,22 @@ public abstract class AbstractEntityNodeType<Entity> implements EntityNodeType<E
     }
     
     protected static KeyReader newKeyReader(MiResultSet resultSet, int... indices) throws MiException {
-        return array -> {
-            if (array == null) array = new Object[indices.length];
-            for (int i = 0; i < indices.length; i++) {
-                int index = indices[i];
-                array[i] = index < 0 ? null : resultSet.get(index);
+        class IndexReader implements KeyReader {
+            @Override
+            public Object[] getKey(Object[] array) throws MiException {
+                if (array == null) array = new Object[indices.length];
+                for (int i = 0; i < indices.length; i++) {
+                    int index = indices[i];
+                    array[i] = index < 0 ? null : resultSet.get(index);
+                }
+                return array;
             }
-            return array;
-        };
+            @Override
+            public String toString() {
+                return "Read" + Arrays.toString(indices);
+            }
+        }
+        return new IndexReader();
     }
 
 }

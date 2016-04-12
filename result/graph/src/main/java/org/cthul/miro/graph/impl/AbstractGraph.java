@@ -46,21 +46,23 @@ public abstract class AbstractGraph implements GraphApi {
     
     protected abstract NodeSet<?> newNodeSet(NodeType<?> type);
     
+    //<editor-fold defaultstate="collapsed" desc="MiConnection implemention">
     @Override
     public MiQueryString newQuery() {
         return connection.newQuery();
     }
-
+    
     @Override
     public MiUpdateString newUpdate() {
         return connection.newUpdate();
     }
-
+    
     @Override
     public <Stmt> Stmt newStatement(RequestType<Stmt> type) {
         return connection.newStatement(type);
     }
-
+    //</editor-fold>
+    
     @SuppressWarnings("unchecked")
     protected <Node> NodeSet<Node> nodeSet(Object key) {
         NodeSet<Node> n = (NodeSet<Node>) nodeSets.get(key);
@@ -79,18 +81,18 @@ public abstract class AbstractGraph implements GraphApi {
     }
 
     @Override
-    public <Node> NodeSelector<Node> nodeSelector(Object typeKey, List<?> attributes) throws MiException {
-        return this.<Node>nodeSet(typeKey).newSelector(attributes);
+    public <Node> NodeSelector<Node> newNodeSelector(Object typeKey) throws MiException {
+        return this.<Node>nodeSet(typeKey).newNodeSelector();
     }
 
     @Override
-    public <Node> EntityType<Node> entityType(Object typeKey) throws MiException {
-        return nodeSet(typeKey);
+    public <Node> EntityType<Node> getEntityType(Object typeKey, List<?> attributes) {
+        return this.<Node>nodeSet(typeKey).getEntityType(attributes);
     }
 
     @Override
-    public <Node> EntityInitializer<Node> attributeInitializer(Object typeKey, List<?> attributes) throws MiException {
-        return this.<Node>nodeSet(typeKey).newAttributeInitializer(attributes);
+    public <Node> EntityInitializer<Node> newAttributeLoader(Object typeKey, List<?> attributes) throws MiException {
+        return this.<Node>nodeSet(typeKey).newAttributeLoader(attributes);
     }
 
     @Override

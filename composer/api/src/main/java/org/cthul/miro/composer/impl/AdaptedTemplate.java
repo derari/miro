@@ -5,34 +5,41 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.cthul.miro.composer.Copyable;
 import org.cthul.miro.composer.StatementPart;
-import org.cthul.miro.composer.ComposerParts;
+import org.cthul.miro.composer.template.Templates;
 import org.cthul.miro.composer.InternalComposer;
-import org.cthul.miro.composer.Template;
+import org.cthul.miro.composer.template.Template;
+import org.cthul.miro.composer.template.TemplateLayer;
 
 /**
- *
+ * A template that builds on `Builder`, but internally builds on `Adapted`.
  * @param <Builder>
  * @param <Adapted>
  */
-public abstract class AdaptedTemplate<Builder, Adapted> implements Template<Builder> {
+public class AdaptedTemplate<Builder, Adapted> implements Template<Builder> {
 
-    private final Map<InternalComposer<? extends Builder>, InternalComposer<? extends Adapted>> cache = new WeakHashMap<>();
+    private final Map<InternalComposer<? extends Builder>, AdaptingComposer> cache = new WeakHashMap<>();
     private final Template<Adapted> template;
+    private final Function<? super Builder, ? extends Adapted> adapter;
 
-    public AdaptedTemplate(Template<Adapted> template) {
+    public AdaptedTemplate(Template<Adapted> template, Function<? super Builder, ? extends Adapted> adapter) {
         this.template = template;
+        this.adapter = adapter;
     }
-    
-    protected abstract InternalComposer<? extends Adapted> adapt(InternalComposer<? extends Builder> query);
 
-    protected InternalComposer<? extends Adapted> adaptedComposer(InternalComposer<? extends Builder> query) {
-        InternalComposer<? extends Adapted> iqc = cache.get(query);
-        if (iqc == null) {
-            iqc = adapt(query);
-            cache.put(query, iqc);
+    protected AdaptingComposer adapt(InternalComposer<? extends Builder> query) {
+        return new AdaptingComposer(query);
+    }
+
+    protected AdaptingComposer adaptedComposer(InternalComposer<? extends Builder> query) {
+        AdaptingComposer ac = cache.get(query);
+        if (ac == null) {
+            ac = adapt(query);
+            cache.put(query, ac);
         }
-        return iqc;
+        return ac;
     }
     
     @Override
@@ -45,67 +52,150 @@ public abstract class AdaptedTemplate<Builder, Adapted> implements Template<Buil
         return "{" + template;
     }
     
+    /**
+     * Converts a template that builds on `Adapted` into a template that builds on `Builder`. 
+     * @param <Builder>
+     * @param <Adapted>
+     * @param template
+     * @param adapter
+     * @return adapted template
+     */
     public static <Builder, Adapted> Template<Builder> adapt(Template<Adapted> template, Function<? super Builder, ? extends Adapted> adapter) {
-        return new AdaptedTemplate<Builder, Adapted>(template) {
-            @Override
-            protected InternalComposer<? extends Adapted> adapt(InternalComposer<? extends Builder> query) {
-                return query.adapt(adapter);
-            }
-        };
+        return new AdaptedTemplate<Builder, Adapted>(template, adapter);
     }
     
-    public static <Builder, Adapted> InternalComposer<Adapted> adapt(InternalComposer<? extends Builder> query, Function<? super Builder, ? extends Adapted> adapter) {
-        return new AdaptingComposer<>(query, adapter);
+//    /**
+//     * Converts a composer that builds on `Builder` into a composer that builds on `Adapted`.
+//     * @param <Builder>
+//     * @param <Adapted>
+//     * @param query
+//     * @param adapter
+//     * @return adapted composer
+//     */
+//    protected static <Builder, Adapted> InternalComposer<Adapted> adapt(InternalComposer<? extends Builder> query, Function<? super Builder, ? extends Adapted> adapter) {
+//        return new AdaptingComposer<>(query, adapter);
+//    }
+    
+    /**
+     * Converts a template layer that builds on `Adapted` into a layer that builds on `Builder`.
+     * @param <Builder>
+     * @param <Adapted>
+     * @param template
+     * @param adapter
+     * @return adapted layer
+     */
+    public static <Builder, Adapted> TemplateLayer<Builder> adapt(TemplateLayer<Adapted> template, Function<? super Builder, ? extends Adapted> adapter) {
+        return new AdaptedLayer<>(template, adapter);
     }
     
-    public static <Builder, Adapted> Function<? super Template<? super Builder>, ? extends Template<? super Builder>> adapt(Function<? super Template<? super Adapted>, ? extends Template<? super Adapted>> newTemplate, Function<? super Builder, ? extends Adapted> adapter) {
-        return parent -> {
-            Template<Adapted> adaptedParent = new AdaptedParent<>(parent);
-            return newTemplate.apply(adaptedParent).adapt(adapter);
-        };
-    }
-    
-    public static class AdaptingComposer<Builder, Adapted> extends ComposerParts.InternalQueryComposerDelegator<Adapted> {
+    /**
+     * A template layer that builds on `Builder`, but internally builds on `Adapter`.
+     * @param <Adapted>
+     * @param <Builder> 
+     */
+    public static class AdaptedLayer<Adapted, Builder> implements TemplateLayer<Builder> {
         
-        private final InternalComposer<? extends Builder> composer;
-        private final List<StatementPart<? super Adapted>> parts = new ArrayList<>();
+        private final TemplateLayer<Adapted> layer;
+        private final Function<? super Builder, ? extends Adapted> adapter;
 
-        public AdaptingComposer(InternalComposer<? extends Builder> composer, Function<? super Builder, ? extends Adapted> adapter) {
-            super(composer, null);
-            this.composer = composer;
-            StatementPart<Builder> queryPartAdapter = builder -> {
-                Adapted adaptedBuilder = adapter.apply(builder);
-                parts.forEach(p -> p.addTo(adaptedBuilder));
-            };
-            composer.addPart(queryPartAdapter);
+        public AdaptedLayer(TemplateLayer<Adapted> layer, Function<? super Builder, ? extends Adapted> adapter) {
+            this.layer = layer;
+            this.adapter = adapter;
         }
 
-        public InternalComposer<? extends Builder> getActual() {
+        @Override
+        public <A extends Builder> Template<A> build(Template<? super A> parent) {
+            ParentAdapter<A, Adapted> pAdapter = new ParentAdapter<>(parent);
+            Template<Adapted> template = layer.build(pAdapter);
+            return AdaptedTemplate.adapt(template, adapter);
+        }
+
+        @Override
+        public String toString() {
+            return "{" + layer + "}";
+        }
+    }
+    
+    public static interface ComposerWrapper {
+        InternalComposer<?> getActual();
+    }
+    
+    protected class AdaptingComposer extends Templates.InternalQueryComposerDelegator<Adapted> {
+        
+        private final InternalComposer<? extends Builder> composer;
+        private List<StatementPart<? super Adapted>> parts = null;
+
+        public AdaptingComposer(InternalComposer<? extends Builder> composer) {
+            super(composer, null);
+            this.composer = composer;
+        }
+
+        @Override
+        public InternalComposer<?> getActual() {
             return composer;
+        }
+        
+        private void initializeParts() {
+            if (parts != null) return;
+            class AdaptedParts implements StatementPart<Builder>, Copyable<Builder> {
+                @Override
+                public void addTo(Builder builder) {
+                    Adapted adaptedBuilder = adapter.apply(builder);
+                    parts.forEach(p -> p.addTo(adaptedBuilder));
+                }
+                @Override
+                public Object copyFor(InternalComposer<Builder> ic2) {
+                    AdaptingComposer ac2 = AdaptedTemplate.this.adaptedComposer(ic2);
+                    CopyManager cm = ic2.node(CopyManager.key);
+                    ac2.initializeParts();
+                    ac2.parts.addAll(cm.copyAll(parts));
+                    return null;
+                }
+                @Override
+                public String toString() {
+                    return parts.stream().map(Object::toString).collect(Collectors.joining(",", "{", "}"));
+                }
+            }
+            parts = new ArrayList<>();
+            composer.addPart(new AdaptedParts());
         }
 
         @Override
         public void addPart(StatementPart<? super Adapted> part) {
+            if (parts == null) {
+                initializeParts();
+            }
             parts.add(part);
         }
     }
     
-    public static class AdaptedParent<Builder, Adapted> implements Template<Adapted> {
+    /**
+     * A template that builds on `Adapted`, but internally builds on `Builder`.
+     * @param <Builder>
+     * @param <Adapted> 
+     */
+    public static class ParentAdapter<Builder, Adapted> implements Template<Adapted> {
         private final Template<? super Builder> actual;
 
-        public AdaptedParent(Template<? super Builder> actual) {
+        public ParentAdapter(Template<? super Builder> actual) {
             this.actual = actual;
         }
 
         @Override
         public void addTo(Object key, InternalComposer<? extends Adapted> query) {
-            AdaptingComposer<Builder, Adapted> adapter = (AdaptingComposer) query;
-            actual.addTo(key, adapter.getActual());
+            ComposerWrapper adapter = (ComposerWrapper) query;
+            actual.addTo(key, (InternalComposer) adapter.getActual());
         }
 
         @Override
         public String toString() {
-            return "}" + actual.toString();
+            if (actual == Templates.noOp()) {
+                return "}";
+            }
+            if (actual instanceof ParentAdapter) {
+                return "}" + actual.toString();
+            }
+            return "}>" + actual.toString();
         }
     }    
 }

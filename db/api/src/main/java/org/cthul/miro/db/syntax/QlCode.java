@@ -21,6 +21,10 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
         return new BuilderImpl();
     }
     
+    static Builder build(QlCode code) {
+        return build().append(code);
+    }
+    
     static Builder ql(String string) {
         return new PlainSyntax(string);
     }
@@ -43,6 +47,11 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
         public PlainSyntax(String string) {
             this.string = string;
         }
+
+        @Override
+        public Builder append(CharSequence query) {
+            return new PlainSyntaxBuilder(string).append(query);
+        }
         
         @Override
         public void appendTo(QlBuilder<?> qlBuilder) {
@@ -52,6 +61,36 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
         @Override
         public String toString() {
             return string;
+        }
+    }
+    
+    class PlainSyntaxBuilder implements Builder {
+        private final StringBuilder stringBuilder = new StringBuilder();
+        private String s = null;
+        
+        public PlainSyntaxBuilder() {
+        }
+        
+        public PlainSyntaxBuilder(String string) {
+            stringBuilder.append(string);
+        }
+        
+        @Override
+        public Builder append(CharSequence string) {
+            s = null;
+            stringBuilder.append(string);
+            return this;
+        }
+        
+        @Override
+        public void appendTo(QlBuilder<?> qlBuilder) {
+            qlBuilder.append(toString());
+        }
+
+        @Override
+        public String toString() {
+            if (s != null) return s;
+            return s = stringBuilder.toString();
         }
     }
     
@@ -114,10 +153,46 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
     class BuilderImpl implements Builder {
         
         private final List<QlCode> code = new ArrayList<>();
+        private PlainSyntaxBuilder currentPlain = null;
+        private boolean lastIsPlain = false;
 
+        protected PlainSyntaxBuilder plainBuilder() {
+            if (currentPlain == null) {
+                currentPlain = new PlainSyntaxBuilder();
+                if (lastIsPlain) {
+                    QlCode last = code.remove(code.size()-1);
+                    currentPlain.append(last.toString());
+                }
+                code.add(currentPlain);
+                lastIsPlain = true;
+            }
+            return currentPlain;
+        }
+        
         @Override
         public Builder append(QlCode c) {
+            Class<?> clazz = c.getClass();
+            if (clazz == PlainSyntax.class || clazz == PlainSyntaxBuilder.class) {
+                if (lastIsPlain) {
+                    plainBuilder().append(c.toString());
+                    return this;
+                }
+                lastIsPlain = true;
+            } else {
+                if (clazz == BuilderImpl.class) {
+                    ((BuilderImpl) c).code.forEach(ql -> append(ql));
+                    return this;
+                }
+                lastIsPlain = false;
+                currentPlain = null;
+            }
             code.add(c);
+            return this;
+        }
+
+        @Override
+        public Builder append(CharSequence query) {
+            plainBuilder().append(query);
             return this;
         }
         
@@ -189,6 +264,37 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
         @Override
         default <Clause> Clause begin(ClauseType<Clause> type) {
             throw new UnsupportedOperationException();
+        }
+    }
+    
+    class Var implements QlCode {
+        
+        private final static QlCode EMPTY = QlCode.ql("");
+        private QlCode code;
+
+        public Var() {
+            this(EMPTY);
+        }
+
+        public Var(QlCode code) {
+            this.code = code;
+        }
+        
+        @Override
+        public void appendTo(QlBuilder<?> qlBuilder) {
+            code.appendTo(qlBuilder);
+        }
+
+        public void set(QlCode code) {
+            this.code = code;
+        }
+
+        public QlCode get() {
+            return code;
+        }
+        
+        public QlCode.Var copy() {
+            return new Var(code);
         }
     }
 }

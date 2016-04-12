@@ -1,14 +1,18 @@
 package org.cthul.miro.futures;
 
+import org.cthul.miro.function.MiActionFunction;
+import org.cthul.miro.function.MiFutureFunction;
+import org.cthul.miro.function.MiFunction;
 import java.util.concurrent.Executor;
 
 /**
  * A future that can be triggered or submitted.
+ * @param <V>
  */
 public interface MiAction<V> extends MiFuture<V> {
     
     /**
-     * Any operation on the trigger not related do cancelling will cause 
+     * Any operation on the trigger not related to cancelling will cause 
      * the action to {@linkplain #submit() submit}.
      * @return the trigger
      */

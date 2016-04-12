@@ -23,10 +23,12 @@ public interface Graph extends AutoCloseable {
      * @return node selector
      * @throws MiException 
      */
-    <Node> NodeSelector<Node> nodeSelector(Object typeKey, List<?> attributes) throws MiException;
+    default <Node> NodeSelector<Node> newNodeSelector(Object typeKey, List<?> attributes) throws MiException {
+        return this.<Node>newNodeSelector(typeKey).with(newAttributeLoader(typeKey, attributes));
+    }
     
-    default <Node> NodeSelector<Node> nodeSelector(Class<Node> typeKey, List<?> attributes) throws MiException {
-        return nodeSelector((Object) typeKey, attributes);
+    default <Node> NodeSelector<Node> newNodeSelector(Class<Node> typeKey, List<?> attributes) throws MiException {
+        return newNodeSelector((Object) typeKey, attributes);
     }
     
     /**
@@ -36,12 +38,10 @@ public interface Graph extends AutoCloseable {
      * @return node selector
      * @throws MiException 
      */
-    default <Node> NodeSelector<Node> nodeSelector(Object typeKey) throws MiException {
-        return nodeSelector(typeKey, Collections.emptyList());
-    }
+    <Node> NodeSelector<Node> newNodeSelector(Object typeKey) throws MiException;
     
-    default <Node> NodeSelector<Node> nodeSelector(Class<Node> typeKey) throws MiException {
-        return nodeSelector((Object) typeKey);
+    default <Node> NodeSelector<Node> newNodeSelector(Class<Node> typeKey) throws MiException {
+        return newNodeSelector((Object) typeKey);
     }
     
     /**
@@ -53,12 +53,12 @@ public interface Graph extends AutoCloseable {
      * @return node selector
      * @throws MiException 
      */
-    default <Node> NodeSelector<Node> nodeSelector(Object typeKey, Object... attributes) throws MiException {
-        return nodeSelector(typeKey, Arrays.asList(attributes));
+    default <Node> NodeSelector<Node> newNodeSelector(Object typeKey, Object... attributes) throws MiException {
+        return newNodeSelector(typeKey, Arrays.asList(attributes));
     }
     
-    default <Node> NodeSelector<Node> nodeSelector(Class<Node> typeKey, Object... attributes) throws MiException {
-        return nodeSelector((Object) typeKey, attributes);
+    default <Node> NodeSelector<Node> newNodeSelector(Class<Node> typeKey, Object... attributes) throws MiException {
+        return newNodeSelector((Object) typeKey, attributes);
     }
     
     /**
@@ -66,29 +66,27 @@ public interface Graph extends AutoCloseable {
      * @param <Node>
      * @param typeKey
      * @return entity type
-     * @throws MiException 
      */
-    <Node> EntityType<Node> entityType(Object typeKey) throws MiException;
+    default <Node> EntityType<Node> getEntityType(Object typeKey) {
+        return getEntityType(typeKey, Collections.emptyList());
+    }
     
-    default <Node> EntityType<Node> entityType(Class<Node> typeKey) throws MiException {
-        return entityType((Object) typeKey);
+    default <Node> EntityType<Node> getEntityType(Class<Node> typeKey) {
+        return getEntityType((Object) typeKey);
     }
     
     /**
-     * Returns an entity type that will find or create nodes in the graph and
-     * ensures that the given attributes are initialized.
+     * Returns an entity type to create factories that will find or create nodes 
+     * of the graph and read the initialize attributes from the result set.
      * @param <Node>
      * @param typeKey
      * @param attributes
      * @return entity type
-     * @throws MiException 
      */
-    default <Node> EntityType<Node> entityType(Object typeKey, List<?> attributes) throws MiException {
-        return this.<Node>entityType(typeKey).with(rs -> attributeInitializer(typeKey, attributes));
-    }
+    <Node> EntityType<Node> getEntityType(Object typeKey, List<?> attributes);
     
-    default <Node> EntityType<Node> entityType(Class<Node> typeKey, List<?> attributes) throws MiException {
-        return entityType((Object) typeKey, attributes);
+    default <Node> EntityType<Node> getEntityType(Class<Node> typeKey, List<?> attributes) {
+        return getEntityType((Object) typeKey, attributes);
     }
     
     /**
@@ -98,44 +96,43 @@ public interface Graph extends AutoCloseable {
      * @param typeKey
      * @param attributes
      * @return entity type
-     * @throws MiException 
      */
-    default <Node> EntityType<Node> entityType(Object typeKey, Object... attributes) throws MiException {
-        return entityType(typeKey, Arrays.asList(attributes));
+    default <Node> EntityType<Node> getEntityType(Object typeKey, Object... attributes) {
+        return getEntityType(typeKey, Arrays.asList(attributes));
     }
     
-    default <Node> EntityType<Node> entityType(Class<Node> typeKey, Object... attributes) throws MiException {
-        return entityType((Object) typeKey, attributes);
+    default <Node> EntityType<Node> getEntityType(Class<Node> typeKey, Object... attributes) {
+        return getEntityType((Object) typeKey, attributes);
     }
     
     /**
-     * Returns an entity initializer that will fill the given attributes.
+     * Returns an entity initializer that will load the given attributes from the database.
      * @param <Node>
      * @param typeKey
      * @param attributes
      * @return entity initializer
      * @throws MiException 
      */
-    <Node> EntityInitializer<Node> attributeInitializer(Object typeKey, List<?> attributes) throws MiException;
+    <Node> EntityInitializer<Node> newAttributeLoader(Object typeKey, List<?> attributes) throws MiException;
     
-    default <Node> EntityInitializer<Node> attributeInitializer(Class<Node> typeKey, List<?> attributes) throws MiException {
-        return attributeInitializer((Object) typeKey, attributes);
+    default <Node> EntityInitializer<Node> newAttributeLoader(Class<Node> typeKey, List<?> attributes) throws MiException {
+        return newAttributeLoader((Object) typeKey, attributes);
     }
     
     /**
-     * Returns an entity initializer that will fill the given attributes.
+     * Returns an entity initializer that will load the given attributes from the database.
      * @param <Node>
      * @param typeKey
      * @param attributes
      * @return entity initializer
      * @throws MiException 
      */
-    default <Node> EntityInitializer<Node> attributeInitializer(Object typeKey, Object... attributes) throws MiException {
-        return attributeInitializer(typeKey, Arrays.asList(attributes));
+    default <Node> EntityInitializer<Node> newAttributeLoader(Object typeKey, Object... attributes) throws MiException {
+        return newAttributeLoader(typeKey, Arrays.asList(attributes));
     }
     
-    default <Node> EntityInitializer<Node> attributeInitializer(Class<Node> typeKey, Object... attributes) throws MiException {
-        return attributeInitializer((Object) typeKey, attributes);
+    default <Node> EntityInitializer<Node> newAttributeLoader(Class<Node> typeKey, Object... attributes) throws MiException {
+        return newAttributeLoader((Object) typeKey, attributes);
     }
     
     @Override

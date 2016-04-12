@@ -12,7 +12,6 @@ import org.cthul.miro.graph.Graph;
 import org.cthul.miro.graph.GraphSchema;
 import org.cthul.miro.graph.NodeSelector;
 import org.cthul.miro.graph.NodeType;
-import org.cthul.miro.util.Closables;
 
 /**
  * Allows to configure node types for a {@link GraphSchema}.
@@ -60,26 +59,22 @@ public class GraphSchemaBuilder implements GraphSchema, Graph {
     }
 
     @Override
-    public <Node> NodeSelector<Node> nodeSelector(Object typeKey, List<?> attributes) throws MiException {
-        return nullGraph().nodeSelector(typeKey, attributes);
+    public <Node> NodeSelector<Node> newNodeSelector(Object typeKey) throws MiException {
+        return nullGraph().newNodeSelector(typeKey);
     }
 
     @Override
-    public <Node> EntityType<Node> entityType(Object typeKey) throws MiException {
+    public <Node> EntityType<Node> getEntityType(Object typeKey, List<?> attributes) {
         NodeType<Node> n = nodeType(typeKey);
-        if (n instanceof EntityType) {
+        if (attributes.isEmpty() && n instanceof EntityType) {
             return (EntityType<Node>) n;
         }
-        try {
-            return nullGraph().entityType(typeKey);
-        } catch (MiException e) {
-            throw Closables.unchecked(e);
-        }
+        return nullGraph().getEntityType(typeKey);
     }
 
     @Override
-    public <Node> EntityInitializer<Node> attributeInitializer(Object typeKey, List<?> attributes) throws MiException {
-        return nullGraph().attributeInitializer(typeKey, attributes);
+    public <Node> EntityInitializer<Node> newAttributeLoader(Object typeKey, List<?> attributes) throws MiException {
+        return nullGraph().newAttributeLoader(typeKey, attributes);
     }
 
     @Override

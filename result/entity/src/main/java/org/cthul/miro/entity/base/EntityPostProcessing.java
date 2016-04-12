@@ -3,7 +3,7 @@ package org.cthul.miro.entity.base;
 import java.util.Objects;
 import org.cthul.miro.entity.EntityConfiguration;
 import org.cthul.miro.entity.EntityInitializer;
-import org.cthul.miro.futures.MiConsumer;
+import org.cthul.miro.function.MiConsumer;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.util.Closables;

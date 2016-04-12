@@ -1,7 +1,6 @@
 package org.cthul.miro.db.syntax;
 
 import java.util.function.Consumer;
-import org.cthul.miro.db.impl.AutocloseableBuilder;
 
 /**
  * Interface for a statement builder that allows to create

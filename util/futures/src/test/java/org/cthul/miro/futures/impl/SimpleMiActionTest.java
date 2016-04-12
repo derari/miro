@@ -1,11 +1,12 @@
 package org.cthul.miro.futures.impl;
 
-import org.cthul.miro.futures.impl.MiFutureDelegator;
 import java.util.concurrent.ExecutionException;
-import org.cthul.miro.futures.MiConsumer;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.cthul.miro.function.MiConsumer;
 import org.cthul.miro.futures.MiFuture;
-import org.cthul.miro.futures.MiFutureFunction;
-import org.cthul.miro.futures.MiSupplier;
+import org.cthul.miro.function.MiFutureFunction;
+import org.cthul.miro.futures.MiResettableFuture;
+import org.cthul.miro.function.MiSupplier;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import org.junit.Test;
@@ -29,6 +30,26 @@ public class SimpleMiActionTest {
                 .andThen(stringFuture)
                 .getQuoted();
         assertThat(quoted, is("\"test 123\""));
+    }
+    
+    @Test
+    public void test_reset() throws InterruptedException, ExecutionException {
+        AtomicInteger count = new AtomicInteger();
+        AtomicInteger count2 = new AtomicInteger();
+        MiSupplier<Integer> countSupplier = () -> count.getAndIncrement();
+        MiResettableFuture<Integer> counter = countSupplier.getTrigger();
+        assertThat(counter.get(), is(0));
+
+        MiFuture<Integer> counter2 = counter.andThen(i -> count2.getAndIncrement());
+        counter2.beDone();
+        assertThat(count2.get(), is(1));
+        assertThat(counter.get(), is(0));
+        assertThat(count2.get(), is(1));
+        
+        counter.reset();
+        assertThat(counter.get(), is(1));
+        counter2.beDone();
+        assertThat(count2.get(), is(2));
     }
     
     static final MiConsumer<MyObject> INIT = MyObject::init;

@@ -3,7 +3,7 @@ package org.cthul.miro.at.compose;
 import java.util.List;
 import org.cthul.miro.composer.RequestComposer;
 import org.cthul.miro.composer.StatementFactory;
-import org.cthul.miro.composer.Template;
+import org.cthul.miro.composer.template.Template;
 import org.cthul.miro.map.MappedStatementBuilder;
 
 /**

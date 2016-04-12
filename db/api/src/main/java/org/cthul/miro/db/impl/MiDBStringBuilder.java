@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.cthul.miro.db.stmt.MiDBString;
 import org.cthul.miro.db.syntax.ClauseType;

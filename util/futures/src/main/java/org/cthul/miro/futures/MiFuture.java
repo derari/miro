@@ -1,5 +1,8 @@
 package org.cthul.miro.futures;
 
+import org.cthul.miro.function.MiActionFunction;
+import org.cthul.miro.function.MiFutureFunction;
+import org.cthul.miro.function.MiFunction;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -98,9 +101,6 @@ public interface MiFuture<V> extends Future<V> {
      */
     default void assertIsDone() {
         if (isDone()) return;
-        if (isCancelled()) {
-            throw new IllegalStateException("Cancelled.");
-        }
         throw new IllegalStateException("Not done yet.");
     }
     

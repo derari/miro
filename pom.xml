@@ -15,11 +15,14 @@
         <module>util/futures</module>
         <module>util/test</module>
         
-        <module>db/api</module>
+        <module>db/api</module>        
         <module>db/jdbc</module>
         <module>db/sql</module>
         <module>db/sql-mysql</module>
         <module>db/sql-hana</module>
+        
+        <module>migrate/api</module>
+        <module>migrate/sql</module>
         
         <module>result/entity</module>
         <module>result/graph</module>
@@ -31,10 +34,13 @@
         <module>map/sql</module>
         
         <module>at/model</module>
-        <module>at/query</module>
+        <!--<module>at/query</module>-->
         
-        <module>view/dsl</module>
-        <module>view/mapped-sql</module>
+        <module>set/dsl</module>
+        <module>set/mapped-sql</module>
+        
+        <!--<module>view/dsl</module>
+        <module>view/mapped-sql</module>-->
         
         <module>lib/all</module>
     </modules>
@@ -102,6 +108,11 @@
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>2.4.3</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-gpg-plugin</artifactId>
                     <version>1.6</version>
                 </plugin>
@@ -121,13 +132,20 @@
                     </execution>
                 </executions>
             </plugin>
-        </plugins>
-        <!--<plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>aggregate</goal>
+                        </goals>
+                        <phase>package</phase>
+                    </execution>
+                </executions>
             </plugin>
-            <plugin>
+        </plugins>
+            <!--<plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
             </plugin>
@@ -230,6 +248,22 @@
                 <artifactId>miro-db-sql-mysql</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.cthul.miro</groupId>
+                <artifactId>miro-db-sql-hana</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            
+            <dependency>
+                <groupId>org.cthul.miro</groupId>
+                <artifactId>miro-migrate-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.cthul.miro</groupId>
+                <artifactId>miro-migrate-sql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             
             <dependency>
                 <groupId>org.cthul.miro</groupId>
@@ -268,22 +302,31 @@
                 <artifactId>miro-at-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
+            <!--<dependency>
                 <groupId>org.cthul.miro</groupId>
                 <artifactId>miro-at-composer</artifactId>
                 <version>${project.version}</version>
-            </dependency>
+            </dependency>-->
             
             <dependency>
                 <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-view-dsl</artifactId>
+                <artifactId>miro-set-dsl</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.cthul.miro</groupId>
+                <artifactId>miro-set-mapped-sql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            
+            <!--dependency>
+                <groupId>org.cthul.miro</groupId>
+                <artifactId>miro-view-dsl</artifactId>
             </dependency>
             <dependency>
                 <groupId>org.cthul.miro</groupId>
                 <artifactId>miro-view-mapped-sql</artifactId>
-                <version>${project.version}</version>
-            </dependency>
+            </dependency-->
             
         </dependencies>
     </dependencyManagement>

@@ -1,6 +1,6 @@
 package org.cthul.miro.at.compose;
 
-import org.cthul.miro.composer.Template;
+import org.cthul.miro.composer.template.Template;
 import org.cthul.miro.db.sql.SqlFilterableClause;
 import org.cthul.miro.map.MappedStatementBuilder;
 import org.cthul.miro.view.composer.SimpleCRUDTemplateLayer;

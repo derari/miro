@@ -6,17 +6,22 @@ import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.entity.EntityFactory;
 import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.entity.EntityType;
+import org.cthul.miro.entity.EntityTypes;
+import org.cthul.miro.graph.Graph;
 import org.cthul.miro.graph.GraphApi;
 import org.cthul.miro.graph.NodeSelector;
 import org.cthul.miro.graph.NodeType;
 
 /**
  * A set of nodes of one type in a graph.
- * Also implements the {@link NodeType} interface, except that it doesn't
- * need the graph parameter.
+ * <p>
+ * Implements the non-default methods of {@link Graph}, 
+ * but without the {@code typeKey} parameter.
+ * <p>
+ * As entity type, its factories return nodes of the set.
  * @param <Node>
  */
-public abstract class NodeSet<Node> implements EntityType<Node> {
+public abstract class NodeSet<Node> {
 
     private final NodeType<Node> nodeType;
     private final GraphApi graph;
@@ -47,116 +52,80 @@ public abstract class NodeSet<Node> implements EntityType<Node> {
     
     protected abstract void putNode(Object[] key, Node e);
 
+    //<editor-fold defaultstate="collapsed" desc="Graph implementation">
     /**
-     * Finds or creates nodes of this type.
+     * Finds or creates nodes in the set and
+     * ensures that the specified attributes are initialized.
      * @return node selector
-     * @throws MiException 
+     * @see Graph#newNodeSelector(Object, List)
      */
-    public NodeSelector<Node> newNodeSelector() throws MiException {
-        return new NodeSelector<Node>() {
-            NodeSelector<Node> factory = null;
-
-            NodeSelector<Node> factory() throws MiException {
-                if (factory == null) {
-                    factory = getNodeType().newNodeFactory(getGraph());
-                }
-                return factory;
-            }
-
-            @Override
-            public Node get(Object... key) throws MiException {
-                Node e = getNode(key);
-                if (e == null) {
-                    e = factory().get(key);
-                    putNode(key, e);
-                }
-                return e;
-            }
-
-            @Override
-            public void complete() throws MiException {
-                if (factory != null) {
-                    factory.complete();
-                }
-            }
-
-            @Override
-            public void close() throws MiException {
-                if (factory != null) {
-                    factory.close();
-                }
-            }
-
-            @Override
-            public String toString() {
-                String s = factory != null ? factory.toString() : 
-                        ("new " + getNodeType());
-                return shortString(s);
-            }
-        };
+    public NodeSelector<Node> newNodeSelector() {
+        return new NodesOfSet();
     }
-
+    
     /**
-     * Finds or creates nodes of the given type and ensures that the specified
-     * attributes are initialized.
+     * Returns an entity type that will find or create nodes in the graph and
+     * ensures that the given attributes are initialized.
      * @param attributes
-     * @return node selector
-     * @throws MiException 
+     * @return entity type
+     * @see Graph#getEntityType(Object, List)
      */
-    public NodeSelector<Node> newSelector(List<?> attributes) throws MiException {
-        NodeSelector<Node> selector = newNodeSelector();
-        EntityInitializer<Node> init = newAttributeInitializer(attributes);
-        return new NodeSelector<Node>() {
-            @Override
-            public Node get(Object... key) throws MiException {
-                Node e = selector.get(key);
-                init.apply(e);
-                return e;
-            }
-            @Override
-            public void complete() throws MiException {
-                init.complete();
-            }
-            @Override
-            public void close() throws MiException {
-                init.close();
-            }
-            @Override
-            public String toString() {
-                return shortString(init);
-            }
-        };
+    public EntityType<Node> getEntityType(List<?> attributes) {
+        return getNodeType().asEntityType(getGraph(), newNodeSelector(), attributes);
     }
-
+    
     /**
-     * Returns an entity factory that will find or create nodes of the graph.
-     * @param rs
-     * @return entity factory
-     * @throws MiException 
+     * Creates an initializer that will load the given attributes from the database.
+     * @param attributes
+     * @return initializer
+     * @throws MiException
+     * @see Graph#newAttributeLoader(Object, List)
      */
-    @Override
-    public EntityFactory<Node> newFactory(MiResultSet rs) throws MiException {
-        return newFactory(newNodeSelector(), rs);
+    public EntityInitializer<Node> newAttributeLoader(List<?> attributes) throws MiException {
+        if (attributes.isEmpty()) return EntityTypes.noInitialization();
+        return getNodeType().newAttributeLoader(getGraph(), attributes);
     }
+    //</editor-fold>
 
-    /**
-     * Creates an entity factory that looks up keys in the {@code resultSet} and 
-     * obtains nodes from the {@code nodeFactory}.
-     * @param nodeFactory
-     * @param rs
-     * @return
-     * @throws MiException 
-     */
-    public EntityFactory<Node> newFactory(NodeSelector<Node> nodeFactory, MiResultSet rs) throws MiException {
-        return getNodeType().newEntityFactory(getGraph(), nodeFactory, rs);
-    }
+    private class NodesOfSet implements NodeSelector<Node> {
+        private NodeSelector<Node> factory = null;
 
-    @Override
-    public Node[] newArray(int length) {
-        return getNodeType().newArray(length);
-    }
+        NodeSelector<Node> factory() throws MiException {
+            if (factory == null) {
+                factory = getNodeType().newNodeFactory(getGraph());
+            }
+            return factory;
+        }
 
-    public EntityInitializer<Node> newAttributeInitializer(List<?> attributes) throws MiException {
-        return getNodeType().newAttributeInitializer(getGraph(), attributes);
+        @Override
+        public Node get(Object... key) throws MiException {
+            Node e = getNode(key);
+            if (e == null) {
+                e = factory().get(key);
+                putNode(key, e);
+            }
+            return e;
+        }
+
+        @Override
+        public void complete() throws MiException {
+            if (factory != null) {
+                factory.complete();
+            }
+        }
+
+        @Override
+        public void close() throws MiException {
+            if (factory != null) {
+                factory.close();
+            }
+        }
+
+        @Override
+        public String toString() {
+            String s = factory != null ? factory.toString() :
+                    ("new " + getNodeType());
+            return shortString(s);
+        }
     }
 }

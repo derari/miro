@@ -1,5 +1,6 @@
 package org.cthul.miro.db.syntax;
 
+import org.cthul.miro.db.stmt.MiDBString;
 import org.cthul.miro.util.Key;
 
 /**
@@ -8,8 +9,9 @@ import org.cthul.miro.util.Key;
  */
 public interface ClauseType<Clause> extends Key<Clause> {
 
-    default Clause createDefaultClause(Syntax syntax, Object parent) {
+    default Clause createDefaultClause(Syntax syntax, MiDBString dbString, Object owner) {
         throw new UnsupportedOperationException(
-                syntax + ": Unsupported clause type " + this + " for " + parent);
+                syntax + ": Unsupported clause type " + this + " for " + 
+                        (owner != null ? owner : dbString));
     }
 }

@@ -1,5 +1,6 @@
 package org.cthul.miro.db.impl;
 
+import org.cthul.miro.db.syntax.NestedBuilder;
 import org.cthul.miro.db.stmt.MiDBString;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.db.syntax.Syntax;
@@ -16,7 +17,7 @@ public class AbstractNestedBuilder<Owner, This extends QlBuilder<This>>
     private boolean initialized;
 
     public AbstractNestedBuilder(Owner owner, MiDBString dbString, Syntax syntax) {
-        this(owner, syntax.newClause(dbString, QlBuilder.CLAUSE), syntax);
+        this(owner, syntax.newClause(dbString, QlBuilder.TYPE), syntax);
     }
 
     public AbstractNestedBuilder(Owner owner, QlBuilder<?> builder, Syntax syntax) {

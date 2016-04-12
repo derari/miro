@@ -1,47 +1,56 @@
 package org.cthul.miro.futures.impl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.cthul.miro.futures.MiFunction;
+import java.util.function.Supplier;
+import org.cthul.miro.function.MiFunction;
 import org.cthul.miro.futures.MiFuture;
 
 /**
  * Base class for {@link MiFuture}s.
- * Implementations must call {@link #start()}, and {@link #result(java.lang.Object)} or
- * {@link #fail(java.lang.Throwable)}.
+ * Implementations must call {@link #start()}, and {@link #result(long, java.lang.Object)} or
+ * {@link #fail(long, java.lang.Throwable)}.
  * @param <V> 
  */
 public abstract class AbstractMiFuture<V> implements MiFuture<V> {
     
     private final Object lock = new Object();
     private final Executor defaultExecutor;
-    private Future<?> cancelDelegatee;
+    private final boolean resettable;
+    private Future<?> cancelDelegate;
     private boolean started = false;
     private boolean cancelled = false;
     private boolean cancelSuccess = false;
     private boolean done = false;
+    private long attempt = 0;
     private V result = null;
     private Throwable exception = null;
     private OnComplete<?> onCompleteListener = null;
     private List<OnComplete<?>> moreOnCompleteListeners = null;
 
-    public AbstractMiFuture() {
-        this(null);
+    public AbstractMiFuture(boolean resettable) {
+        this(null, resettable);
     }
 
-    public AbstractMiFuture(Executor defaultExecutor) {
+    public AbstractMiFuture(Executor defaultExecutor, boolean resettable) {
         this.defaultExecutor = defaultExecutor;
+        this.resettable = resettable;
     }
     
     protected final Object lock() {
         return lock;
     }
 
+    /**
+     * Returns {@code true} if the task has started.
+     * @return true iff the task has started.
+     */
     protected boolean isStarted() {
         // Don't sync. Every operation relying on the future not being 
         // started will have to sync anyway.
@@ -50,102 +59,134 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
     
     /**
      * Marks the operation as started.
+     * @return attempt id
      */
-    protected void start() {
-        start(null);
+    protected long start() {
+        return start(null);
     }
     
     /**
      * Marks the operation as started.
-     * @param cancelDelegatee 
+     * @param cancelDelegate 
+     * @return attempt id
      */
-    protected void start(Future<?> cancelDelegatee) {
+    protected long start(Future<?> cancelDelegate) {
         synchronized (lock) {
             if (started) {
                 throw new IllegalStateException("Was already started.");
             }
             this.started = true;
-            this.cancelDelegatee = cancelDelegatee;
+            this.cancelDelegate = cancelDelegate;
+            return attempt;
         }
     }
     
     /**
      * Indicates if the underlying action should continue.
-     * @return false if operation should be cancelled
+     * If the current thread's interrupt flag is set, the future will be
+     * cancelled automatically.
+     * @param attempt
+     * @return true iff operation should continue
      */
-    protected boolean beginWork() {
-        if (isCancelled()) {
-            result(null);
+    protected boolean progress(long attempt) {
+        if (this.attempt != attempt) {
+            return false;
+        }
+        if (cancelled) {
+            cancelSuccess = true;
             return false;
         }
         if (Thread.interrupted()) {
-            fail(new InterruptedException());
+            cancel(false);
             return false;
         }
         return true;
     }
     
     /**
+     * Check before the task can complete.
+     * @return true iff task can complete normally
+     */
+    @SuppressWarnings("NotifyNotInSynchronizedContext")
+    private boolean tryComplete() {
+        if (cancelled) {
+            cancelSuccess = true;
+            return false;
+        }
+        if (done) {
+            throw new IllegalStateException("Is already done.");
+        }
+        lock.notifyAll();
+        return true;
+    }
+    
+    /**
      * Sets the result of the operation.
+     * @param attempt
      * @param result 
      */
-    protected void result(V result) {
+    protected void result(long attempt, V result) {
+        List<OnComplete<?>> listeners;
         synchronized (lock) {
-            if (cancelled) {
-                cancelSuccess = true;
-            } else {
-                if (done) {
-                    throw new IllegalStateException("Is already done.");
-                }
-                done = true;
-                this.result = result;
-                lock.notifyAll();
+            if (this.attempt != attempt) {
+                return;
             }
+            if (!tryComplete()) {
+                return;
+            }
+            this.result = result;
+            this.done = true;
+            listeners = getListenersToSubmit();
         }
-        triggerOnCompleteListeners();
+        submitOnCompleteListeners(listeners);
     }
     
     /**
      * Marks the operation as failed and sets the exception.
+     * @param attempt
      * @param exception 
      */
-    protected void fail(Throwable exception) {
+    protected void fail(long attempt, Throwable exception) {
+        List<OnComplete<?>> listeners;
         synchronized (lock) {
-            if (cancelled) {
-                cancelSuccess = true;
-            } else { 
-                if (done) {
-                    throw new IllegalStateException("Is already done.");
-                }
-                done = true;
-                this.exception = exception;
-                lock.notifyAll();
+            if (this.attempt != attempt) {
+                return;
             }
+            if (!tryComplete()) {
+                return;
+            }
+            this.exception = exception;
+            done = true;
+            listeners = getListenersToSubmit();
         }
-        triggerOnCompleteListeners();
+        submitOnCompleteListeners(listeners);
     }
     
     protected Future<?> getCancelDelegate() {
-        return cancelDelegatee;
+        return cancelDelegate;
     }
     
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
+        List<OnComplete<?>> listeners;
+        boolean success;
         if (done) return false;
         synchronized (lock) {
             if (done) return false;
-            done = cancelled = true;
-            lock.notifyAll();
-            if (!started) {
-                cancelSuccess = true;
-            }
+            exception = new CancellationException();
+            cancelSuccess = !started;
+            cancelled = true;
             Future<?> delegate = getCancelDelegate();
             if (delegate != null && delegate.cancel(mayInterruptIfRunning)) {
                 cancelSuccess = true;
             }
+            listeners = getListenersToSubmit();
+            done = true;
+            lock.notifyAll();
+            success = cancelSuccess;
         }
-        triggerOnCompleteListeners();
-        return cancelSuccess;
+        submitOnCompleteListeners(listeners);
+        return success;
     }
 
     @Override
@@ -153,12 +194,53 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
         return cancel(mayInterruptIfRunning);
     }
 
+    protected boolean isResettable() {
+        return resettable;
+    }
+    
+    protected boolean resetState(long timeout, TimeUnit timeUnit) {
+        if (!resettable) {
+            throw new UnsupportedOperationException();
+        }
+        if (!started) return true;
+        synchronized (lock) {
+            if (!started) return true;
+            boolean success = done || cancel(true);
+            attempt++;
+            done = false;
+            cancelled = cancelSuccess = false;
+            cancelDelegate = null;
+            result = null;
+            exception = null;
+            if (onCompleteListener != null) {
+                onCompleteListener.reset();
+            }
+            if (moreOnCompleteListeners != null) {
+                moreOnCompleteListeners.forEach(OnComplete::reset);
+            }
+            if (!success && timeout >= 0) {
+                success = beDone(timeout, timeUnit);
+            }
+            started = false;
+            return success;
+        }
+    }
+    
+    protected boolean slowReset() {
+        return resetState(10, TimeUnit.MILLISECONDS);
+    }
+    
+    protected boolean fastReset() {
+        return resetState(-1, null);
+    }
+
     @Override
     public void await() throws InterruptedException {
         if (done) return;
         synchronized (lock) {
-            if (done) return;
-            lock.wait();
+            while (!done) {
+                lock.wait();
+            }
         }
     }
 
@@ -175,38 +257,47 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
         }
     }
     
+    protected <T> T assertIsDone(Supplier<T> result) {
+        if (resettable) {
+            synchronized (lock) {
+                assertIsDone();
+                return result.get();
+            }
+        } else {
+            assertIsDone();
+            return result.get();
+        }
+    }
+    
     @Override
     public boolean hasResult() {
-        assertIsDone();
-        return exception == null && !cancelled;
+        return assertIsDone(() -> exception == null);
     }
 
     @Override
     public V getResult() {
-        assertIsDone();
-        return result;
+        return assertIsDone(() -> result);
     }
 
     @Override
     public Throwable getException() {
-        assertIsDone();
-        if (cancelled) return new CancellationException();
-        return exception;
+        return assertIsDone(() -> exception);
     }
 
     @Override
     public boolean isCancelled() {
         // don't sync. Every operation relying on the future not being 
         // cancelled will have to sync anyway.
-        return cancelSuccess;
+        // Future does not qualify as cancelled if it is not done,
+        // even if cancelling is known to be successful
+        return done && cancelSuccess;
     }
 
     @Override
     public boolean isDone() {
-        if (done) return true;
-        synchronized (lock) {
-            return done;
-        }
+        // don't sync. Every operation relying on the future not being 
+        // done will have to sync anyway.        
+        return done;
     }
 
     protected Executor getDefaultExecutor() {
@@ -238,9 +329,9 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
     }
 
     private boolean enqueue(OnComplete<?> onComplete) {
-        if (done) return false;
+        if (done && !resettable) return false;
         synchronized (lock) {
-            if (done) return false;
+            if (done && !resettable) return false;
             if (onCompleteListener == null) {
                 onCompleteListener = onComplete;
             } else {
@@ -249,32 +340,39 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
                 }
                 moreOnCompleteListeners.add(onComplete);
             }
+            return !done;
         }
-        return true;
     }
 
-    private void triggerOnCompleteListeners() {
-        assertIsDone();
-        // It's okay if this is called multiple times.
-        // #submit is thread-safe
+    private synchronized List<OnComplete<?>> getListenersToSubmit() {
         OnComplete<?> first = onCompleteListener;
-        if (first != null) {
-            onCompleteListener = null;
-            first.submit();
-        }
         List<OnComplete<?>> more = moreOnCompleteListeners;
-        if (more != null) {
+        if (!resettable) {
+            onCompleteListener = null;
             moreOnCompleteListeners = null;
-            more.stream().forEach((oc) -> oc.submit());
+        }
+        if (first != null || resettable) {
+            List<OnComplete<?>> listeners = new ArrayList<>(1);
+            if (first != null) listeners.add(first);
+            if (more != null) listeners.addAll(more);
+            return listeners;
+        } else if (more != null) {
+            return more;
+        } else {
+            return Collections.emptyList();
         }
     }
 
-    protected class OnComplete<R> extends SubmittableMiFuture<MiFuture<V>, R> {
+    private void submitOnCompleteListeners(List<OnComplete<?>> listeners) {
+        listeners.forEach(oc -> oc.submit());
+    }
+
+    protected class OnComplete<R> extends AbstractMiFutureFunction<MiFuture<V>, R> {
         
         private final boolean canCancel;
 
         public OnComplete(boolean canCancel, Executor executor, MiFunction<? super MiFuture<V>, ? extends R> function) {
-            super(executor, function);
+            super(function, executor, AbstractMiFuture.this.resettable);
             this.canCancel = canCancel;
         }
 
@@ -287,7 +385,7 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
         }
 
         @Override
-        protected boolean beginWork() {
+        protected boolean progress(long attempt) {
             return true;
         }
 
@@ -301,6 +399,10 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
         public boolean deepCancel(boolean mayInterruptIfRunning) {
             AbstractMiFuture.this.deepCancel(mayInterruptIfRunning);
             return super.deepCancel(mayInterruptIfRunning);
+        }
+
+        protected void reset() {
+            fastReset();
         }
     }
 }

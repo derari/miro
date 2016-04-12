@@ -49,6 +49,11 @@ public class PrefixedResultSet implements MiResultSet {
     }
 
     @Override
+    public boolean isAfterLast() throws MiException {
+        return resultSet.isAfterLast();
+    }
+
+    @Override
     public void close() throws MiException {
         resultSet.close();
     }

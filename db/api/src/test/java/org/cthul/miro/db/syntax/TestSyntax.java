@@ -18,15 +18,15 @@ public class TestSyntax implements Syntax {
     @Override
     public <Cls> Cls newClause(MiDBString stmt, Object owner, ClauseType<Cls> type, ClauseType<Cls> onDefault) {
         Object cls = null;
-        if (type == QlBuilder.CLAUSE) {
+        if (type == QlBuilder.TYPE) {
             cls = new Ql(this, stmt);
-        } else if (type == IN_PARENT) {
+        } else if (type == IN_PARENTHESES) {
             cls = new InParenImpl(owner, stmt, this);
         }
-        return cls != null ? type.cast(cls) : onDefault.createDefaultClause(this, stmt);
+        return cls != null ? type.cast(cls) : onDefault.createDefaultClause(this, stmt, owner);
     }
     
-    public static ClauseType<InParentheses> IN_PARENT = new ClauseType<InParentheses>() { };
+    public static ClauseType<InParentheses> IN_PARENTHESES = new ClauseType<InParentheses>() { };
     
     public static interface InParentheses extends QlBuilder<InParentheses> {
         

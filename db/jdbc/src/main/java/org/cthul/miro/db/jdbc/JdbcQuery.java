@@ -16,7 +16,7 @@ public class JdbcQuery extends JdbcStatement<JdbcQuery> implements MiQueryString
 
     @Override
     public MiResultSet execute() throws MiException {
-        return resultSet(connection.executeQuery(preparedStatement()));
+        return resultSet(withRetry(connection::executeQuery));
     }
     
     protected MiResultSet resultSet(ResultSet rs) {

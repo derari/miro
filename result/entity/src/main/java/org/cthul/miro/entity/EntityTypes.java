@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.impl.PrefixedResultSet;
+import org.cthul.miro.function.MiFunction;
 import org.cthul.miro.util.Closables;
 
 /**
@@ -137,14 +140,50 @@ public class EntityTypes {
         return NO_INITIALIZATION;
     }
     
+    public static <Entity> EntityConfiguration<Entity> newConfiguration(MiFunction<? super MiResultSet, ? extends EntityInitializer<Entity>> init) {
+        return new EntityConfiguration<Entity>() {
+            @Override
+            public EntityInitializer<Entity> newInitializer(MiResultSet resultSet) throws MiException {
+                try {
+                    return init.call(resultSet);
+                } catch (Throwable e) {
+                    throw Closables.exceptionAs(e, MiException.class);
+                }
+            }
+            @Override
+            public String toString() {
+                return init.toString();
+            }
+        };
+    }
+    
     public static <Entity> EntityConfiguration<Entity> asConfiguration(EntityInitializer<Entity> init) {
-        return rs -> init;
+        Objects.requireNonNull(init, "initializer");
+        return new EntityConfiguration<Entity>() {
+            @Override
+            public EntityInitializer<Entity> newInitializer(MiResultSet resultSet) throws MiException {
+                return init;
+            }
+            @Override
+            public String toString() {
+                return String.valueOf(init);
+            }
+        };
     }
     
     public static <Entity> EntityConfiguration<Entity> subResultConfiguration(String prefix, EntityConfiguration<Entity> cfg) {
-        return rs -> {
-            rs = new PrefixedResultSet(prefix, rs);
-            return cfg.newInitializer(rs);
+        Objects.requireNonNull(prefix, "prefix");
+        Objects.requireNonNull(cfg, "configuration");
+        return new EntityConfiguration<Entity>() {
+            @Override
+            public EntityInitializer<Entity> newInitializer(MiResultSet resultSet) throws MiException {
+                MiResultSet rs = new PrefixedResultSet(prefix, resultSet);
+                return cfg.newInitializer(rs);
+            }
+            @Override
+            public String toString() {
+                return prefix + cfg;
+            }
         };
     }
     
@@ -236,17 +275,7 @@ public class EntityTypes {
 
         @Override
         public String toString() {
-            StringBuilder sb = new StringBuilder();
-//            sb.append('(');
-            try {
-                initializers.stream().forEach(i -> {
-                    sb.append(i).append(", ");
-                });
-            } catch (Exception e) {
-                sb.append(e.getMessage());
-            }
-            sb.setLength(sb.length()-2);
-            return sb.toString();
+            return initializers.stream().map(Object::toString).collect(Collectors.joining(","));
         }
     }
     

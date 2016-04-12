@@ -12,6 +12,13 @@ import org.cthul.miro.db.MiException;
 public interface EntityType<Entity> {
     
     /**
+     * Creates a typed array of the given length.
+     * @param length
+     * @return new array
+     */
+    Entity[] newArray(int length);
+    
+    /**
      * Creates a new entity factory.
      * <p> Closing the factory should not close the result set.
      * @param rs
@@ -19,13 +26,6 @@ public interface EntityType<Entity> {
      * @throws MiException 
      */
     EntityFactory<Entity> newFactory(MiResultSet rs) throws MiException;
-    
-    /**
-     * Creates a typed array of the given length.
-     * @param length
-     * @return new array
-     */
-    Entity[] newArray(int length);
     
     /**
      * Creates a type that will create initializing factories.

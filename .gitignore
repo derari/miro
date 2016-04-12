@@ -29,3 +29,16 @@
 /db/sql-mysql - Copy/target/
 /db/sql-hana/target/
 /lib/all/target/
+/view/sets/target/
+/view/set/target/
+/view - Copy/dsl/target/
+/view - Copy/mapped-sql/target/
+/set/dsl/target/
+/set/mapped-sql/target/
+/migrate/api/target/
+/migrate/sql/target/
+/zz__view/dsl/target/
+/zz__queries/target/
+/db/sql-mysql/nbproject/
+/db/sql/nbproject/
+/lib/all/dependency-reduced-pom.xml

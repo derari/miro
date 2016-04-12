@@ -1,9 +1,9 @@
 package org.cthul.miro.at.compose;
 
 import java.lang.reflect.Method;
-import org.cthul.miro.composer.ComposerParts;
+import org.cthul.miro.composer.template.Templates;
 import org.cthul.miro.composer.ConfigureKey;
-import org.cthul.miro.composer.Template;
+import org.cthul.miro.composer.template.Template;
 import org.cthul.miro.composer.impl.AbstractTemplate;
 import org.cthul.miro.db.sql.SqlFilterableClause;
 import org.cthul.miro.map.MappedStatementBuilder;
@@ -38,7 +38,7 @@ public class InterfaceStatementTemplate<Entity, Statement extends SqlFilterableC
     }
     
     @Override
-    protected Template<? super MappedStatementBuilder<Entity, ? extends Statement>> createPartType(Object key) {
+    protected Template<? super MappedStatementBuilder<Entity, ? extends Statement>> createPartTemplate(Object key) {
         if (!(key instanceof MethodKey)) return null;
         MethodKey mKey = (MethodKey) key;
         Method method = mKey.getMethod();
@@ -47,6 +47,6 @@ public class InterfaceStatementTemplate<Entity, Statement extends SqlFilterableC
             throw new IllegalArgumentException(
                     "No annotations found at " + method);
         }
-        return ComposerParts.link(actualKey);
+        return Templates.link(actualKey);
     }
 }

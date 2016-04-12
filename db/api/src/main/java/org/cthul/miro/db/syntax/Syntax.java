@@ -12,7 +12,9 @@ public interface Syntax {
         return newStatement(cnn, type, type);
     }
     
-    <Req> Req newStatement(MiConnection cnn, RequestType<Req> type, RequestType<Req> onDefault);
+    default <Req> Req newStatement(MiConnection cnn, RequestType<Req> type, RequestType<Req> onDefault) {
+        return onDefault.createDefaultRequest(this, cnn);
+    }
     
     default <Cls> Cls newClause(MiDBString stmt, ClauseType<Cls> type) {
         return newClause(stmt, null, type);
@@ -22,6 +24,7 @@ public interface Syntax {
         return newClause(stmt, owner, type, type);
     }
     
-    <Cls> Cls newClause(MiDBString stmt, Object owner, ClauseType<Cls> type, ClauseType<Cls> onDefault);
-
+    default <Cls> Cls newClause(MiDBString stmt, Object owner, ClauseType<Cls> type, ClauseType<Cls> onDefault) {
+        return onDefault.createDefaultClause(this, stmt, owner);
+    }
 }

@@ -1,9 +1,10 @@
 package org.cthul.miro.composer.impl;
 
-import org.cthul.miro.composer.ComposerParts;
-import org.cthul.miro.composer.ComposerParts.KeyTemplate;
+import org.cthul.miro.util.AbstractCache;
+import org.cthul.miro.composer.template.Templates;
+import org.cthul.miro.composer.template.Templates.KeyTemplate;
 import org.cthul.miro.composer.InternalComposer;
-import org.cthul.miro.composer.Template;
+import org.cthul.miro.composer.template.Template;
 import org.cthul.miro.util.Key;
 
 /**
@@ -15,6 +16,10 @@ public abstract class AbstractTemplate<Builder> extends AbstractCache<Object, Te
     private final Template<? super Builder> parent;
     private final AbstractTemplate<? super Builder> parentLookUp;
 
+//    public AbstractTemplate() {
+//        this(NO_PARENT);
+//    }
+//
     public AbstractTemplate(Template<? super Builder> parent) {
         this.parent = parent;
         this.parentLookUp = getParentLookUp();
@@ -36,10 +41,6 @@ public abstract class AbstractTemplate<Builder> extends AbstractCache<Object, Te
         return null;
     }
 
-    public AbstractTemplate() {
-        this(NO_PARENT);
-    }
-
     @Override
     public void addTo(Object key, InternalComposer<? extends Builder> query) {
         getValue(key).addTo(key, query);
@@ -47,11 +48,7 @@ public abstract class AbstractTemplate<Builder> extends AbstractCache<Object, Te
 
     @Override
     protected Template<? super Builder> create(Object key) {
-//        if (key instanceof DirectTemplate) {
-//            DirectTemplate<? super Builder> dt = (DirectTemplate) key;
-//            return dt;
-//        }
-        Template<? super Builder> t = createPartType(key);
+        Template<? super Builder> t = createPartTemplate(key);
         if (t != null) return t;
         if (parentLookUp != null) {
             return parentLookUp.getValue(key);
@@ -59,29 +56,39 @@ public abstract class AbstractTemplate<Builder> extends AbstractCache<Object, Te
         return parent;
     }
     
-    protected abstract Template<? super Builder> createPartType(Object key);
+    protected abstract Template<? super Builder> createPartTemplate(Object key);
     
-    protected static final Template<Object> NO_PARENT = (k, q) -> {
-        throw new IllegalArgumentException(
-                "Unknown key: " + k);
+    protected static final Template<Object> NO_PARENT = new Template<Object>() {
+        @Override
+        public void addTo(Object key, InternalComposer<? extends Object> composer) {
+            throw new IllegalArgumentException("Unknown key: " + key);
+        }
+        @Override
+        public String toString() {
+            return "NO_PARENT";
+        }
     };
     
     public static Template<Object> noTemplate() {
         return NO_PARENT;
     }
     
-    protected <V> KeyTemplate<? super Builder, V> parentPartType(Key<V> key) {
-        return ComposerParts.redirect(key, parent);
+    protected <V> KeyTemplate<? super Builder, V> parentPart(Key<V> key) {
+        return Templates.redirect(key, parent);
     }
     
-    protected ComposerParts.ComposableTemplate<? super Builder> parentPartType() {
-        return ComposerParts.compose(parent);
+    protected Templates.ComposableTemplate<? super Builder> parentPart() {
+        return Templates.compose(parent);
     }
 
     @Override
     public String toString() {
-        if (parent != ComposerParts.noOp()) {
-            return getShortString() + ">" + parent;
+        if (parent != Templates.noOp()) {
+            if (parent instanceof AdaptedTemplate.ParentAdapter) {
+                return getShortString() + parent;
+            } else {
+                return getShortString() + ">" + parent;
+            }
         } else {
             return getShortString();
         }

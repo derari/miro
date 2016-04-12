@@ -52,10 +52,10 @@ public class AbstractMiFutureTest {
     
     @Test
     public void test_cancel_running() {
-        instance.start();
+        long a = instance.start();
         instance.cancel(false);
         assertThat(instance.isCancelled(), is(false));
-        instance.result("");
+        instance.result(a, "");
         assertThat(instance.isCancelled(), is(true));
         assertThat(instance.hasResult(), is(false));
     }
@@ -86,7 +86,7 @@ public class AbstractMiFutureTest {
     public void test_await_pass() throws Exception {
         TestSync sync = new TestSync(1);
         executor.execute(() -> {
-            instance.result("hello");
+            instance.result(0, "hello");
             sync.countDown();
         });
         sync.await();
@@ -99,7 +99,7 @@ public class AbstractMiFutureTest {
         TestSync sync = new TestSync(1);
         executor.execute(() -> {
             sync.awaitSlow();
-            instance.result("hello");
+            instance.result(0, "hello");
         });
         sync.countDown();
         try {
@@ -115,7 +115,7 @@ public class AbstractMiFutureTest {
         TestSync sync = new TestSync(1);
         executor.execute(() -> {
             sync.await();
-            instance.result("hello");
+            instance.result(0, "hello");
         });
         try {
             instance.await(10, TimeUnit.MILLISECONDS);
@@ -151,14 +151,14 @@ public class AbstractMiFutureTest {
     
     @Test
     public void test_hasResult() {
-        instance.result("hello");
+        instance.result(0, "hello");
         assertThat(instance.hasResult(), is(true));
         assertThat(instance.hasFailed(), is(false));
     }
 
     @Test
     public void test_hasFailed() {
-        instance.fail(new RuntimeException());
+        instance.fail(0, new RuntimeException());
         assertThat(instance.hasResult(), is(false));
         assertThat(instance.hasFailed(), is(true));
     }
@@ -171,7 +171,7 @@ public class AbstractMiFutureTest {
         } catch (IllegalStateException e) {
             // expected
         }
-        instance.result("hello");
+        instance.result(0, "hello");
         assertThat(instance.getResult(), is("hello"));
         assertThat(instance.getException(), is(nullValue()));
     }
@@ -185,7 +185,7 @@ public class AbstractMiFutureTest {
         } catch (IllegalStateException e) {
             // expected
         }
-        instance.fail(new RuntimeException());
+        instance.fail(0, new RuntimeException());
         assertThat(instance.getResult(), is(nullValue()));
         assertThat(instance.getException(), is(notNullValue()));
     }
@@ -197,7 +197,7 @@ public class AbstractMiFutureTest {
             assertThat(f.get(), is("hello"));
             return 42;
         });
-        instance.result("hello");
+        instance.result(0, "hello");
         assertThat(f2._get(), is(42));
     }
     
@@ -206,7 +206,7 @@ public class AbstractMiFutureTest {
         MiFuture<Integer> f2 = instance.andThen((s) -> {
             return 42;
         });
-        instance.fail(new RuntimeException());
+        instance.fail(0, new RuntimeException());
         f2.await();
         assertThat(f2.hasFailed(), is(true));
     }
@@ -235,25 +235,26 @@ public class AbstractMiFutureTest {
     public static class TestFuture<V> extends AbstractMiFuture<V> {
 
         public TestFuture() {
+            super(false);
         }
 
         public TestFuture(Executor defaultExecutor) {
-            super(defaultExecutor);
+            super(defaultExecutor, false);
         }
 
         @Override
-        protected void start() {
-            super.start();
+        protected long start() {
+            return super.start();
         }
 
         @Override
-        protected void result(V result) {
-            super.result(result);
+        protected void result(long attempt, V result) {
+            super.result(attempt, result);
         }
 
         @Override
-        protected void fail(Throwable exception) {
-            super.fail(exception);
+        protected void fail(long attempt, Throwable exception) {
+            super.fail(attempt, exception);
         }
     }
     

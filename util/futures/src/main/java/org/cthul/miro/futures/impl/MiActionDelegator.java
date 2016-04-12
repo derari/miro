@@ -1,11 +1,10 @@
 package org.cthul.miro.futures.impl;
 
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.cthul.miro.futures.MiAction;
-import org.cthul.miro.futures.MiFunction;
+import org.cthul.miro.function.MiFunction;
 import org.cthul.miro.futures.MiFuture;
 
 /**

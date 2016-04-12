@@ -46,10 +46,10 @@
             <groupId>org.cthul.miro</groupId>
             <artifactId>miro-composer-api</artifactId>
         </dependency>
-        <dependency>
+        <!--dependency>
             <groupId>org.cthul.miro</groupId>
             <artifactId>miro-view-dsl</artifactId>
-        </dependency>
+        </dependency-->
         
         <dependency>
             <groupId>org.cthul.matchers.fluent</groupId>

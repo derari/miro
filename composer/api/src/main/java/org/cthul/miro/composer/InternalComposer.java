@@ -1,7 +1,5 @@
 package org.cthul.miro.composer;
 
-import org.cthul.miro.composer.impl.AdaptedTemplate;
-import java.util.function.Function;
 import org.cthul.miro.util.Key;
 
 /**
@@ -10,7 +8,7 @@ import org.cthul.miro.util.Key;
  */
 public interface InternalComposer<Builder> extends Composer {
     
-    default <QP extends StatementPart<? super Builder>> void addPart(Key<? super QP> key, QP part) {
+    default <SP extends StatementPart<? super Builder>> void addPart(Key<? super SP> key, SP part) {
         addPart(part);
         addNode(key, part);
     }
@@ -18,8 +16,4 @@ public interface InternalComposer<Builder> extends Composer {
     void addPart(StatementPart<? super Builder> part);
     
     <V> void addNode(Key<V> key, V node);
-    
-    default <Adapted> InternalComposer<Adapted> adapt(Function<? super Builder, ? extends Adapted> adapter) {
-        return AdaptedTemplate.adapt(this, adapter);
-    }
 }

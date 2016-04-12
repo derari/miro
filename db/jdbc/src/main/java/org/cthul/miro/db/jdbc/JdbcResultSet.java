@@ -77,6 +77,15 @@ public class JdbcResultSet implements MiResultSet {
     }
 
     @Override
+    public boolean isAfterLast() throws MiException {
+        try {
+            return rs.isAfterLast();
+        } catch (SQLException e) {
+            throw new MiException(e);
+        }
+    }
+
+    @Override
     public void close() throws MiException {
         try {
             rs.close();

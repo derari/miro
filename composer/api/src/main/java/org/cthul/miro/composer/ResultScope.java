@@ -14,5 +14,4 @@ public enum ResultScope {
     public boolean isInternal() {
         return this == INTERNAL;
     }
-    
 }

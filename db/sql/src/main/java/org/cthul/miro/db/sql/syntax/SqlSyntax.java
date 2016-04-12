@@ -1,17 +1,22 @@
 package org.cthul.miro.db.sql.syntax;
 
-import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.impl.AbstractNestedBuilder;
+import org.cthul.miro.db.sql.CreateStatement;
+import org.cthul.miro.db.sql.InsertStatement;
 import org.cthul.miro.db.sql.SelectQuery;
 import org.cthul.miro.db.sql.SqlClause;
 import org.cthul.miro.db.sql.SqlClause.Conjunction;
 import org.cthul.miro.db.sql.SqlClause.Junction;
-import org.cthul.miro.db.sql.impl.SimpleSelectQuery;
+import org.cthul.miro.db.sql.SqlDDL;
+import org.cthul.miro.db.sql.impl.StandardSelectQuery;
 import org.cthul.miro.db.sql.SqlDQML;
+import org.cthul.miro.db.sql.impl.StandardCreateStatement;
+import org.cthul.miro.db.sql.impl.StandardInsertStatement;
 import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.stmt.MiQueryString;
+import org.cthul.miro.db.stmt.MiUpdateString;
 import org.cthul.miro.db.syntax.ClauseType;
 import org.cthul.miro.db.syntax.QlBuilder;
-import org.cthul.miro.db.syntax.RequestType;
 import org.cthul.miro.db.syntax.Syntax;
 
 /**
@@ -19,19 +24,18 @@ import org.cthul.miro.db.syntax.Syntax;
  */
 public interface SqlSyntax extends Syntax {
     
-    default SelectQuery newSelectQuery(MiConnection cnn) {
-        return new SimpleSelectQuery(cnn, this);
+    default SelectQuery newSelectQuery(MiDBString dbString, MiQueryString owner) {
+        return new StandardSelectQuery(this, dbString, owner);
     }
 
-    @Override
-    public default <Req> Req newStatement(MiConnection connection, RequestType<Req> type, RequestType<Req> onDefault) {
-        switch (SqlDQML.type(type)) {
-            case SELECT:
-                return type.cast(newSelectQuery(connection));
-        }
-        return onDefault.createDefaultRequest(this, connection);
+    default InsertStatement newInsertStatement(MiDBString dbString, MiUpdateString owner) {
+        return new StandardInsertStatement(this, dbString, owner);
     }
     
+    default CreateStatement newCreateStatement(MiDBString dbString, MiUpdateString  owner) {
+        return new StandardCreateStatement(this, dbString, owner);
+    }
+
     default QlBuilder<?> asQlBuilder(MiDBString dbString) {
         if (dbString instanceof QlBuilder) {
             return (QlBuilder) dbString;
@@ -47,27 +51,41 @@ public interface SqlSyntax extends Syntax {
     <O> SqlClause.In<O> newIn(MiDBString dbString, O owner);
     
     default <O> SqlClause.Junction<O> newJunction(MiDBString dbString, O owner) {
-        return new SimpleJunction<>(owner, dbString, this);
+        return new StandardJunction<>(owner, dbString, this);
     }
     
     default <O> SqlClause.Conjunction<O> newConjunction(MiDBString dbString, O owner) {
-        return new SimpleConjunction<>(owner, dbString, this);
+        return new StandardConjunction<>(owner, dbString, this);
     }
     
     @Override
     default <Cls> Cls newClause(MiDBString dbString, Object owner, ClauseType<Cls> type, ClauseType<Cls> onDefault) {
-        if (type == QlBuilder.CLAUSE) {
+        MiQueryString qry = owner instanceof MiQueryString ? (MiQueryString) owner : null;
+        MiUpdateString stmt = owner instanceof MiUpdateString ? (MiUpdateString) owner : null;
+        if (type == QlBuilder.TYPE) {
             return type.cast(newQlBuilder(dbString));
         }
-        if (type instanceof SqlClause.Clauses) {
-            switch ((SqlClause.Clauses) type) {
-                case IN:
-                    return type.cast(newIn(dbString, owner));
-                case IS_NULL:
-                    return type.cast(newIsNull(dbString, owner));
-            }
+        switch (SqlDQML.type(type)) {
+            case SELECT:
+                return type.cast(newSelectQuery(dbString, qry));
+            case UPDATE:
+                return type.cast(newInsertStatement(dbString, stmt));
         }
-        return onDefault.createDefaultClause(this, dbString);
+        switch (SqlClause.type(type)) {
+            case IN:
+                return type.cast(newIn(dbString, owner));
+            case IS_NULL:
+                return type.cast(newIsNull(dbString, owner));
+            case CONJUNCTION:
+                return type.cast(newConjunction(dbString, owner));
+            case JUNCTION:
+                return type.cast(newJunction(dbString, owner));
+        }
+        switch (SqlDDL.type(type)) {
+            case CREATE_TABLE:
+                return type.cast(newCreateStatement(dbString, stmt));
+        }
+        return onDefault.createDefaultClause(this, dbString, owner);
     }
     
     abstract class SimpleComposite<Owner, This extends QlBuilder<This>> extends AbstractNestedBuilder<Owner, This> {
@@ -116,13 +134,13 @@ public interface SqlSyntax extends Syntax {
         }
     }
     
-    class SimpleConjunction<Owner> extends SimpleComposite<Owner, Conjunction<Owner>> implements Conjunction<Owner> {
+    class StandardConjunction<Owner> extends SimpleComposite<Owner, Conjunction<Owner>> implements Conjunction<Owner> {
 
-        public SimpleConjunction(Owner owner, MiDBString dbString, SqlSyntax syntax) {
+        public StandardConjunction(Owner owner, MiDBString dbString, SqlSyntax syntax) {
             super(owner, dbString, syntax);
         }
 
-        public SimpleConjunction(Owner owner, QlBuilder<?> builder, Syntax syntax) {
+        public StandardConjunction(Owner owner, QlBuilder<?> builder, Syntax syntax) {
             super(owner, builder, syntax);
         }
 
@@ -137,13 +155,13 @@ public interface SqlSyntax extends Syntax {
         }
     }
     
-    class SimpleJunction<Owner> extends SimpleComposite<Owner, Junction<Owner>> implements Junction<Owner> {
+    class StandardJunction<Owner> extends SimpleComposite<Owner, Junction<Owner>> implements Junction<Owner> {
 
-        public SimpleJunction(Owner owner, MiDBString dbString, SqlSyntax syntax) {
+        public StandardJunction(Owner owner, MiDBString dbString, SqlSyntax syntax) {
             super(owner, dbString, syntax);
         }
 
-        public SimpleJunction(Owner owner, QlBuilder<?> builder, Syntax syntax) {
+        public StandardJunction(Owner owner, QlBuilder<?> builder, Syntax syntax) {
             super(owner, builder, syntax);
         }
 

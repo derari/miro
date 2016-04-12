@@ -1,87 +1,38 @@
 package org.cthul.miro.db.sql.impl;
 
-import java.util.function.Function;
-import org.cthul.miro.db.*;
-import org.cthul.miro.db.impl.BasicDBStringBuilder;
+import java.util.function.Supplier;
+import org.cthul.miro.db.impl.AbstractStatement;
+import org.cthul.miro.db.impl.MiDBStringBuilder;
 import org.cthul.miro.db.impl.QlBuilderDelegator;
-import org.cthul.miro.db.sql.SelectQueryBuilder;
 import org.cthul.miro.db.sql.SqlJoinableClause;
-import org.cthul.miro.db.sql.syntax.SqlSyntax;
 import org.cthul.miro.db.stmt.MiDBString;
 import org.cthul.miro.db.syntax.QlBuilder;
+import org.cthul.miro.db.syntax.Syntax;
+import org.cthul.miro.db.sql.SelectBuilder;
 
 /**
  *
+ * @param <Request>
  */
-public abstract class AbstractSqlStatement {
-    
-    private final MiConnection connection;
-    private final SqlSyntax syntax;
+public abstract class AbstractSqlStatement<Request extends MiDBString> extends AbstractStatement<Request> {
 
-    public AbstractSqlStatement(MiConnection connection, SqlSyntax syntax) {
-        this.connection = connection;
-        this.syntax = syntax;
+    public AbstractSqlStatement(Syntax syntax, Supplier<Request> requestFactory) {
+        super(syntax, requestFactory);
     }
 
-    protected <Req extends MiDBString> Req request(Function<MiConnection, Req> requestFactory) {
-        close();
-        return stmt(requestFactory.apply(connection));
+    public AbstractSqlStatement(Syntax syntax, Request dbString) {
+        super(syntax, dbString);
     }
 
-    protected SqlSyntax getSyntax() {
-        return syntax;
-    }
-    
-    protected QlBuilder<?> newQlBuilder(MiDBString coreBuilder) {
-        return getSyntax().newQlBuilder(coreBuilder);
-    }
-    
-    protected void close() {
-    }
-    
-    @Override
-    public String toString() {
-        return stmt(new BasicDBStringBuilder()).toString();
-    }
-    
-    protected <Stmt extends MiDBString> Stmt stmt(Stmt stmt) {
-        buildStatement(stmt);
-        return stmt;
-    }
-    
-    protected abstract void buildStatement(MiDBString stmt);
-    
-    protected void append(MiDBString target, Clause part) {
-        append(target, null, part, false);
-    }
-    
-    protected void append(MiDBString target, String prefix, Clause part) {
-        append(target, prefix, part, false);
-    }
-    
-    protected void append(MiDBString target, String prefix, Clause part, boolean forceNonEmpty) {
-        if (part == null) return;
-        if (part.isEmpty()) {
-            if (forceNonEmpty) {
-                throw new IllegalStateException(
-                        "Empty " + prefix.trim() + " clause");
-            }
-            return;
-        }
-        if (prefix != null) target.append(prefix);
-        part.addTo(target);
-    }
-    
-    protected interface Clause {
-        boolean isEmpty();
-        void addTo(MiDBString coreBuilder);
+    public AbstractSqlStatement(Syntax syntax, MiDBString dbString, Request request) {
+        super(syntax, dbString, request);
     }
     
     protected class ClauseBuilder<This extends QlBuilder<This>> 
                     extends QlBuilderDelegator<This> 
-                    implements Clause {
+                    implements SubClause {
 
-        private final BasicDBStringBuilder coreBuilder = new BasicDBStringBuilder();
+        private final MiDBStringBuilder coreBuilder = new MiDBStringBuilder();
         protected final QlBuilder<?> qlBuilder;
         private final String sep;
         private final String prefix;
@@ -148,9 +99,9 @@ public abstract class AbstractSqlStatement {
         }
     }
     
-    protected abstract class JoinBuilder<This extends SqlJoinableClause.Join<This>, W extends SqlJoinableClause.Where<?> & Clause> extends ClauseBuilder<This> implements SqlJoinableClause.Join<This> {
+    protected abstract class JoinBuilder<This extends SqlJoinableClause.Join<This>, W extends SqlJoinableClause.Where<?> & SubClause> extends ClauseBuilder<This> implements SqlJoinableClause.Join<This> {
         
-        private String prefix = "";
+        private JoinType joinType = JoinType.INNER;
         private W on = null;
 
         public JoinBuilder() {
@@ -159,20 +110,8 @@ public abstract class AbstractSqlStatement {
         protected abstract W newOnCondition();
 
         @Override
-        public This left() {
-            prefix = "LEFT ";
-            return _this();
-        }
-
-        @Override
-        public This right() {
-            prefix = "RIGHT ";
-            return _this();
-        }
-
-        @Override
-        public This outer() {
-            prefix = "OUTER ";
+        public This as(JoinType jt) {
+            joinType = jt;
             return _this();
         }
 
@@ -184,15 +123,9 @@ public abstract class AbstractSqlStatement {
             return on;
         }
         
-        public void appendTo(SelectQueryBuilder queryBuilder) {
+        public void appendTo(SelectBuilder queryBuilder) {
             Join join = queryBuilder.join();
-            if (prefix.contains("LEFT")) {
-                join.left();
-            } else if (prefix.contains("RIGHT")) {
-                join.right();
-            } else if (prefix.contains("OUTER")) {
-                join.outer();
-            }
+            join.as(joinType);
             super.addTo(join);
             AbstractSqlStatement.this.append(join.on(), on);
         }
@@ -200,12 +133,14 @@ public abstract class AbstractSqlStatement {
         @Override
         public void addTo(MiDBString target) {
             if (!isEmpty()) {
-                if (prefix != null) target.append(prefix);
+                if (joinType != JoinType.INNER) {
+                    target.append(joinType.toString());
+                    target.append(" ");
+                }
                 target.append("JOIN ");
                 super.addTo(target);
                 AbstractSqlStatement.this.append(target, " ON ", on);
             }
         }
     }
-    
 }

@@ -7,7 +7,7 @@ import org.cthul.miro.futures.MiAction;
 /**
  *
  */
-public class JdbcUpdate extends JdbcStatement implements MiUpdateString {
+public class JdbcUpdate extends JdbcStatement<JdbcUpdate> implements MiUpdateString {
 
     public JdbcUpdate(JdbcConnection connection) {
         super(connection);
@@ -15,12 +15,17 @@ public class JdbcUpdate extends JdbcStatement implements MiUpdateString {
 
     @Override
     public Long execute() throws MiException {
-        return connection.executeStatement(preparedStatement());
+        return withRetry(connection::executeStatement);
     }
 
     @Override
     public MiAction<Long> asAction() {
         return connection
                 .stmtAction(this::preparedStatement);
+    }
+
+    @Override
+    public void addBatch() {
+        super.addBatch();
     }
 }

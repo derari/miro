@@ -2,42 +2,48 @@ package org.cthul.miro.map.sql;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import org.cthul.miro.composer.ComposerKey;
+import org.cthul.miro.composer.RequestComposer;
 import org.cthul.miro.composer.ResultScope;
-import org.cthul.miro.composer.sql.SqlQueryKey;
+import org.cthul.miro.composer.StatementHolder;
+import org.cthul.miro.composer.impl.SimpleRequestComposer;
+import org.cthul.miro.composer.sql.SqlAttribute;
+import org.cthul.miro.composer.template.TemplateLayer;
+import org.cthul.miro.composer.template.TemplateLayerStack;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;
-import org.cthul.miro.db.sql.SelectQuery;
-import org.cthul.miro.db.sql.SelectQueryBuilder;
+import org.cthul.miro.db.sql.SelectBuilder;
 import org.cthul.miro.db.sql.SqlDQML;
-import org.cthul.miro.db.sql.SqlFilterableClause;
-import org.cthul.miro.entity.AttributeConfiguration;
 import org.cthul.miro.entity.EntityConfiguration;
-import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.graph.GraphApi;
 import org.cthul.miro.graph.GraphSchema;
 import org.cthul.miro.graph.impl.AbstractEntityNodeType;
-import org.cthul.miro.map.MappedStatementBuilder;
-import org.cthul.miro.map.impl.MappedQueryComposer;
 import org.cthul.miro.util.Closables;
-import org.cthul.miro.view.impl.CRUDTemplatesStack;
+import org.cthul.miro.map.MappedStatement;
+import org.cthul.miro.map.Mapping;
+import org.cthul.miro.map.impl.QueryableEntitySet;
+import org.cthul.miro.composer.sql.SqlComposerKey;
 
 /**
  *
  * @param <Entity>
  */
-public class MappedEntityType<Entity> extends AbstractEntityNodeType<Entity> implements AttributeConfiguration<Entity> {
+public class MappedEntityType<Entity> extends AbstractEntityNodeType<Entity> {
     
 //    private final GraphSchema schema;
     private final Class<Entity> clazz;
     private boolean initialized = false;
-    private final Mapping mapping = new Mapping();
+    private final MyMapping mapping = new MyMapping();
     private Constructor<Entity> constructor = null;
+
+    public MappedEntityType(Class<Entity> clazz) {
+        this(null, clazz);
+    }
 
     public MappedEntityType(GraphSchema schema, Class<Entity> clazz) {
         super(clazz.getSimpleName());
@@ -47,11 +53,6 @@ public class MappedEntityType<Entity> extends AbstractEntityNodeType<Entity> imp
     
     public void initialize() {
         initialized = true;
-        try {
-            constructor = clazz.getConstructor();
-        } catch (NoSuchMethodException | SecurityException e) {
-            throw Closables.unchecked(e);
-        }
     }
 
     public Class<Entity> getEntityClass() {
@@ -74,18 +75,21 @@ public class MappedEntityType<Entity> extends AbstractEntityNodeType<Entity> imp
         requireInitialized();
         final Entity e;
         try {
+            if (constructor == null) {
+                constructor = clazz.getConstructor();
+            }
             e = constructor.newInstance();
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException ex) {
+        } catch (ReflectiveOperationException ex) {
             throw Closables.unchecked(ex);
         }
         if (key == null) return e;
-        if (key.length != mapping.keySetters.size()) {
+        if (key.length != mapping.keys.size()) {
             throw new IllegalArgumentException(
-                    "Expected " + mapping.keySetters.size() + " key values, "
+                    "Expected " + mapping.keys.size() + " key values, "
                             + "got " + key.length);
         }
         for (int i = 0; i < key.length; i++) {
-            mapping.keySetters.get(i).accept(e, key[i]);
+            mapping.getKeySetters().get(i).accept(e, key[i]);
         }
         return e;
     }
@@ -95,7 +99,7 @@ public class MappedEntityType<Entity> extends AbstractEntityNodeType<Entity> imp
         requireInitialized();
         if (array == null) array = new Object[mapping.keys.size()];
         for (int i = 0; i < array.length; i++) {
-            array[i] = mapping.keyGetters.get(i).apply(e);
+            array[i] = mapping.getKeyGetters().get(i).apply(e);
         }
         return array;
     }
@@ -107,78 +111,96 @@ public class MappedEntityType<Entity> extends AbstractEntityNodeType<Entity> imp
     }
 
     @Override
-    protected BatchLoader<Entity> newBatchLoader(GraphApi graph, List<?> attributes) throws MiException {
-        return new AbstractBatchLoader() {
-            @Override
-            protected void fillAttributes(List<Object[]> keys) throws MiException {
-                MappedQueryComposer<Entity, SelectQuery> cmp = 
-                        new MappedQueryComposer<>(getType(), SqlDQML.DQML.SELECT,
-                        mapping.asTemplates().selectTemplate());
-                cmp.requireAll(graph, attributes, ComposerKey.FETCH_KEYS);
-                cmp.node(SqlQueryKey.FIND_BY_KEYS).addAll(keys);
-                cmp.execute().noResult();
-            }
-        };
-    }
-
-    @Override
-    public EntityConfiguration<Entity> forAttributes(List<?> attributes) {
+    protected EntityConfiguration<Entity> createAttributeReader(GraphApi graph, List<?> attributes) {
         return mapping.attributeConfiguration(flattenStr(attributes));
     }
 
     @Override
-    public EntityInitializer<Entity> newInitializer(MiResultSet rs, List<?> attributes) throws MiException {
-        return forAttributes(attributes).newInitializer(rs);
+    protected BatchLoader<Entity> newBatchLoader(GraphApi graph, List<?> attributes) throws MiException {
+        return new AbstractBatchLoader() {
+            @Override
+            protected void fillAttributes(List<Object[]> keys) throws MiException {
+                QueryableEntitySet<Entity> entitySet = new QueryableEntitySet<>(getType());
+                entitySet.setConnection(graph);
+                RequestComposer<MappedStatement<Entity, ? extends SelectBuilder>> cmp = new SimpleRequestComposer<>(getSelectLayer().build());
+                cmp.requireAll(attributes, ComposerKey.FETCH_KEYS);
+                cmp.node(SqlComposerKey.FIND_BY_KEYS).addAll(keys);
+                try {
+                    entitySet.query(SqlDQML.select(), cmp).get();
+                } catch (InterruptedException e) {
+                    Thread.interrupted();
+                    throw new MiException(e);
+                } catch (ExecutionException e) {
+                    throw Closables.exceptionAs(e.getCause(), MiException.class);
+                }
+            }
+        };
     }
-
-
-//    @Override
-//    protected EntityConfiguration<Entity> newAttributeSetter(GraphApi graph, List<?> attributes) throws MiException {
-//        requireInitialized();
-//        return mapping.templates.getMappingBuilder().attributeConfiguration(flattenStr(attributes));
-//    }
     
-    public MappedSqlTemplatesBuilder<Entity> getMappingBuilder() {
+    public MappedSqlBuilder<Entity,?> getMappingBuilder() {
         return mapping;
     }
     
-    protected class Mapping extends MappedSqlTemplatesDelegator<Entity> {
+    public TemplateLayer<? super MappedStatement<Entity, ? extends SelectBuilder>> getSelectLayer() {
+        TemplateLayer<Mapping<Entity>> mLayer = mapping.templates.getMappingBuilder().getMaterializationLayer();
+        TemplateLayer<SelectBuilder> sLayer = mapping.templates.getSqlBuilder().getSelectLayer();
+        return TemplateLayerStack.<MappedStatement<Entity, ? extends SelectBuilder>>join(
+                MappedStatement.wrapped(mLayer),
+                StatementHolder.wrapped(sLayer));
+    }
+    
+    protected class MyMapping implements MappedSqlBuilderDelegator<Entity, MyMapping> {
         
         private final List<String> keys = new ArrayList<>();
         private final List<Function<Entity, ?>> keyGetters = new ArrayList<>();
         private final List<BiConsumer<Entity, Object>> keySetters = new ArrayList<>();
         private final MappedSqlTemplates<Entity> templates;
-        private CRUDTemplatesStack theTemplateStack;
 
-        public Mapping() {
-            super(new MappedSqlTemplates<>());
-            templates = (MappedSqlTemplates<Entity>) getDelegatee();
+        public MyMapping() {
+            templates = new MappedSqlTemplates<>();
+        }
+
+        public List<Function<Entity, ?>> getKeyGetters() {
+            for (int i = keyGetters.size(); i < keys.size(); i++) {
+                Function<Entity, ?> g = templates.getMappingBuilder().getGetters().get(keys.get(i));
+                keyGetters.add(g);
+            }
+            return keyGetters;
+        }
+
+        public List<BiConsumer<Entity, Object>> getKeySetters() {
+            for (int i = keySetters.size(); i < keys.size(); i++) {
+                BiConsumer<Entity, Object> s = templates.getMappingBuilder().getSetters().get(keys.get(i));
+                keySetters.add(s);
+            }
+            return keySetters;
         }
 
         @Override
-        public <F> MappedSqlTemplatesBuilder<Entity> attribute(ResultScope scope, boolean key, String id, String attribute, Function<Entity, F> getter, BiConsumer<Entity, F> setter) {
-            if (key) {
-                keys.add(id);
-                keyGetters.add(getter);
-                keySetters.add((BiConsumer<Entity, Object>) setter);
-            }
-            return super.attribute(scope, key, id, attribute, getter, setter);
+        public MappedSqlBuilder<Entity,?> internalMappedSqlTemplatesBuilder() {
+            return templates;
         }
+
+        @Override
+        public MyMapping attribute(ResultScope scope, boolean key, SqlAttribute attribute) {
+            if (key) {
+                keys.add(attribute.getKey());
+            }
+            return MappedSqlBuilderDelegator.super.attribute(scope, key, attribute);
+        }
+//
+//        @Override
+//        public <F> MyMapping attribute(ResultScope scope, boolean key, String id, String attribute, Function<Entity, F> getter, BiConsumer<Entity, F> setter) {
+//            if (key) {
+//                keys.add(id);
+//                keyGetters.add(getter);
+//                keySetters.add((BiConsumer<Entity, Object>) setter);
+//            }
+//            return MappedSqlBuilderDelegator.super.attribute(scope, key, id, attribute, getter, setter);
+//        }
 
         public EntityConfiguration<Entity> attributeConfiguration(Iterable<String> attributes) {
             return templates.getMappingBuilder().attributeConfiguration(attributes);
-        }
-        
-        public CRUDTemplatesStack<?, MappedStatementBuilder<Entity, ? extends SelectQueryBuilder>, ?, ?> getTemplateStack() {
-            if (theTemplateStack == null) {
-                return asTemplates();
-            }
-            return theTemplateStack;
-        }
-
-        @Override
-        public CRUDTemplatesStack<MappedStatementBuilder<Entity, ? extends SqlFilterableClause>, MappedStatementBuilder<Entity, ? extends SelectQueryBuilder>, MappedStatementBuilder<Entity, ? extends SqlFilterableClause>, MappedStatementBuilder<Entity, ? extends SqlFilterableClause>> asTemplates() {
-            return theTemplateStack = super.asTemplates();
         }
     }
 }

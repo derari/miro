@@ -23,7 +23,8 @@ public interface EntityInitializer<Entity> extends Completable, AutoCloseable {
      * @throws MiException
      */
     @Override
-    void complete() throws MiException;
+    default void complete() throws MiException {
+    }
 
     @Override
     default void close() throws MiException {

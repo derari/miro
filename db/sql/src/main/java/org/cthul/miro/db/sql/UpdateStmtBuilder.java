@@ -49,14 +49,14 @@ public interface UpdateStmtBuilder extends SqlJoinableClause {
     
     interface Join extends Composite<Join>, SqlJoinableClause.Join<Join> {
 
-        @Override
-        UpdateStmtBuilder.Join left();
-        
-        @Override
-        UpdateStmtBuilder.Join right();
-        
-        @Override
-        UpdateStmtBuilder.Join outer();
+//        @Override
+//        UpdateStmtBuilder.Join left();
+//        
+//        @Override
+//        UpdateStmtBuilder.Join right();
+//        
+//        @Override
+//        UpdateStmtBuilder.Join outer();
         
         @Override
         Where on();

@@ -9,31 +9,34 @@ import org.cthul.miro.db.syntax.Syntax;
  * on top of a {@link MiDBString}.
  * @param <This>
  */
-public abstract class AbstractQlBuilder<This extends AbstractQlBuilder<This>> extends AbstractStatementBuilder implements QlBuilder<This> {
+public abstract class AbstractQlBuilder<This extends QlBuilder<This>> extends AbstractStatementBuilder implements QlBuilder<This> {
 
-    private final MiDBString coreBuilder;
+    private final MiDBString dbString;
 
-    public AbstractQlBuilder(Syntax syntax, MiDBString coreBuilder) {
+    public AbstractQlBuilder(Syntax syntax, MiDBString dbString) {
         super(syntax);
-        this.coreBuilder = coreBuilder;
+        this.dbString = dbString;
     }
 
     @Override
-    protected MiDBString getBuilder() {
-        return coreBuilder;
+    protected MiDBString getBuilderForNestedClause() {
+        return dbString;
+    }
+    
+    protected MiDBString getWriteDelegatee() {
+        closeNestedClause();
+        return dbString;
     }
 
     @Override
     public This append(CharSequence query) {
-        closeNestedClause();
-        coreBuilder.append(query);
+        getWriteDelegatee().append(query);
         return (This) this;
     }
 
     @Override
     public This pushArgument(Object arg) {
-        closeNestedClause();
-        coreBuilder.pushArgument(arg);
+        getWriteDelegatee().pushArgument(arg);
         return (This) this;
     }
 }

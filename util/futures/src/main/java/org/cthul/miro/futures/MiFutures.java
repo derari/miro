@@ -1,30 +1,43 @@
 package org.cthul.miro.futures;
 
+import org.cthul.miro.function.MiSupplier;
+import org.cthul.miro.function.MiFunction;
 import org.cthul.miro.futures.impl.MiFutureDelegator;
-import org.cthul.miro.futures.impl.SimpleMiAction;
+import org.cthul.miro.futures.impl.MiSubmittableAction;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Objects;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import org.cthul.miro.futures.impl.MiFinal;
+import org.cthul.miro.futures.impl.MiFutureValue;
+import org.cthul.miro.futures.impl.MiTriggerableAction;
 
 public class MiFutures {
     
-    private static final MiFunction<Throwable, ?> EXPECTED_SUCCESS = new ExpectedSuccess<>();
-    
-    private static final MiFunction<?, ?> EXPECTED_FAIL = new ExpectedFail<>();
-    
-//    private static final Executor RUN_NOW_EXECUTOR = Runnable::run;
-    
-    @SuppressWarnings("unchecked")
-    public static <R> MiFunction<Throwable, R> expectedSuccess() {
-        return (MiFunction) EXPECTED_SUCCESS;
+    public static Builder build() {
+        return new Builder();
     }
     
-    @SuppressWarnings("unchecked")
+    private static final MiFunction EXPECTED_SUCCESS = new ExpectedSuccess<>();
+    
+    private static final MiFunction EXPECTED_FAIL = new ExpectedFail<>();
+    
+    public static <R> MiFunction<Throwable, R> expectedSuccess() {
+        return EXPECTED_SUCCESS;
+    }
+    
     public static <V, R> MiFunction<V, R> expectedFail() {
-        return (MiFunction) EXPECTED_FAIL;
+        return EXPECTED_FAIL;
     }
     
     public static <V, R> MiFunction<MiFuture<? extends V>, R> onComplete(MiFunction<? super V, ? extends R> onSuccess, MiFunction<? super Throwable, ? extends R> onFail) {
@@ -64,37 +77,21 @@ public class MiFutures {
     }
     
     public static Executor defaultExecutor() {
-        Executor ex = ForkJoinTask.getPool();
-        if (ex != null) return ex;
-        return ForkJoinPool.commonPool();
+        return POOL;
     }
     
-    public static <R> MiAction<R> action(MiSupplier<? extends R> supplier) {
-        return (MiAction) supplier.asAction();
+    public static <V> MiFuture<V> value(V value) {
+        return new MiFinal<>(value);
     }
     
-    public static <T, R> MiAction<R> action(Executor executor, T arg, MiFunction<? super T, ? extends R> function) {
-        return new SimpleMiAction<>(executor, arg, function);
+    public static <R> MiResettableAction<R> action(MiSupplier<? extends R> action) {
+        return new MiSubmittableAction<>(action, true);
     }
     
-    public static <T, R> MiFuture<R> submit(Executor executor, T arg, MiFunction<? super T, ? extends R> function) {
-        return action(executor, arg, function).submit();
+    public static <R> MiResettableAction<R> action(Executor executor, MiSupplier<? extends R> action) {
+        return new MiSubmittableAction<>(action, executor, true);
     }
-    
-    public static <V> MiFuture<V> trigger(MiAction<V> action) {
-        return new MiFutureDelegator<V>(action) {
-            @Override
-            protected MiFuture<V> getDelegatee() {
-                action.submit();
-                return super.getDelegatee();
-            }
-            @Override
-            protected MiFuture<V> getCancelDelegatee() {
-                return super.getDelegatee();
-            }
-        };
-    }
-    
+        
     public static <T> MiFunction<MiFuture<T>, T> reportException() {
         return reportException(t -> t.printStackTrace(System.err));
     }
@@ -114,31 +111,48 @@ public class MiFutures {
         if (future instanceof MiAction) {
             return (MiAction<V>) future;
         }
-        return new FutureAsAction<>(future, null);
+        Runnable r = () -> {};
+        return new FutureAsAction<>(r, r, future, null);
     }
     
-    public static <V> MiAction<V> futureAsAction(MiFuture<V> future, Executor defaultExecutor) {
-        Runnable submit = null;
-        if (future instanceof MiAction) {
-            submit = ((MiAction) future)::submit;
-        }
-        return new FutureAsAction<>(submit, future, defaultExecutor);
+//    public static <V> MiAction<V> futureAsAction(MiFuture<V> future, Executor defaultExecutor) {
+//        Runnable submit = null;
+//        if (future instanceof MiAction) {
+//            submit = ((MiAction) future)::submit;
+//        }
+//        return new FutureAsAction<>(submit, future, defaultExecutor);
+//    }
+//    
+//    public static <V> MiAction<V> futureAsAction(MiFuture<V> future, Runnable submit) {
+//        return new FutureAsAction<>(submit, future, null);
+//    }
+    
+    public static <V> MiAction<V> futureAsAction(MiFuture<V> future, Executor defaultExecutor, Runnable submitAction) {
+        return futureAsAction(future, defaultExecutor, submitAction, submitAction);
     }
     
-    public static <V> MiAction<V> futureAsAction(MiFuture<V> future, Runnable submit) {
-        return new FutureAsAction<>(submit, future, null);
+    public static <V> MiAction<V> futureAsAction(MiFuture<V> future, Executor defaultExecutor, Runnable submitAction, Runnable runAction) {
+        return new FutureAsAction<>(submitAction, runAction, future, defaultExecutor);
     }
     
-    public static <V> MiAction<V> futureAsAction(MiFuture<V> future, Executor defaultExecutor, Runnable submit) {
-        return new FutureAsAction<>(submit, future, defaultExecutor);
+    private static final ThreadPoolExecutor POOL;
+    
+    static {
+        BlockingQueue<Runnable> bq = new LinkedBlockingQueue<>();
+        ThreadFactory tf = new ThreadFactory() {
+            AtomicInteger count = new AtomicInteger(0);
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "MiWorker-" + count.incrementAndGet());
+            }
+        };
+        POOL = new ThreadPoolExecutor(3, 20, 15, TimeUnit.SECONDS, bq, tf);
     }
     
     protected static class ExpectedSuccess<R> implements MiFunction<Throwable, R> {
         @Override
         public R call(Throwable arg) throws Throwable {
             throw arg;
-//            throw new IllegalStateException(
-//                "Expected success, but operation failed", arg);
         }
     }
     
@@ -149,9 +163,9 @@ public class MiFutures {
             try {
                 s = String.valueOf(arg);
             } catch (Exception e) {
-                s = "<" + e.getMessage() + ">";
+                s = arg.getClass().getSimpleName() + "<" + e.getMessage() + ">";
             }
-            throw new IllegalStateException(
+            throw new IllegalArgumentException(
                     "Expected fail, but operation returned " + s);
         }
     }
@@ -187,49 +201,154 @@ public class MiFutures {
         }
     }
     
-    static class FutureAsAction<V> extends MiFutureDelegator<V> implements MiAction<V> {
+    private static class FutureAsAction<V> extends MiFutureDelegator<V> implements MiAction<V> {
         
         private final Runnable submitAction;
+        private final Runnable runAction;
         private MiFuture<V> trigger = null;
 
-        public FutureAsAction(MiFuture<? extends V> delegatee, Executor defaultExecutor) {
-            this(null, delegatee, defaultExecutor);
-        }
+//        public FutureAsAction(MiFuture<? extends V> delegatee, Executor defaultExecutor) {
+//            this(null, delegatee, defaultExecutor);
+//        }
 
-        public FutureAsAction(Runnable submitAction, MiFuture<? extends V> delegatee, Executor defaultExecutor) {
+        public FutureAsAction(Runnable submitAction, Runnable runAction, MiFuture<? extends V> delegatee, Executor defaultExecutor) {
             super(delegatee, defaultExecutor);
+            Objects.requireNonNull(submitAction, "submit action");
+            Objects.requireNonNull(runAction, "run action");
             this.submitAction = submitAction;
-            if (submitAction == null) {
-                this.trigger = (MiFuture) delegatee;
-            }
+            this.runAction = runAction;
+//            if (submitAction == null) {
+//                this.trigger = (MiFuture) delegatee;
+//            } else {
+//                this.submitAction = submitAction;
+//            }
         }
 
         @Override
         public MiFuture<V> getTrigger() {
+            class Trigger extends MiFutureDelegator<V> {
+                public Trigger() {
+                    super(FutureAsAction.this);
+                }
+                @Override
+                public void await() throws InterruptedException {
+                    runAction.run();
+                    super.await();
+                }
+                @Override
+                protected MiFuture<V> getDelegatee() {
+                    FutureAsAction.this.submit();
+                    return super.getDelegatee();
+                }
+                @Override
+                protected MiFuture<V> getCancelDelegatee() {
+                    return super.getDelegatee();
+                }
+            }
             if (trigger == null) {
-                trigger = trigger(this);
+                trigger = new Trigger();
             }
             return trigger;
         }
 
         @Override
         public MiFuture<V> submit() {
-            if (submitAction != null) {
-                submitAction.run();
-            }
+            submitAction.run();
             return this;
         }
 
         @Override
         public <R> MiAction<R> onComplete(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> function) {
             MiFuture<R> f = getDelegatee().onComplete(executor, function);
-            return futureAsAction(f, executor, this::submit);
+            return futureAsAction(f, executor, submitAction, runAction);
         }
 
         @Override
         public <R> MiAction<R> onCompleteAlways(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> function) {
             MiFuture<R> f = getDelegatee().onCompleteAlways(executor, function);
-            return futureAsAction(f, executor, this::submit);
+            return futureAsAction(f, executor, submitAction, runAction);
+        }
+    }
+    
+    public static class Builder {
+        protected Boolean resettable = null;
+        protected Executor executor = null;
+        protected Executor defExecutor = null;
+
+        public Builder resettable(boolean resettable) {
+            this.resettable = resettable;
+            return this;
+        }
+        
+        public Builder resettable() {
+            return resettable(true);
+        }
+        
+        public Builder notResettable() {
+            return resettable(false);
+        }
+        
+        public Builder executor(Executor executor) {
+            this.executor = executor;
+            return this;
+        }
+
+        public Builder defaultExecutor(Executor executor) {
+            this.defExecutor = executor;
+            return this;
+        }
+
+        protected boolean isResettable() {
+            return resettable == null ? true : resettable;
+        }
+
+        protected Executor getExecutor() {
+            return executor;
+        }
+
+        protected Executor getDefaultExecutor() {
+            if (defExecutor != null) return defExecutor;
+            return executor;
+        }
+        
+        protected Executor getSingleExecutor() {
+            if (executor != null && defExecutor != null && executor != defExecutor) {
+                throw new IllegalArgumentException("Action executor not supported");
+            }
+            return getExecutor();
+        }
+        
+        protected void resettableNotSupported() {
+            if (Boolean.TRUE.equals(resettable)) {
+                throw new IllegalArgumentException("Reset not supported");
+            }
+        }
+        
+        public <V> MiFuture<V> value(V value) {
+            resettableNotSupported();
+            return new MiFinal<>(getSingleExecutor(), value);
+        }
+        
+        public <V> MiFuture<V> throwable(Throwable throwable) {
+            resettableNotSupported();
+            return new MiFinal<>(getSingleExecutor(), throwable);
+        }
+        
+        public <V> MiFuture<V> cancelled() {
+            resettableNotSupported();
+            return new MiFinal<>(getSingleExecutor());
+        }
+        
+        public <V> MiFutureResult<V> futureValue() {
+            return new MiFutureValue<>(getSingleExecutor(), isResettable());
+        }
+        
+        public <V> MiResettableAction<V> action(MiSupplier<? extends V> action) {
+            return new MiSubmittableAction<>(action, getExecutor(), getDefaultExecutor(), isResettable());
+        }
+        
+        public <V> MiActionResult<V> onTrigger(Consumer<? super MiResult<V>> action) {
+            return new MiTriggerableAction<>(action, getExecutor(), getDefaultExecutor(), isResettable());
         }
     }
 }

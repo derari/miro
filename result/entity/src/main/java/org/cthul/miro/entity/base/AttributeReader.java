@@ -12,10 +12,12 @@ import org.cthul.miro.util.Completable;
  * Initializes an entity with columns from a result set.
  * @param <Entity>
  */
-public class AttributeReader<Entity> extends AttributeMappingBase<Entity, MiException, AttributeReader<Entity>> implements EntityInitializer<Entity> {
+public class AttributeReader<Entity> 
+                implements AttributeMapping<Entity, MiException, AttributeReader<Entity>>,
+                           EntityInitializer<Entity> {
 
     private final MiResultSet resultSet;
-    private final List<AttributeMapping.ReaderEntry<Entity>> readers;
+    private final List<AttributeConfiguration.ReaderEntry<Entity>> readers;
     private List<Completable> listeners = null;
     private List<AutoCloseable> resources = null;
 
@@ -46,7 +48,7 @@ public class AttributeReader<Entity> extends AttributeMappingBase<Entity, MiExce
     }
 
     @Override
-    protected AttributeReader<Entity> add(MappingEntry<Entity> entry) throws MiException {
+    public AttributeReader<Entity> add(MappingEntry<Entity> entry) throws MiException {
         ReaderEntry<Entity> re = entry.newReader(resultSet);
         if (re != null) readers.add(re);
         return this;
@@ -54,7 +56,7 @@ public class AttributeReader<Entity> extends AttributeMappingBase<Entity, MiExce
     
     @Override
     public void apply(Entity entity) throws MiException {
-        for (AttributeMapping.ReaderEntry<Entity> re: readers) {
+        for (AttributeConfiguration.ReaderEntry<Entity> re: readers) {
             re.apply(entity);
         }
     }

@@ -19,9 +19,20 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
+            <!--plugin>
                 <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>bundle-sources</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <includeDependencySources>true</includeDependencySources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -34,18 +45,46 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
-            </plugin>
-            <plugin>
+            </plugin>-->
+            <!--plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <goals>
-                    <goal>single</goal>
-                </goals>
-                <configuration>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                </configuration>
+                <executions>
+                    <execution>
+                        <id>all</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <archive>
+                                
+                            </archive>
+                            <descriptorRefs>
+                                <descriptorRef>jar-with-dependencies</descriptorRef>
+                            </descriptorRefs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>all</id>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
@@ -54,10 +93,13 @@
             <groupId>org.hibernate.javax.persistence</groupId>
             <artifactId>hibernate-jpa-2.1-api</artifactId>
         </dependency>
-        
         <dependency>
             <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-view-mapped-sql</artifactId>
+            <artifactId>miro-set-mapped-sql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.cthul.miro</groupId>
+            <artifactId>miro-at-model</artifactId>
         </dependency>
         <dependency>
             <groupId>org.cthul.miro</groupId>
@@ -66,6 +108,10 @@
         <dependency>
             <groupId>org.cthul.miro</groupId>
             <artifactId>miro-db-sql-mysql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.cthul.miro</groupId>
+            <artifactId>miro-db-sql-hana</artifactId>
         </dependency>
     </dependencies>
 </project>

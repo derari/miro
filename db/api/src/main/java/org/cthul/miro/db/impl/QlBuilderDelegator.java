@@ -11,13 +11,13 @@ import org.cthul.miro.db.syntax.Syntax;
 public abstract class QlBuilderDelegator<This extends QlBuilder<This>> 
                 extends AbstractStatementBuilder
                 implements QlBuilder<This> {
-
+    
     public QlBuilderDelegator(Syntax syntax) {
         super(syntax);
     }
 
     @Override
-    protected MiDBString getBuilder() {
+    protected MiDBString getBuilderForNestedClause() {
         return getDelegatee();
     }
     

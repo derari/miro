@@ -3,7 +3,8 @@ package org.cthul.miro.db.syntax;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;
-import org.cthul.miro.db.impl.BasicDBStringBuilder;
+import org.cthul.miro.db.impl.MiDBStringBuilder;
+import org.cthul.miro.db.stmt.MiDBString;
 import org.cthul.miro.db.stmt.MiQueryString;
 import org.cthul.miro.db.stmt.MiUpdateString;
 import org.cthul.miro.futures.MiAction;
@@ -13,7 +14,7 @@ import org.cthul.miro.futures.MiAction;
  */
 public class TestConnection implements MiConnection {
     
-    private final Syntax syntax;
+    public final Syntax syntax;
     private String lastQuery = null;
 
     public TestConnection(Syntax syntax) {
@@ -47,12 +48,7 @@ public class TestConnection implements MiConnection {
     public void close() throws MiException {
     }
     
-    class Query extends BasicDBStringBuilder implements MiQueryString {
-
-        @Override
-        public Query append(CharSequence chars) {
-            return (Query) super.append(chars);
-        }
+    class Query extends MiDBStringBuilder implements MiQueryString {
 
         @Override
         public MiResultSet execute() throws MiException {
@@ -64,6 +60,31 @@ public class TestConnection implements MiConnection {
         public MiAction<MiResultSet> asAction() {
             lastQuery = toString();
             return null;
+        }
+
+        @Override
+        public Query append(CharSequence chars) {
+            return (Query) super.append(chars);
+        }
+
+        @Override
+        public <Clause> Clause begin(ClauseType<Clause> type) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public Query pushArgument(Object argument) {
+            return (Query) super.pushArgument(argument);
+        }
+
+        @Override
+        public Query pushArguments(Iterable<?> args) {
+            return (Query) super.pushArguments(args);
+        }
+
+        @Override
+        public Query pushArguments(Object... args) {
+            return (Query) super.pushArguments(args);
         }
     }
 }
