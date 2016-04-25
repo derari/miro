@@ -151,27 +151,28 @@ public class Closables {
         return new RuntimeException(t);
     }
     
-    public static void doUnchecked(XRunnable runnable) {
+    public static void doUnchecked(XRunnable<?> runnable) {
         try {
             runnable.run();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw unchecked(e);
         }
     }
     
-    public static <T> T doUnchecked(XSupplier<T> supplier) {
+    public static <T> T doUnchecked(XSupplier<T,?> supplier) {
         try {
             return supplier.get();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw unchecked(e);
         }
     }
     
-    public static interface XRunnable {
-        void run() throws Exception;
-    }
-    
-    public static interface XSupplier<T> {
-        T get() throws Exception;
+    public static interface FunctionalHelper {
+        default Object[] withLength(Object[] args, int len) {
+            if (args == null || args.length != len) {
+                return new Object[len];
+            }
+            return args;
+        }
     }
 }

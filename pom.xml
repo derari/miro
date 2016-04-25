@@ -15,33 +15,28 @@
         <module>util/futures</module>
         <module>util/test</module>
         
-        <module>db/api</module>        
-        <module>db/jdbc</module>
-        <module>db/sql</module>
-        <module>db/sql-mysql</module>
-        <module>db/sql-hana</module>
+        <module>db/api</module>
+        <module>db/migrate</module>
+        <module>db/request</module>
         
-        <module>migrate/api</module>
-        <module>migrate/sql</module>
-        
-        <module>result/entity</module>
-        <module>result/graph</module>
-        
-        <module>composer/api</module>
-        <module>composer/sql</module>
-        
-        <module>map/api</module>
-        <module>map/sql</module>
-        
+        <module>map/entity</module>
+        <module>map/graph</module>
+        <module>map/request</module>
+
         <module>at/model</module>
-        <!--<module>at/query</module>-->
-        
+
         <module>set/dsl</module>
-        <module>set/mapped-sql</module>
         
-        <!--<module>view/dsl</module>
-        <module>view/mapped-sql</module>-->
+        <module>sql/syntax</module>
+        <module>sql/migrate</module>
+        <module>sql/request</module>
+        <module>sql/map</module>
+        <module>sql/set</module>
         
+        <module>ext/jdbc</module>
+        <module>ext/mysql</module>
+        <module>ext/sap-hana</module>
+
         <module>lib/all</module>
     </modules>
 
@@ -235,65 +230,28 @@
             </dependency>
             <dependency>
                 <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-db-jdbc</artifactId>
+                <artifactId>miro-db-migrate</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-db-sql</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-db-sql-mysql</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-db-sql-hana</artifactId>
+                <artifactId>miro-db-request</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
             <dependency>
                 <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-migrate-api</artifactId>
+                <artifactId>miro-map-entity</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-migrate-sql</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            
-            <dependency>
-                <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-result-entity</artifactId>
+                <artifactId>miro-map-graph</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-result-graph</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-composer-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-composer-sql</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            
-            <dependency>
-                <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-map-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-map-sql</artifactId>
+                <artifactId>miro-map-request</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
@@ -313,21 +271,48 @@
                 <artifactId>miro-set-dsl</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            
             <dependency>
                 <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-set-mapped-sql</artifactId>
+                <artifactId>miro-sql-syntax</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.cthul.miro</groupId>
+                <artifactId>miro-sql-migrate</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.cthul.miro</groupId>
+                <artifactId>miro-sql-request</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.cthul.miro</groupId>
+                <artifactId>miro-sql-map</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.cthul.miro</groupId>
+                <artifactId>miro-sql-set</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
-            <!--dependency>
+            <dependency>
                 <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-view-dsl</artifactId>
+                <artifactId>miro-ext-jdbc</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-view-mapped-sql</artifactId>
-            </dependency-->
-            
+                <artifactId>miro-ext-sap-hana</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.cthul.miro</groupId>
+                <artifactId>miro-ext-mysql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>

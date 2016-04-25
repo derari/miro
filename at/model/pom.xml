@@ -43,22 +43,6 @@
             <artifactId>hibernate-jpa-2.1-api</artifactId>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>org.cthul</groupId>
-            <artifactId>cthul-objects</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-result-graph</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-map-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-map-sql</artifactId>
-        </dependency>
         
         <dependency>
             <groupId>org.cthul.matchers.fluent</groupId>

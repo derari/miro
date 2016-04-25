@@ -11,6 +11,7 @@ import org.cthul.miro.futures.MiFutures;
 public abstract class AbstractMiSubmittable<R> extends AbstractMiFuture<R> {
 
     private final Executor executor;
+    private long submittedAttempt = -1;
 
     public AbstractMiSubmittable(boolean resettable) {
         this(null, resettable);
@@ -28,6 +29,13 @@ public abstract class AbstractMiSubmittable<R> extends AbstractMiFuture<R> {
     protected Executor getExecutor() {
         return executor != null ? executor : MiFutures.defaultExecutor();
     }
+
+    @Override
+    protected boolean resetState(long timeout, TimeUnit timeUnit) {
+        boolean b = super.resetState(timeout, timeUnit);
+        submittedAttempt = -1;
+        return b;
+    }
     
     /**
      * If the action has not been submitted yet,
@@ -37,11 +45,12 @@ public abstract class AbstractMiSubmittable<R> extends AbstractMiFuture<R> {
      * @return this action
      */
     protected AbstractMiSubmittable<R> run(Runner runner) {
-        if (isStarted() || isCancelled()) return this;
+        if ((isStarted() && submittedAttempt < 0) || isCancelled()) return this;
         synchronized (lock()) {
-            if (isStarted() || isCancelled()) return this;
-            Future<?> cancelDelegatee = runner;
-            runner.attempt = start(cancelDelegatee);
+            if ((isStarted() && submittedAttempt < 0) || isCancelled()) return this;
+            if (submittedAttempt < 0) submittedAttempt = start(runner);
+            runner.cancelDelegatee = runner;
+            runner.attempt = submittedAttempt;
         }
         runner.run();
         return this;
@@ -67,7 +76,8 @@ public abstract class AbstractMiSubmittable<R> extends AbstractMiFuture<R> {
                 exec.execute(runner);
                 cancelDelegatee = runner;
             }
-            runner.attempt = start(cancelDelegatee);
+            runner.cancelDelegatee = cancelDelegatee;
+            runner.attempt = submittedAttempt = start(cancelDelegatee);
         }
         return this;
     }
@@ -75,11 +85,15 @@ public abstract class AbstractMiSubmittable<R> extends AbstractMiFuture<R> {
     protected abstract class Runner implements Runnable, Future<R> {
         private Thread thread = null;
         private long attempt;
+        private Future<?> cancelDelegatee;
 
         @Override
         public void run() {
             // don't start before #submit is done
             synchronized (lock()) {
+                if (submittedAttempt != attempt) return;
+                submittedAttempt = -1;
+                replaceCancelDelegate(cancelDelegatee);
                 thread = Thread.currentThread();
                 if (!progress()) return;
             }

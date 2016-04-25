@@ -81,6 +81,16 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
         }
     }
     
+    protected void replaceCancelDelegate(Future<?> cancelDelegate) {
+        synchronized (lock) {
+            if (this.cancelDelegate == cancelDelegate) return;
+            if (this.cancelDelegate != null) {
+                this.cancelDelegate.cancel(true);
+            }
+            this.cancelDelegate = cancelDelegate;
+        }
+    }
+    
     /**
      * Indicates if the underlying action should continue.
      * If the current thread's interrupt flag is set, the future will be

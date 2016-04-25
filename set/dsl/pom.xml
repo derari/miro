@@ -40,19 +40,7 @@
     <dependencies>
         <dependency>
             <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-db-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-result-graph</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-composer-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-map-api</artifactId>
+            <artifactId>miro-map-request</artifactId>
         </dependency>
         
         <dependency>

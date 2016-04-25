@@ -19,6 +19,24 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>all</id>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!--plugin>
                 <artifactId>maven-source-plugin</artifactId>
                 <executions>
@@ -68,24 +86,6 @@
                     </execution>
                 </executions>
             </plugin-->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>all</id>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <phase>package</phase>
-                        <configuration>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                            </transformers>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
     <dependencies>
@@ -95,23 +95,19 @@
         </dependency>
         <dependency>
             <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-set-mapped-sql</artifactId>
+            <artifactId>miro-sql-set</artifactId>
         </dependency>
         <dependency>
             <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-at-model</artifactId>
+            <artifactId>miro-ext-jdbc</artifactId>
         </dependency>
         <dependency>
             <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-db-jdbc</artifactId>
+            <artifactId>miro-ext-mysql</artifactId>
         </dependency>
         <dependency>
             <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-db-sql-mysql</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-db-sql-hana</artifactId>
+            <artifactId>miro-ext-sap-hana</artifactId>
         </dependency>
     </dependencies>
 </project>

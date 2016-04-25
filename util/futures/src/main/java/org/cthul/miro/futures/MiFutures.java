@@ -6,12 +6,9 @@ import org.cthul.miro.futures.impl.MiFutureDelegator;
 import org.cthul.miro.futures.impl.MiSubmittableAction;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -54,13 +51,12 @@ public class MiFutures {
     
     @SuppressWarnings("ThrowableResultIgnored")
     public static RuntimeException rethrowUnchecked(Throwable e) {
-        String message = null;
+        String message = e.getMessage();
         if (e instanceof Error) {
             throw (Error) e;
         }
         if ((e instanceof ExecutionException) || 
                 (e instanceof InvocationTargetException)) {
-            message = e.getMessage();
             e = e.getCause();
         }
         if (e instanceof RuntimeException) {

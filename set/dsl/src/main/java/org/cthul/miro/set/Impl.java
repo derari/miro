@@ -1,6 +1,6 @@
 package org.cthul.miro.set;
 
-import org.cthul.miro.composer.Composer;
+import org.cthul.miro.request.Composer;
 
 /**
  *

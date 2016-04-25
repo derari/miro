@@ -1,63 +1,66 @@
 package org.cthul.miro.set.base;
 
 import java.util.function.Consumer;
-import org.cthul.miro.composer.Composer;
+import org.cthul.miro.request.Composer;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.entity.EntityType;
 import org.cthul.miro.graph.Graph;
-import org.cthul.miro.map.impl.QueryableEntitySet;
-import org.cthul.miro.composer.RequestComposer;
+import org.cthul.miro.request.RequestComposer;
+import org.cthul.miro.db.stmt.MiQuery;
+import org.cthul.miro.db.syntax.RequestType;
 import org.cthul.miro.result.Results;
-import org.cthul.miro.map.MappedStatement;
 import org.cthul.miro.util.Key;
+import org.cthul.miro.map.MappingKey;
+import org.cthul.miro.map.layer.MappedQuery;
 
 /**
  *
  * @param <Entity>
- * @param <Builder>
+ * @param <Stmt>
  * @param <This>
  */
-public abstract class AbstractQuerySet<Entity, Builder, This extends AbstractQuerySet<Entity, Builder, This>> extends AbstractValueSet<Entity, This> {
+public abstract class AbstractQuerySet<Entity, Stmt extends MiQuery, This extends AbstractQuerySet<Entity, Stmt, This>> extends AbstractValueSet<Entity, This> {
 
-    private final QueryableEntitySet<Entity> entitySet;
-    private RequestComposer<? super MappedStatement<Entity, ? extends Builder>> composer;
-//    private List<Entity> list = null;
+    MiConnection cnn;
+    RequestType<Stmt> requestType;
+    private RequestComposer<MappedQuery<Entity, Stmt>> composer = null;
 
-    public AbstractQuerySet(QueryableEntitySet<Entity> entitySet) {
-        this.entitySet = entitySet;
+    public AbstractQuerySet(MiConnection cnn, RequestType<Stmt> requestType) {
+        this.cnn = cnn;
+        this.requestType = requestType;
     }
-    
-    protected AbstractQuerySet(AbstractQuerySet<Entity, Builder, This> source) {
+
+    protected AbstractQuerySet(AbstractQuerySet<Entity, Stmt, This> source) {
         super(source);
-        this.entitySet = source.entitySet.copy();
+        this.cnn = source.cnn;
+        this.requestType = source.requestType;
         if (source.composer != null) {
             this.composer = source.composer.copy();
         }
     }
     
-    protected abstract RequestComposer<? super MappedStatement<Entity, ? extends Builder>> newComposer();
+    protected abstract RequestComposer<MappedQuery<Entity, Stmt>> newComposer();
     
-    /*private*/ RequestComposer<? super MappedStatement<Entity, ? extends Builder>> getComposer() {
+    /*private*/ RequestComposer<MappedQuery<Entity, Stmt>> getComposer() {
         if (composer == null) {
             composer = newComposer();
         }
         return composer;
     }
     
-    /*private*/ QueryableEntitySet<Entity> getEntitySet() {
-        return entitySet;
-    }
-
     protected This withConnection(MiConnection cnn) {
-        return doSafe(me -> me.getEntitySet().setConnection(cnn));
+        return doSafe(me -> me.cnn = cnn);
     }
 
     protected This withGraph(Graph graph) {
-        return doSafe(me -> me.getEntitySet().setGraph(graph));
+        return doSafe(me -> {
+            me.getComposer().node(MappingKey.TYPE).setGraph(graph);
+            if (graph instanceof MiConnection) me.cnn = (MiConnection) graph;
+        });
     }
 
     protected This withEntityType(EntityType<Entity> entityType) {
-        return doSafe(me -> me.getEntitySet().setEntityType(entityType));
+        return doSafe(me -> me.getComposer().node(MappingKey.TYPE).setType(entityType));
     }
     
     protected This compose(Consumer<? super Composer> action) {
@@ -67,12 +70,11 @@ public abstract class AbstractQuerySet<Entity, Builder, This extends AbstractQue
     protected <V> This setUp(Key<V> key, Consumer<V> action) {
         return compose(ic -> action.accept(ic.node(key)));
     }
-    
-    protected abstract Results.Action<Entity> result(QueryableEntitySet<Entity> entitySet, RequestComposer<? super MappedStatement<Entity, ? extends Builder>> composer);
 
     @Override
     public Results.Action<Entity> result() {
-        return result(entitySet, getComposer());
+        MappedQuery<Entity, Stmt> qry = new MappedQuery<>(cnn, requestType);
+        return qry.query(getComposer());
     }
     
 //    @Override
