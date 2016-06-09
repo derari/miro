@@ -29,7 +29,8 @@ public class SqlTest {
     
     @Test
     public void test2() {
-        Address a = db.addresses().cityLike("%1").cityLike("C%")
+        Address a = db.addresses()
+                .cityLike("%1").cityLike("C%")
                 .result()._getSingle();
         assertThat(a.city).is("City 1");
     }
