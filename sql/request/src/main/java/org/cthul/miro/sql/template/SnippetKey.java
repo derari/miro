@@ -35,4 +35,9 @@ public class SnippetKey extends ValueKey<Configurable> {
     public boolean equals(Object obj) {
         return super.equals(obj) && Objects.equals(name, ((SnippetKey) obj).name);
     }
+
+    @Override
+    public String getValueString() {
+        return super.getValueString() + "." + name;
+    }
 }

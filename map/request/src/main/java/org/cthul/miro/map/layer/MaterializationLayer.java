@@ -41,6 +41,8 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
         switch (MappingKey.key(key)) {
             case LOAD_ALL:
                 return setUp(MappingKey.LOAD, lf -> ((LoadField) lf).loadAll());
+            case FETCH:
+                return link(MappingKey.INCLUDE, MappingKey.LOAD);
             case LOAD:
                 return newNodePart(LoadField::new);
             case INCLUDE:
@@ -55,14 +57,13 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
                     implements ListNode<String>, Copyable<Object>,
                                 StatementPart<Mapping<Entity>> {
 
-        private final Composer cmp;
         private final LinkedHashSet<String> attributes = new LinkedHashSet<>();
         private boolean all = false;
 
         public LoadField(Composer cmp) {
-            this.cmp = cmp;
         }
         
+        @Deprecated
         public void loadAll() {
             all = true;
         }
@@ -89,9 +90,7 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
 
         @Override
         public void add(String attribute) {
-            if (attributes.add(attribute)) {
-                cmp.node(MappingKey.INCLUDE).add(attribute);
-            }
+            attributes.add(attribute);
         }
 
         @Override

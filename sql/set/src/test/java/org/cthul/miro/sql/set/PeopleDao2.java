@@ -20,12 +20,12 @@ public class PeopleDao2 extends SqlEntitySet<Person, PeopleDao2> {
     @Override
     protected void initialize() {
         super.initialize();
-        sql(sql -> sql.from().sql("People p"));
+        sql("FROM People p");
     }
     
     public PeopleDao2 selectFirstName() {
         return sql(sql -> sql.select().sql("p.first_name AS `firstName`"))
-               .setUp(MappingKey.LOAD, lf -> lf.add("firstName"));
+               .setUp(MappingKey.LOAD, "firstName");
     }
     
     public PeopleDao2 withId(int id) {
@@ -34,6 +34,6 @@ public class PeopleDao2 extends SqlEntitySet<Person, PeopleDao2> {
 
     public PeopleDao2 selectLastName() {
         return sql(sql -> sql.select().sql("p.last_name AS `lastName`"))
-               .setUp(MappingKey.LOAD, lf -> lf.add("lastName"));
+               .setUp(MappingKey.LOAD, "lastName");
     }
 }

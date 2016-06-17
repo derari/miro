@@ -257,6 +257,24 @@ public class Templates {
         };
     }
     
+    public static ComposableTemplate<Object> link(Key<? extends ComposableNode>... keys) {
+        return new ComposableTemplate<Object>() {
+            @Override
+            public void addTo(Object key, InternalComposer<? extends Object> composer) {
+                List<Object> nodes = new ArrayList<>(keys.length);
+                for (Key<?> k: keys) {
+                    nodes.add(composer.node(k));
+                }
+                Object all = allNodes((List) nodes);
+                composer.addNode((Key) key, all);
+            }
+            @Override
+            public String toString() {
+                return Arrays.stream(keys).map(Object::toString).collect(Collectors.joining());
+            }
+        };
+    }
+    
     /**
      * Creates a template that will call {@code template} with the specified {@code key}.
      * @param <B>
@@ -738,12 +756,12 @@ public class Templates {
             getDelegatee().addNode(key, node);
         }
         @Override
-        public void require(Object key) {
-            getDelegatee().require(key);
+        public boolean include(Object key) {
+            return getDelegatee().include(key);
         }
         @Override
-        public <V> V node(Key<V> key) {
-            return getDelegatee().node(key);
+        public <V> V get(Key<V> key) {
+            return getDelegatee().get(key);
         }
         @Override
         public String toString() {

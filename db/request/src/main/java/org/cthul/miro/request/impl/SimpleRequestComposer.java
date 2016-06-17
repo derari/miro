@@ -18,7 +18,7 @@ public class SimpleRequestComposer<Builder> extends AbstractComposer<Builder> im
         super(template);
     }
 
-    public SimpleRequestComposer(AbstractComposer<Builder> source) {
+    protected SimpleRequestComposer(AbstractComposer<Builder> source) {
         super(source);
     }
 

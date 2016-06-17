@@ -58,7 +58,7 @@ public class GenericMappingLayer<Entity> extends AbstractTemplateLayer<Mapping<?
         public TypePart() {
         }
 
-        public TypePart(TypePart source) {
+        protected TypePart(TypePart source) {
             this.graph = source.graph;
             this.entityType = source.entityType;
             this.useGraph = source.useGraph;

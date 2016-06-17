@@ -53,21 +53,22 @@ public abstract class TypeAnnotationReader {
             if (isTransient(f)) continue;
             Column atColumn = f.getAnnotation(Column.class);
             boolean key = f.getAnnotation(Id.class) != null;
-            field(key, f);
+            property(key, f);
             if (atColumn != null) {
-                if (tableAlias == null) throw new IllegalArgumentException(clazz.getSimpleName() + ": table name required");
                 String colName = atColumn.name();
                 if (colName == null) colName = f.getName();
                 column(f.getName(), tableAlias, colName);
+            } else {
+                column(f.getName(), tableAlias, null);
             }
         }
     }
 
     protected abstract void table(String schema, String table, String tableAlias);
 
-    protected abstract void field(boolean key, Field field);
+    protected abstract void property(boolean key, Field field);
     
-    protected abstract void column(String field, String tableAlias, String columnName);
+    protected abstract void column(String property, String tableAlias, String columnName);
     
     private static boolean isTransient(Field f) {
         return (f.getModifiers() & Modifier.TRANSIENT) != 0

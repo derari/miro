@@ -52,6 +52,11 @@ public abstract class AbstractTypeBuilder<Entity, This extends AbstractTypeBuild
     public List<String> getKeys() {
         return keys;
     }
+    
+    @Override
+    public Class<Entity> entityClass() {
+        return clazz;
+    }
 
     @Override
     public This key(String attribute) {

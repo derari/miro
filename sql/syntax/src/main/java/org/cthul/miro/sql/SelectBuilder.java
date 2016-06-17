@@ -53,10 +53,19 @@ public interface SelectBuilder extends SqlTableClause, SqlJoinableClause, SqlFil
         return include(MiSqlParser.parsePartialSelect(sql));
     }
     
+    default SelectBuilder sql(String sql, Object... args) {
+        return include(MiSqlParser.parsePartialSelect(sql, args));
+    }
+    
     interface Composite<This extends Composite<This>> extends SelectBuilder, SqlJoinableClause.Composite<This> {
 
         @Override
-        This sql(String sql);
+        default This sql(String sql) {
+            return sql(sql, (Object[]) null);
+        }
+
+        @Override
+        This sql(String sql, Object... args);
 //        {
 //            include(MiSqlParser.parsePartialSelect(sql));
 //            return (This) this;
@@ -66,8 +75,8 @@ public interface SelectBuilder extends SqlTableClause, SqlJoinableClause, SqlFil
     interface Select extends Composite<Select> {
 
         @Override
-        default Select sql(String sql) {
-            MiSqlParser.parsePartialSelectOrCode(sql, "SELECT", this, this);
+        default Select sql(String sql, Object... args) {
+            MiSqlParser.parsePartialSelectOrCode(sql, args, "SELECT", this, this);
             return this;
         }
     }
@@ -76,7 +85,12 @@ public interface SelectBuilder extends SqlTableClause, SqlJoinableClause, SqlFil
 
         @Override
         default From sql(String sql) {
-            MiSqlParser.parsePartialSelectOrCode(sql, "FROM", this, this);
+            return sql(sql, (Object[]) null);
+        }
+
+        @Override
+        default From sql(String sql, Object... args) {
+            MiSqlParser.parsePartialSelectOrCode(sql, args, "FROM", this, this);
             return this;
         }
     }
@@ -96,8 +110,8 @@ public interface SelectBuilder extends SqlTableClause, SqlJoinableClause, SqlFil
         Where on();
 
         @Override
-        default SelectBuilder.Join sql(String sql) {
-            MiSqlParser.parsePartialSelectOrCode(sql, "JOIN", this, this);
+        default SelectBuilder.Join sql(String sql, Object... args) {
+            MiSqlParser.parsePartialSelectOrCode(sql, args, "JOIN", this, this);
             return this;
         }
     }
@@ -105,8 +119,8 @@ public interface SelectBuilder extends SqlTableClause, SqlJoinableClause, SqlFil
     interface Where extends Composite<Where>, SqlJoinableClause.Where<Where> {
 
         @Override
-        default Where sql(String sql) {
-            MiSqlParser.parsePartialSelectOrCode(sql, "WHERE", this, this);
+        default Where sql(String sql, Object... args) {
+            MiSqlParser.parsePartialSelectOrCode(sql, args, "WHERE", this, this);
             return this;
         }
     }
@@ -114,8 +128,8 @@ public interface SelectBuilder extends SqlTableClause, SqlJoinableClause, SqlFil
     interface GroupBy extends Composite<GroupBy> {
 
         @Override
-        public default GroupBy sql(String sql) {
-            MiSqlParser.parsePartialSelectOrCode(sql, "GROUP", this, this);
+        public default GroupBy sql(String sql, Object... args) {
+            MiSqlParser.parsePartialSelectOrCode(sql, args, "GROUP", this, this);
             return this;
         }
     }
@@ -123,8 +137,8 @@ public interface SelectBuilder extends SqlTableClause, SqlJoinableClause, SqlFil
     interface Having extends Composite<Having> {
 
         @Override
-        public default Having sql(String sql) {
-            MiSqlParser.parsePartialSelectOrCode(sql, "HAVING", this, this);
+        public default Having sql(String sql, Object... args) {
+            MiSqlParser.parsePartialSelectOrCode(sql, args, "HAVING", this, this);
             return this;
         }
     }
@@ -132,8 +146,8 @@ public interface SelectBuilder extends SqlTableClause, SqlJoinableClause, SqlFil
     interface OrderBy extends Composite<OrderBy> {
 
         @Override
-        public default OrderBy sql(String sql) {
-            MiSqlParser.parsePartialSelectOrCode(sql, "ORDER", this, this);
+        public default OrderBy sql(String sql, Object... args) {
+            MiSqlParser.parsePartialSelectOrCode(sql, args, "ORDER", this, this);
             return this;
         }
     }

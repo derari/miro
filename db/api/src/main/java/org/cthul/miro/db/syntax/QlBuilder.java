@@ -18,6 +18,10 @@ public interface QlBuilder<This extends QlBuilder<This>> extends MiDBString, Sta
         return append(query);
     }
     
+    default This ql(String query, Object... args) {
+        return append(query).pushArguments(args);
+    }
+    
     default This append(QlCode code) {
         code.appendTo(this);
         return (This) this;

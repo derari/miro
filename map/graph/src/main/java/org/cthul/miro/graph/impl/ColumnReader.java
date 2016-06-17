@@ -15,7 +15,7 @@ import org.cthul.miro.entity.map.ColumnValue;
 public interface ColumnReader {
 
     /**
-     * Returns the current row's key.
+     * Returns the current row's values.
      * @param array array of appropriate size or {@code null}.
      * @return keys
      * @throws MiException

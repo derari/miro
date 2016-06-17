@@ -6,6 +6,7 @@ import org.cthul.miro.request.template.Templates;
 
 /**
  *
+ * @param <Builder>
  */
 public abstract class AbstractTemplateLayer<Builder> implements TemplateLayer<Builder> {
 

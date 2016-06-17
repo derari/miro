@@ -69,13 +69,14 @@ public abstract class AbstractComposer<Builder> implements Composer {
     }
 
     @Override
-    public void require(Object key) {
-        parts().getValue(key);
+    public boolean include(Object key) {
+        return parts().getValue(key) != null;
     }
 
     @Override
-    public <V> V node(Key<V> key) {
+    public <V> V get(Key<V> key) {
         Object v = parts().getValue(key);
+        if (v == NO_NODE) return null;
         return key.cast(v);
     }
 
@@ -94,12 +95,12 @@ public abstract class AbstractComposer<Builder> implements Composer {
             parts().addNode(key, node);
         }
         @Override
-        public void require(Object key) {
-            AbstractComposer.this.require(key);
+        public boolean include(Object key) {
+            return AbstractComposer.this.include(key);
         }
         @Override
-        public <V> V node(Key<V> key) {
-            return AbstractComposer.this.node(key);
+        public <V> V get(Key<V> key) {
+            return AbstractComposer.this.get(key);
         }
     }
     
@@ -115,6 +116,7 @@ public abstract class AbstractComposer<Builder> implements Composer {
         private List<StatementPart<? super Builder>> myParts = null;
         private Collection<StatementPart<? super Builder>> readOnlyParts = null;
         private Map<Object, Object> copyMap = null;
+        private long accessCount = 0;
         private boolean initialized;
 
         protected PartList() {
@@ -158,12 +160,14 @@ public abstract class AbstractComposer<Builder> implements Composer {
             }
             readOnlyParts = null;
             myParts.add(part);
+            accessCount++;
         }
         
         public <V> void addNode(Key<V> key, V node) {
             checkActive();
             readOnlyParts = null;
             tryPut(key, node);
+            accessCount++;
         }
         
         /**
@@ -214,8 +218,13 @@ public abstract class AbstractComposer<Builder> implements Composer {
             if (key == CopyManager.key) return this;
             Object v = parent.hierarchyPeek(key);
             if (v != null) return tryCopy(v);
+            long before = accessCount;
             owner.create(key);
-            return peekValue(key);
+            v = peekValue(key);
+            if (v == null && before < accessCount) {
+                v = NO_NODE;
+            }
+            return v;
         }
         
         protected Object hierarchyPeek(Object key) {
@@ -282,9 +291,12 @@ public abstract class AbstractComposer<Builder> implements Composer {
                 initialized = true;
                 owner.initialize();
             }
+            accessCount++;
             return super.getValue(key);
         }
     }
+    
+    private static final Object NO_NODE = new Object();
     
     private static final PartList NO_PARENT = new PartList() {
         @Override

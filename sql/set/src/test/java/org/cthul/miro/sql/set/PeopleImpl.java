@@ -22,13 +22,13 @@ public class PeopleImpl extends SqlEntitySet<Person, PeopleImpl> implements Peop
     @Override
     protected void initialize() {
         super.initialize();
-        setUp(MappingKey.LOAD, load -> load.addAll("firstName", "lastName"));
+        setUp(MappingKey.FETCH, "firstName", "lastName");
     }
 
     @Override
     public People withFirstName(String name) {
         return sql(sql -> {
-           sql.where().sql("first_name").eq(name);
+           sql.where().ql("first_name").eq(name);
         });
     }
 }

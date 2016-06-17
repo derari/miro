@@ -12,6 +12,7 @@ import org.cthul.miro.result.Results;
 import org.cthul.miro.util.Key;
 import org.cthul.miro.map.MappingKey;
 import org.cthul.miro.map.layer.MappedQuery;
+import org.cthul.miro.request.part.ListNode;
 
 /**
  *
@@ -69,6 +70,10 @@ public abstract class AbstractQuerySet<Entity, Stmt extends MiQuery, This extend
     
     protected <V> This setUp(Key<V> key, Consumer<V> action) {
         return compose(ic -> action.accept(ic.node(key)));
+    }
+
+    protected <V> This setUp(Key<? extends ListNode<V>> key, V... values) {
+        return compose(ic -> ic.node(key).addAll(values));
     }
 
     @Override

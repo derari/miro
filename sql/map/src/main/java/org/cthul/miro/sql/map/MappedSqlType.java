@@ -70,6 +70,7 @@ public class MappedSqlType<Entity>
         if (batchComposer == null) {
             batchComposer = new SimpleRequestComposer<>(getSelectLayer());
         }
+        // TODO: most of this can be moved up to MappedType
         String[] keyArray = getKeys().toArray(new String[0]);
         return new AbstractBatchLoader() {
             RequestComposer<MappedQuery<Entity, SelectQuery>> batch = null;
@@ -79,7 +80,7 @@ public class MappedSqlType<Entity>
                     batch = batchComposer.copy();
                     batch.node(MappingKey.TYPE).setType(type);
                     batch.node(MappingKey.INCLUDE).addAll(getKeys());
-                    batch.node(MappingKey.LOAD).addAll(flattenStr(attributes));
+                    batch.node(MappingKey.FETCH).addAll(flattenStr(attributes));
                 }
                 RequestComposer<MappedQuery<Entity, SelectQuery>> cmp = batch.copy();
                 cmp.node(MappingKey.PROPERTY_FILTER).forProperties(keyArray).addAll(keys);

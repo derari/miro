@@ -22,8 +22,7 @@ public class AddressDao extends SqlEntitySet<Address, AddressDao> {
     @Override
     protected void initialize() {
         super.initialize();
-//        snippet(sql -> sql.select().sql("city"));
-        setUp(MappingKey.LOAD, load -> load.addAll("city", "street"));
+        setUp(MappingKey.FETCH, "city", "street");
     }
     
     public AddressDao byId(int id) {

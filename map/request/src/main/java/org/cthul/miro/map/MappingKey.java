@@ -28,6 +28,9 @@ public interface MappingKey<V> extends Key<V> {
     /** Adds the property's required columns to the result set. */
     static final MappingKey<ListNode<String>> INCLUDE = MKey.INCLUDE;
     
+    /** {@link #INCLUDE} + {@link #LOAD} */
+    static final MappingKey<ListNode<String>> FETCH = MKey.FETCH;
+    
     /** Allows to set fields to given values. */
     static final MappingKey<SetProperty> SET = MKey.SET;
     
@@ -47,9 +50,11 @@ public interface MappingKey<V> extends Key<V> {
         
         LOAD,
         INCLUDE,
+        FETCH,
         
         SET,
         
+        @Deprecated
         LOAD_ALL,
         
         PROPERTY_FILTER,

@@ -40,10 +40,14 @@ public class ValueKey<V> implements Key<V> {
         final ValueKey other = (ValueKey) obj;
         return Objects.equals(getValue(), other.getValue());
     }
+    
+    protected String getValueString() {
+        return String.valueOf(getValue());
+    }
 
     @Override
     public String toString() {
-        return "<" + getValue() + ">";
+        return "<" + getValueString() + ">";
     }
     
     private static final AtomicLong COUNTER = new AtomicLong(0);

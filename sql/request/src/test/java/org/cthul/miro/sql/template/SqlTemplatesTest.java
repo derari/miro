@@ -2,8 +2,6 @@ package org.cthul.miro.sql.template;
 
 import static org.cthul.matchers.fluent8.FluentAssert.assertThat;
 import org.cthul.miro.request.impl.SimpleRequestComposer;
-import org.cthul.miro.sql.template.SqlComposerKey;
-import org.cthul.miro.sql.template.SqlTemplates;
 import org.cthul.miro.request.template.TemplateLayer;
 import org.cthul.miro.db.impl.MiDBStringBuilder;
 import org.cthul.miro.request.RequestComposer;

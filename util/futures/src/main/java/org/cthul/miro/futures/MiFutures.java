@@ -15,6 +15,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import org.cthul.miro.function.MiConsumer;
 import org.cthul.miro.futures.impl.MiFinal;
 import org.cthul.miro.futures.impl.MiFutureValue;
 import org.cthul.miro.futures.impl.MiTriggerableAction;
@@ -111,18 +112,6 @@ public class MiFutures {
         return new FutureAsAction<>(r, r, future, null);
     }
     
-//    public static <V> MiAction<V> futureAsAction(MiFuture<V> future, Executor defaultExecutor) {
-//        Runnable submit = null;
-//        if (future instanceof MiAction) {
-//            submit = ((MiAction) future)::submit;
-//        }
-//        return new FutureAsAction<>(submit, future, defaultExecutor);
-//    }
-//    
-//    public static <V> MiAction<V> futureAsAction(MiFuture<V> future, Runnable submit) {
-//        return new FutureAsAction<>(submit, future, null);
-//    }
-    
     public static <V> MiAction<V> futureAsAction(MiFuture<V> future, Executor defaultExecutor, Runnable submitAction) {
         return futureAsAction(future, defaultExecutor, submitAction, submitAction);
     }
@@ -203,21 +192,12 @@ public class MiFutures {
         private final Runnable runAction;
         private MiFuture<V> trigger = null;
 
-//        public FutureAsAction(MiFuture<? extends V> delegatee, Executor defaultExecutor) {
-//            this(null, delegatee, defaultExecutor);
-//        }
-
         public FutureAsAction(Runnable submitAction, Runnable runAction, MiFuture<? extends V> delegatee, Executor defaultExecutor) {
             super(delegatee, defaultExecutor);
             Objects.requireNonNull(submitAction, "submit action");
             Objects.requireNonNull(runAction, "run action");
             this.submitAction = submitAction;
             this.runAction = runAction;
-//            if (submitAction == null) {
-//                this.trigger = (MiFuture) delegatee;
-//            } else {
-//                this.submitAction = submitAction;
-//            }
         }
 
         @Override
@@ -311,7 +291,7 @@ public class MiFutures {
             if (executor != null && defExecutor != null && executor != defExecutor) {
                 throw new IllegalArgumentException("Action executor not supported");
             }
-            return getExecutor();
+            return getDefaultExecutor();
         }
         
         protected void resettableNotSupported() {
@@ -343,7 +323,11 @@ public class MiFutures {
             return new MiSubmittableAction<>(action, getExecutor(), getDefaultExecutor(), isResettable());
         }
         
-        public <V> MiActionResult<V> onTrigger(Consumer<? super MiResult<V>> action) {
+        public <A, V> MiResettableAction<V> action(MiFunction<? super A, ? extends V> function, A arg) {
+            return action(function.curry(arg));
+        }
+        
+        public <V> MiActionResult<V> onTrigger(MiConsumer<? super MiResult<V>> action) {
             return new MiTriggerableAction<>(action, getExecutor(), getDefaultExecutor(), isResettable());
         }
     }

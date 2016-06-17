@@ -16,6 +16,7 @@ import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.futures.MiAction;
 import org.cthul.miro.function.MiFunction;
 import org.cthul.miro.function.MiSupplier;
+import org.cthul.miro.futures.MiFutures;
 import org.cthul.miro.util.Closables;
 
 /**
@@ -108,7 +109,12 @@ public class JdbcConnection implements MiConnection {
     }
 
     public MiAction<Long> stmtAction(MiSupplier<PreparedStatement> stmt) {
-        return fExecuteStmt.asAction(QUERY_EXECUTOR, stmt);
+        return MiFutures.build()
+                .notResettable()
+                .executor(QUERY_EXECUTOR)
+                .defaultExecutor(MiFutures.defaultExecutor())
+                .action(fExecuteStmt, stmt);
+//        return fExecuteStmt.asAction(QUERY_EXECUTOR, stmt);
     }
     
     public static interface ConnectionProvider {

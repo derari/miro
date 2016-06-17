@@ -1,6 +1,5 @@
 package org.cthul.miro.function;
 
-import org.cthul.miro.function.MiFunction;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 import org.cthul.miro.futures.MiFuture;

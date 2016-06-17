@@ -18,39 +18,34 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
     void appendTo(QlBuilder<?> qlBuilder);
     
     static Builder build() {
-        return new BuilderImpl();
+        return new Builder();
     }
     
     static Builder build(QlCode code) {
         return build().append(code);
     }
     
-    static Builder ql(String string) {
+    static Fluent ql(String string) {
         return new PlainSyntax(string);
     }
     
-    static Builder id(String... id) {
+    static Fluent id(String... id) {
         return new Identifier(id);
     }
     
-    static Builder str(String string) {
+    static Fluent str(String string) {
         return new StringLiteral(string);
     }
     
-    static Builder lazy(Consumer<? super QlBuilder<?>> code) {
+    static Fluent lazy(Consumer<? super QlBuilder<?>> code) {
         return new Lazy(code);
     }
     
-    class PlainSyntax implements Builder {
+    class PlainSyntax implements Fluent {
         private final String string;
 
         public PlainSyntax(String string) {
             this.string = string;
-        }
-
-        @Override
-        public Builder append(CharSequence query) {
-            return new PlainSyntaxBuilder(string).append(query);
         }
         
         @Override
@@ -64,7 +59,7 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
         }
     }
     
-    class PlainSyntaxBuilder implements Builder {
+    class PlainSyntaxBuilder implements Fluent {
         private final StringBuilder stringBuilder = new StringBuilder();
         private String s = null;
         
@@ -74,9 +69,13 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
         public PlainSyntaxBuilder(String string) {
             stringBuilder.append(string);
         }
-        
+
         @Override
-        public Builder append(CharSequence string) {
+        public Builder append(CharSequence query) {
+            throw new UnsupportedOperationException();
+        }
+        
+        public PlainSyntaxBuilder appendSyntax(CharSequence string) {
             s = null;
             stringBuilder.append(string);
             return this;
@@ -94,7 +93,7 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
         }
     }
     
-    class Identifier implements Builder {
+    class Identifier implements Fluent {
         private final String[] id;
 
         public Identifier(String... id) {
@@ -112,7 +111,7 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
         }
     }
     
-    class StringLiteral implements Builder {
+    class StringLiteral implements Fluent {
         private final String string;
 
         public StringLiteral(String string) {
@@ -130,7 +129,7 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
         }
     }
     
-    class Clause<C> implements Builder {
+    class Clause<C> implements Fluent {
 
         private final ClauseType<C> type;
         private final Consumer<? super C> code;
@@ -150,41 +149,48 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
         }
     }
     
-    class BuilderImpl implements Builder {
+    class Builder implements Fluent {
         
         private final List<QlCode> code = new ArrayList<>();
-        private PlainSyntaxBuilder currentPlain = null;
-        private boolean lastIsPlain = false;
+        private List<Object> args = null;
+        private PlainSyntaxBuilder currentPlainSyntax = null;
+        private boolean lastIsPlainSyntax = false;
 
-        protected PlainSyntaxBuilder plainBuilder() {
-            if (currentPlain == null) {
-                currentPlain = new PlainSyntaxBuilder();
-                if (lastIsPlain) {
+        protected PlainSyntaxBuilder plainSyntaxBuilder() {
+            if (currentPlainSyntax == null) {
+                currentPlainSyntax = new PlainSyntaxBuilder();
+                if (lastIsPlainSyntax) {
                     QlCode last = code.remove(code.size()-1);
-                    currentPlain.append(last.toString());
+                    currentPlainSyntax.appendSyntax(last.toString());
                 }
-                code.add(currentPlain);
-                lastIsPlain = true;
+                code.add(currentPlainSyntax);
+                lastIsPlainSyntax = true;
             }
-            return currentPlain;
+            return currentPlainSyntax;
+        }
+        
+        protected void appendTo(Builder b) {
+            currentPlainSyntax = null;
+            lastIsPlainSyntax = false;
+            code.forEach(b::append);
+            if (args != null) b.args().addAll(args);
         }
         
         @Override
         public Builder append(QlCode c) {
             Class<?> clazz = c.getClass();
-            if (clazz == PlainSyntax.class || clazz == PlainSyntaxBuilder.class) {
-                if (lastIsPlain) {
-                    plainBuilder().append(c.toString());
+            if (clazz == Builder.class) {
+                ((Builder) c).appendTo(this);
+                return this;
+            } else if (clazz == PlainSyntax.class || clazz == PlainSyntaxBuilder.class) {
+                if (lastIsPlainSyntax) {
+                    plainSyntaxBuilder().appendSyntax(c.toString());
                     return this;
                 }
-                lastIsPlain = true;
+                lastIsPlainSyntax = true;
             } else {
-                if (clazz == BuilderImpl.class) {
-                    ((BuilderImpl) c).code.forEach(ql -> append(ql));
-                    return this;
-                }
-                lastIsPlain = false;
-                currentPlain = null;
+                lastIsPlainSyntax = false;
+                currentPlainSyntax = null;
             }
             code.add(c);
             return this;
@@ -192,13 +198,25 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
 
         @Override
         public Builder append(CharSequence query) {
-            plainBuilder().append(query);
+            plainSyntaxBuilder().appendSyntax(query);
+            return this;
+        }
+
+        protected List<Object> args() {
+            if (args == null) args = new ArrayList<>();
+            return args;
+        }
+        
+        @Override
+        public Builder pushArgument(Object arg) {
+            args().add(arg);
             return this;
         }
         
         @Override
         public void appendTo(QlBuilder<?> qlBuilder) {
             code.forEach(c -> c.appendTo(qlBuilder));
+            if (args != null) qlBuilder.pushArguments(args);
         }
 
         @Override
@@ -207,7 +225,7 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
         }
     }
     
-    class Lazy implements Builder {
+    class Lazy implements Fluent {
         
         private final Consumer<? super QlBuilder<?>> code;
 
@@ -221,11 +239,11 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
         }
     }
     
-    interface Builder extends QlCode, QlBuilder<Builder> {
+    interface Fluent extends QlCode, QlBuilder<Builder> {
         
         @Override
         default Builder append(QlCode c) {
-            return build().append(this).append(c);
+            return build(this).append(c);
         }
         
         @Override
@@ -253,7 +271,7 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
 
         @Override
         default Builder pushArgument(Object arg) {
-            throw new UnsupportedOperationException();
+            return build(this).pushArgument(arg);
         }
 
         @Override

@@ -67,6 +67,10 @@ public abstract class SqlEntitySet<Entity, This extends SqlEntitySet<Entity, Thi
         return snippet(snp -> action.accept(snp.getStatement()));
     }
     
+    protected This sql(String sql, Object... args) {
+        return snippet(snp -> snp.getStatement().sql(sql, args));
+    }
+    
     protected This map(Consumer<? super Mapping<Entity>> action) {
         return snippet(snp -> action.accept(snp.getMapping()));
     }

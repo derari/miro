@@ -7,6 +7,7 @@ import org.cthul.miro.util.Closables;
 
 /**
  * A statement that can be executed against its database.
+ * @param <Result>
  */
 public interface MiStatement<Result> {
     

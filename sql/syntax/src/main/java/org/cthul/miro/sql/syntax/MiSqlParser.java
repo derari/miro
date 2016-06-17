@@ -1,8 +1,11 @@
 package org.cthul.miro.sql.syntax;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -49,11 +52,20 @@ public class MiSqlParser {
         return new MiSqlParser(sql).parsePartialSelectStmt(null);
     }
     
+    public static SelectStmt parsePartialSelect(String sql, Object... args) {
+        return new MiSqlParser(sql, args).parsePartialSelectStmt(null);
+    }
+    
     public static void parsePartialSelectOrCode(String sql, String defaultPart, SelectBuilder stmtBuilder, QlBuilder<?> qlBuilder) {
         new MiSqlParser(sql).parsePartialSelectStmtOrCode(defaultPart, stmtBuilder, qlBuilder);
     }
+    
+    public static void parsePartialSelectOrCode(String sql, Object[] args, String defaultPart, SelectBuilder stmtBuilder, QlBuilder<?> qlBuilder) {
+        new MiSqlParser(sql, args).parsePartialSelectStmtOrCode(defaultPart, stmtBuilder, qlBuilder);
+    }
 
     private final String input;
+    private final Deque<Object> args;
     private int cIndex, nIndex, index = 0;
     private Token current = null;
     private Token next = null;
@@ -62,6 +74,16 @@ public class MiSqlParser {
 
     public MiSqlParser(String input) {
         this.input = input;
+        this.args = new ArrayDeque<>();
+    }
+    
+    public MiSqlParser(String input, Object[] args) {
+        this(input, args != null ? Arrays.asList(args) : Collections.emptyList());
+    }
+    
+    public MiSqlParser(String input, Collection<?> args) {
+        this.input = input;
+        this.args = new ArrayDeque<>(args);
     }
     
     protected boolean expected(String e) {
@@ -135,7 +157,16 @@ public class MiSqlParser {
         if (c == '?' || isSpecial(c)) {
             index++;
             String s = ""+c;
-            return new Token(s, QlCode.ql(s), c == '?' ? TokenType.VALUE : TokenType.SPECIAL);
+            QlCode.Fluent code = QlCode.ql(s);
+            if (c == '?') {
+                if (!args.isEmpty()) {
+                    Object a = args.pollFirst();
+                    code = code.pushArgument(a);
+                }
+                return new Token(s, code, TokenType.VALUE);
+            } else {
+                return new Token(s, code, TokenType.SPECIAL);
+            }
         }
         return T_ERROR;
     }
@@ -493,6 +524,10 @@ public class MiSqlParser {
     }
     
     protected Attribute attribute() {
+        if (current().value.equals("*")) {
+            next();
+            return new Attribute("*", Collections.emptyList(), QlCode.ql("*"), null);
+        }
         int start = cIndex;
         Expression e = expression();
         if (e == null) return null;
@@ -706,6 +741,12 @@ public class MiSqlParser {
         return new OrderByPart(e);
     }
     
+    protected boolean selectStmtPart(SelectStmt stmt) {
+        Token c = current();
+        if (!c.isWord()) return false;
+        return selectStmtPart(stmt, c.value, true);
+    }
+    
     protected boolean selectStmtPart(SelectStmt stmt, String part, boolean requireKeyword) {
         if (part == null) return false;
         switch (part) {
@@ -756,18 +797,14 @@ public class MiSqlParser {
     
     protected SelectStmt partialSelectStmt(String defaultPart) {
         SelectStmt stmt = new SelectStmt();
-        boolean first = true;
-        while (!atEnd()) {
-            Token c = current();
-            if (!selectStmtPart(stmt, c.value, true)) {
-                break;
-            }
-            first = false;
+        boolean match = false;
+        while (selectStmtPart(stmt)) {
+            match = true;
         }
-        if (first && !selectStmtPart(stmt, defaultPart, false)) {
-            return null;
+        if (match || selectStmtPart(stmt, defaultPart, false)) {
+            return stmt;
         }
-        return stmt;
+        return null;
     }
     
     public <T> T parse(MiFunction<MiSqlParser, T> action) {

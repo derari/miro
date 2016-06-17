@@ -80,16 +80,16 @@ public abstract class AbstractSqlLayer<Builder extends SqlFilterableClause> exte
         final InternalComposer<? extends Builder> ic;
         final Composer dependencyComposer = new Composer() {
             @Override
-            public void require(Object key) {
+            public boolean include(Object key) {
                 if (key instanceof String) {
-                    get((String) key);
+                    return ViewComposerBase.this.get((String) key) != null;
                 } else {
-                    ic.require(key);
+                    return ic.include(key);
                 }
             }
             @Override
-            public <V> V node(org.cthul.miro.util.Key<V> key) {
-                return ic.node(key);
+            public <V> V get(Key<V> key) {
+                return ic.get(key);
             }
         };
 

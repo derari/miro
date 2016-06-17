@@ -43,11 +43,11 @@ public abstract class AbstractComposableBuilder implements AutocloseableBuilder 
     protected <Clause> Clause newNestedClause(Function<MiDBString, Clause> factory) {
         closeNestedClause();
         MiDBString dBString = getBuilderForNestedClause();
-        NestedDBString pubBuilder = new NestedDBString(dBString);
-        Clause clause = factory.apply(pubBuilder);
+        NestedDBString nestedString = new NestedDBString(dBString);
+        Clause clause = factory.apply(nestedString);
         if (clause instanceof AutocloseableBuilder) {
             autocloseableBuilder = (AutocloseableBuilder) clause;
-            pubBuilder.owner = autocloseableBuilder;
+            nestedString.owner = autocloseableBuilder;
         }
         return clause;
     }

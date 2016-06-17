@@ -89,17 +89,25 @@ public class EntitySchemaBuilder extends GraphSchemaBuilder {
         }
 
         @Override
-        protected void field(boolean key, Field field) {
+        protected void property(boolean key, Field field) {
             String name = field.getName();
             type.column(name).field(field);
             if (key) type.key(name);
         }
 
         @Override
-        protected void column(String field, String tableAlias, String columnName) {
-            SqlAttribute at = new SqlAttribute(field,
-                        QlCode.ql(tableAlias).ql(".").id(columnName), QlCode.ql(field));
-            at.getDependencies().add(tableAlias);
+        protected void column(String property, String tableAlias, String columnName) {
+            if (columnName == null) {
+                columnName = property;
+            }
+            QlCode expression = QlCode.id(columnName);
+            if (tableAlias != null) {
+                expression = QlCode.ql(tableAlias).ql(".").ql(expression);
+            }
+            SqlAttribute at = new SqlAttribute(property, expression, QlCode.ql(property));
+            if (tableAlias != null) {
+                at.getDependencies().add(tableAlias);
+            }
             type.attribute(at);
         }
     }

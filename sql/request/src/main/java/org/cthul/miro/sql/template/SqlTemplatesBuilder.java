@@ -62,7 +62,7 @@ public interface SqlTemplatesBuilder<This extends SqlTemplatesBuilder<This>> {
     }
     
     default This from(String schema, String table, String key) {
-        QlCode.Builder code;
+        QlCode.Fluent code;
         if (schema == null || schema.isEmpty()) { 
             code = QlCode.id(table);
         } else {

@@ -14,7 +14,13 @@ public interface Composer {
      * @param key 
      * @throws IllegalArgumentException if {@code key} is not recognized
      */
-    void require(Object key);
+    default void require(Object key) {
+        if (!include(key)) {
+            throw new IllegalArgumentException("Unknown key: " + key);
+        }
+    }
+    
+    boolean include(Object key);
     
     /**
      * Returns the node that corresponds to {@code key}, or {@code null}
@@ -22,11 +28,21 @@ public interface Composer {
      * @param <V>
      * @param key
      * @return part
+     * @throws IllegalArgumentException if {@code key} is not recognized
      */
-    <V> V node(Key<V> key);
+    default <V> V node(Key<V> key) {
+        V node = get(key);
+        if (node == null) {
+            require(key);
+            throw new IllegalArgumentException("Parts-only key: " + key);
+        }
+        return node;
+    }
+    
+    <V> V get(Key<V> key);
     
     default <V> V optional(Key<V> key, Consumer<V> action) {
-        V v = node(key);
+        V v = get(key);
         if (v != null) action.accept(v);
         return v;
     }

@@ -25,8 +25,8 @@ public class AddressBookDB {
         this.graph = graph;
         this.people = new PeopleImpl(cnn, schemaBuilder.getSelectLayer(Person.class));
         schemaBuilder.getMappingBuilder(Address.class)
-                .from("addresses a")
-                .attribute("a.city");
+                .from("Addresses a")
+                .attributes("a.city, a.street");
         this.addressDao = new AddressDao(cnn, schemaBuilder.getSelectLayer(Address.class));
     }
 

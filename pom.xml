@@ -37,6 +37,7 @@
         <module>ext/mysql</module>
         <module>ext/sap-hana</module>
 
+        <module>lib/msql</module>
         <module>lib/all</module>
     </modules>
 

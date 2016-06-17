@@ -196,12 +196,20 @@ public class Results<Entity> implements AutoCloseable {
             return andThen(Results::asList);
         }
         
+        protected Results<Entity> quickGet() throws InterruptedException, ExecutionException {
+            return getTrigger().get();
+        }
+        
+        protected Results<Entity> _quickGet() {
+            return getTrigger()._get();
+        }
+        
         public List<Entity> asList() throws InterruptedException, ExecutionException, MiException {
-            return submit().get().asList();
+            return quickGet().asList();
         }
         
         public List<Entity> _asList() {
-            return submit()._get()._asList();
+            return _quickGet()._asList();
         }
         
         public MiAction<Entity[]> array() {
@@ -209,11 +217,11 @@ public class Results<Entity> implements AutoCloseable {
         }
         
         public Entity[] asArray() throws InterruptedException, ExecutionException, MiException {
-            return submit().get().asArray();
+            return quickGet().asArray();
         }
         
         public Entity[] _asArray() {
-            return submit()._get()._asArray();
+            return _quickGet()._asArray();
         }
         
         // TODO: cursor
@@ -223,11 +231,11 @@ public class Results<Entity> implements AutoCloseable {
         }
         
         public Entity getFirst() throws InterruptedException, ExecutionException, MiException {
-            return submit().get().getFirst();
+            return quickGet().getFirst();
         }
         
         public Entity _getFirst() {
-            return submit()._get()._getFirst();
+            return _quickGet()._getFirst();
         }
         
         public MiAction<Entity> single() {
@@ -235,19 +243,19 @@ public class Results<Entity> implements AutoCloseable {
         }
         
         public Entity getSingle() throws InterruptedException, ExecutionException, MiException {
-            return submit().get().getSingle();
+            return quickGet().getSingle();
         }
         
         public Entity _getSingle() {
-            return submit()._get()._getSingle();
+            return _quickGet()._getSingle();
         }
         
         public void noResult() throws InterruptedException, ExecutionException, MiException {
-            submit().get().noResult();
+            quickGet().noResult();
         }
         
         public void _noResult() {
-            submit()._get()._noResult();
+            _quickGet()._noResult();
         }
     }
 }

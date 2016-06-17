@@ -25,3 +25,5 @@
 
 /lib/all/dependency-reduced-pom.xml
 nbproject
+/lib/msql/target/
+dependency-reduced-pom.xml
