@@ -76,8 +76,8 @@ public interface Graph extends AutoCloseable {
     }
     
     /**
-     * Returns an entity type to create factories that will find or create nodes 
-     * of the graph and read the initialize attributes from the result set.
+     * Returns an entity type that will find or create nodes in the graph and
+     * read the given attributes from the result set.
      * @param <Node>
      * @param typeKey
      * @param attributes
@@ -91,7 +91,7 @@ public interface Graph extends AutoCloseable {
     
     /**
      * Returns an entity type that will find or create nodes in the graph and
-     * ensure that the given attributes are initialized.
+     * read the given attributes from the result set.
      * @param <Node>
      * @param typeKey
      * @param attributes

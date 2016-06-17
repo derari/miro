@@ -69,7 +69,7 @@ public class GraphSchemaBuilder implements GraphSchema, Graph {
         if (attributes.isEmpty() && n instanceof EntityType) {
             return (EntityType<Node>) n;
         }
-        return nullGraph().getEntityType(typeKey);
+        return nullGraph().getEntityType(typeKey, attributes);
     }
 
     @Override

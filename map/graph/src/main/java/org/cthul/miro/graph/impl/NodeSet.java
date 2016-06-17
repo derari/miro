@@ -63,7 +63,7 @@ public abstract class NodeSet<Node> {
     
     /**
      * Returns an entity type that will find or create nodes in the graph and
-     * ensures that the given attributes are initialized.
+     * read the given attributes from the result set.
      * @param attributes
      * @return entity type
      * @see Graph#getEntityType(Object, List)
