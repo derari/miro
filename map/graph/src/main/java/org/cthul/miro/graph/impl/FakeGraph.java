@@ -3,6 +3,7 @@ package org.cthul.miro.graph.impl;
 import java.util.Map;
 import java.util.function.Function;
 import org.cthul.miro.db.MiConnection;
+import org.cthul.miro.graph.GraphApi;
 import org.cthul.miro.graph.NodeType;
 
 /**
@@ -23,7 +24,23 @@ public class FakeGraph extends AbstractGraph {
     }
 
     @Override
-    protected NodeSet<?> newNodeSet(NodeType<?> type) {
-        return new FakeNodeSet<>(type, this);
+    protected AbstractNodeSet<?> newNodeSet(NodeType<?> type) {
+        class FakeNodeSet<Node> extends AbstractNodeSet<Node> {
+            public FakeNodeSet() {
+                super((NodeType) type, FakeGraph.this);
+            }
+            @Override
+            protected Node getNode(Object... key) {
+                return null;
+            }
+            @Override
+            protected void putNode(Object[] key, Node e) {
+            }
+            @Override
+            protected String shortString(Object s) {
+                return String.valueOf(s);
+            }
+        }
+        return new FakeNodeSet<>();
     }
 }

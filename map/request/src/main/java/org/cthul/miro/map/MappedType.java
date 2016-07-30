@@ -2,10 +2,12 @@ package org.cthul.miro.map;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.cthul.miro.entity.EntityType;
 import org.cthul.miro.request.part.ListNode;
 import org.cthul.miro.request.template.TemplateLayer;
 import org.cthul.miro.request.template.TemplateLayerStack;
 import org.cthul.miro.entity.map.EntityAttribute;
+import org.cthul.miro.graph.GraphSchema;
 import org.cthul.miro.graph.impl.AbstractTypeBuilder;
 import org.cthul.miro.map.layer.FilterLayer;
 import org.cthul.miro.map.layer.GenericMappingLayer;
@@ -32,8 +34,11 @@ public abstract class MappedType<Entity, This extends MappedType<Entity, This>> 
 
     public TemplateLayer<Mapping<Entity>> getMaterializationLayer() {
         if (materializationLayer == null) {
+            EntityType<Entity> et = GraphSchema.build()
+                    .put(entityClass(), this)
+                    .getEntityType(entityClass());
             materializationLayer = TemplateLayerStack.join(
-                new GenericMappingLayer<>(entityClass(), this),
+                new GenericMappingLayer<>(entityClass(), et),
                 new FilterLayer<>(this),
                 new MaterializationLayer<>(this));
         }
@@ -43,7 +48,7 @@ public abstract class MappedType<Entity, This extends MappedType<Entity, This>> 
     public Key<ListNode<Object[]>> getValueFilterKey(String[] properties) {
         List<String> columns = new ArrayList<>();
         for (String p: properties) {
-            EntityAttribute<?> at = getAttributes().getAttributeMap().get(p);
+            EntityAttribute<?,?> at = getAttributes().getAttributeMap().get(p);
             columns.addAll(at.getColumns());
         }
         return getColumnFilterKey(columns);

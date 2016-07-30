@@ -35,11 +35,6 @@ public class EntityTypesTest {
         protected Address newEntity() {
             return new Address();
         }
-
-        @Override
-        public Address[] newArray(int length) {
-            return new Address[length];
-        }
     }
     
     static class SetStreet extends EntityPostProcessing<Address> {

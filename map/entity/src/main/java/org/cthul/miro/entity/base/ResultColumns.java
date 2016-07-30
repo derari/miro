@@ -4,7 +4,7 @@ import java.util.List;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.entity.EntityFactory;
-import org.cthul.miro.entity.map.ColumnValueBuilder;
+import org.cthul.miro.entity.map.ColumnMappingBuilder;
 
 /**
  * Utility methods for finding columns in a result set.
@@ -140,11 +140,9 @@ public class ResultColumns {
 //        };
 //    }
 //    
-    public static EntityFactory<?> readColumn(MiResultSet rs, ColumnRule rule, String column, ColumnValueBuilder.MultiValue multi) throws MiException {
-        int index = findColumn(rs, column);
-        if (index < 0 && rule.skipIfMissing(column)) {
-            return null;
-        }
+    public static EntityFactory<?> readColumn(MiResultSet rs, ColumnRule rule, String column, ColumnMappingBuilder.MultiValue multi) throws MiException {
+        Integer index = findColumn(rule, rs, column);
+        if (index == null) return null;
         class SingleColumnValue implements EntityFactory<Object> {
             Object[] v = multi != null ? new Object[1] : null;
             @Override

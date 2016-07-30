@@ -7,9 +7,10 @@ import org.cthul.miro.entity.map.EntityAttributesBuilder;
 /**
  *
  * @param <Entity>
+ * @param <Cnn>
  * @param <This>
  */
-public interface TypeBuilder<Entity, This extends TypeBuilder<Entity, This>> extends EntityAttributesBuilder<Entity, This> {
+public interface TypeBuilder<Entity, Cnn, This extends TypeBuilder<Entity, Cnn, This>> extends EntityAttributesBuilder<Entity, Cnn, This> {
     
     This key(String attribute);
     
@@ -33,9 +34,9 @@ public interface TypeBuilder<Entity, This extends TypeBuilder<Entity, This>> ext
     
     This constructor(Function<Object[], Entity> constructor);
     
-    static interface Delegator<Entity, This extends Delegator<Entity, This>> extends TypeBuilder<Entity, This> {
+    static interface Delegator<Entity, Cnn, This extends Delegator<Entity, Cnn, This>> extends TypeBuilder<Entity, Cnn, This> {
         
-        TypeBuilder<Entity, ?> internalTypeBuilder();
+        TypeBuilder<Entity, Cnn, ?> internalTypeBuilder();
 
         @Override
         default This key(String attribute) {

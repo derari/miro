@@ -7,7 +7,7 @@ import org.cthul.miro.entity.base.ResultColumns.ColumnRule;
  * @param <Entity>
  * @param <Result>
  */
-public abstract class SimpleAttributeBuilder<Entity, Result> implements EntityAttributeBuilder<Entity, Result> {
+public abstract class SimpleAttributeBuilder<Entity, Cnn, Result> implements EntityAttributeBuilder<Entity, Cnn, Result> {
     
     private final Class<Entity> clazz;
     private String key;
@@ -21,31 +21,31 @@ public abstract class SimpleAttributeBuilder<Entity, Result> implements EntityAt
         this.key = key;
     }
     
-    protected abstract Result build(EntityAttribute<Entity> f);
+    protected abstract Result build(EntityAttribute<Entity, Cnn> f);
 
     @Override
-    public EntityAttributeBuilder<Entity, Result> as(String key) {
+    public EntityAttributeBuilder<Entity, Cnn, Result> as(String key) {
         this.key = key;
         return this;
     }
 
     @Override
-    public Single<Entity, Result> column(ColumnRule rule, String column) {
+    public Single<Entity, Cnn, Result> column(ColumnRule rule, String column) {
         String k = key != null ? key : column;
-        return new Single<Entity, Result>(k, clazz, column, rule) {
+        return new Single<Entity, Cnn, Result>(k, clazz, column, rule) {
             @Override
-            protected Result build(EntityAttribute<Entity> f) {
+            protected Result build(EntityAttribute<Entity, Cnn> f) {
                 return SimpleAttributeBuilder.this.build(f);
             }
         };
     }
 
     @Override
-    public Group<Entity, Result> columns(ColumnRule allRule, ColumnRule eachRule, String... columns) {
+    public Group<Entity, Cnn, Result> columns(ColumnRule allRule, ColumnRule eachRule, String... columns) {
         String k = key != null ? key : columns[0];
-        return new Group<Entity, Result>(k, clazz, columns, allRule, eachRule) {
+        return new Group<Entity, Cnn, Result>(k, clazz, columns, allRule, eachRule) {
             @Override
-            protected Result build(EntityAttribute<Entity> f) {
+            protected Result build(EntityAttribute<Entity, Cnn> f) {
                 return SimpleAttributeBuilder.this.build(f);
             }
         };

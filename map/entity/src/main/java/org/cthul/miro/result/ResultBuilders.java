@@ -1,5 +1,6 @@
 package org.cthul.miro.result;
 
+import java.lang.reflect.Array;
 import java.util.AbstractList;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
@@ -250,32 +251,32 @@ public class ResultBuilders {
         }
     }
     
-    public static <Entity> ArrayResult<Entity> getArrayResult() {
-        return ArrayResult.ARRAY_RESULT;
+    public static <Entity> ArrayResult<Entity> getArrayResult(Entity[] ary) {
+        return new ArrayResult<>(ary);
     }
     
     public static <Entity> ArrayResult<Entity> getArrayResult(Class<Entity> clazz) {
-        return getArrayResult();
-    }
-
-    public static <Entity> ArrayResult<Entity> getArrayResult(EntityResultBuilder<? extends Collection<Entity>, Entity> listResult) {
-        return new ArrayResult<>(listResult);
+        return getArrayResult((Entity[]) Array.newInstance(clazz, 0));
     }
 
     public static class ArrayResult<Entity> implements EntityResultBuilder<Entity[], Entity> {
-        
-        private static final ArrayResult ARRAY_RESULT = new ArrayResult<>(getListResult());
 
+        private final Entity[] ary;
         private final EntityResultBuilder<? extends Collection<Entity>, Entity> listResult;
 
-        public ArrayResult(EntityResultBuilder<? extends Collection<Entity>, Entity> listResult) {
+        public ArrayResult(Entity[] ary) {
+            this(ary, getListResult());
+        }
+        
+        public ArrayResult(Entity[] ary, EntityResultBuilder<? extends Collection<Entity>, Entity> listResult) {
+            this.ary = ary;
             this.listResult = listResult;
         }
 
         @Override
         public Entity[] build(MiResultSet rs, EntityType<? extends Entity> type) throws MiException {
             Collection<Entity> result = listResult.build(rs, type);
-            return result.toArray(type.newArray(result.size()));
+            return result.toArray(ary);
         }
     }
 

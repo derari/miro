@@ -1,36 +1,31 @@
 package org.cthul.miro.entity.map;
 
-import org.cthul.miro.entity.base.MultiInitializer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import org.cthul.miro.entity.EntityConfiguration;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.entity.EntityInitializer;
+import org.cthul.miro.entity.EntityTypes;
 
 /**
  * A {@linkplain EntityConfiguration configuration} that maps columns 
  * from a result set to attributes.
  * @param <Entity>
  */
-public class AttributesConfiguration<Entity> 
-                implements EntityAttributesBuilder<Entity, AttributesConfiguration<Entity>>,
-                           EntityConfiguration<Entity>, EntityAttributes<Entity> {
+public class AttributesConfiguration<Entity, Cnn> 
+                implements EntityAttributesBuilder<Entity, Cnn, AttributesConfiguration<Entity, Cnn>>,
+                           EntityAttributes<Entity, Cnn> {
     
-    public static <Entity> AttributesConfiguration<Entity> build() {
+    public static <Entity, Cnn> AttributesConfiguration<Entity, Cnn> build() {
         return new AttributesConfiguration<>();
     }
     
-    public static <Entity> AttributesConfiguration<Entity> build(Class<Entity> entityClass) {
+    public static <Entity, Cnn> AttributesConfiguration<Entity, Cnn> build(Class<Entity> entityClass) {
         return new AttributesConfiguration<>(entityClass);
     }
     
-    private final Map<String, EntityAttribute<Entity>> attributeMap = new HashMap<>();
-    private final List<EntityAttribute<Entity>> attributes = new ArrayList<>();
+    private final Map<String, EntityAttribute<Entity, Cnn>> attributeMap = new HashMap<>();
+    private final List<EntityAttribute<Entity, Cnn>> attributes = new ArrayList<>();
     
     private final Class<Entity> entityClass;
 
@@ -47,39 +42,46 @@ public class AttributesConfiguration<Entity>
         return entityClass;
     }
 
-    public List<EntityAttribute<Entity>> getAttributes() {
+    public List<EntityAttribute<Entity, Cnn>> getAttributes() {
         return attributes;
     }
 
-    public Map<String, EntityAttribute<Entity>> getAttributeMap() {
+    public Map<String, EntityAttribute<Entity, Cnn>> getAttributeMap() {
         return attributeMap;
     }
 
     @Override
-    public AttributesConfiguration<Entity> add(EntityAttribute<Entity> attribute) {
+    public AttributesConfiguration<Entity, Cnn> add(EntityAttribute<Entity, Cnn> attribute) {
         attributes.add(attribute);
         attributeMap.put(attribute.getKey(), attribute);
         return this;
     }
 
     @Override
-    public MultiInitializer<Entity> newInitializer(MiResultSet rs) throws MiException {
-        return new MultiInitializer<Entity>(rs).addAll(attributes);
-    }
-    
-    @Override
-    public EntityInitializer<Entity> newInitializer(MiResultSet rs, List<String> fields) throws MiException {
-        return newConfiguration(fields).newInitializer(rs);
+    public EntityInitializer<Entity> newInitializer(MiResultSet rs, Cnn cnn) throws MiException {
+        List<EntityInitializer<? super Entity>> inits = new ArrayList<>();
+        for (EntityAttribute<Entity, Cnn> a: attributes) {
+            inits.add(a.newInitializer(rs, cnn));
+        }
+        return EntityTypes.multiInitializer(inits);
     }
 
     @Override
-    public EntityConfiguration<Entity> newConfiguration(Collection<String> fields) {
+    public EntityInitializer<Entity> newInitializer(MiResultSet rs, Cnn cnn, List<String> fields) throws MiException {
+        return newConfiguration(cnn, fields).newInitializer(rs);
+    }
+
+    @Override
+    public EntityConfiguration<Entity> newConfiguration(Cnn cnn, Collection<String> fields) {
         Collection<String> names = fields.size() > 15 ? fields : new HashSet<>(fields);
+        if (names.contains("*")) {
+            return newConfiguration(cnn);
+        }
         AttributesConfiguration copy = new AttributesConfiguration();
         attributes.stream()
                 .filter(f -> names.contains(f.getKey()))
                 .forEach(copy::add);
-        return copy;
+        return rs -> copy.newInitializer(rs, cnn);
     }
 
     @Override

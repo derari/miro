@@ -4,7 +4,6 @@ import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.ext.jdbc.JdbcConnection;
 import org.cthul.miro.sql.syntax.AnsiSqlSyntax;
-import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.migrate.MigrationSet;
 import org.cthul.miro.sql.migrate.SqlMigrationSet;

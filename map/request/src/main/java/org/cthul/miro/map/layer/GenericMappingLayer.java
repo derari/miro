@@ -71,6 +71,11 @@ public class GenericMappingLayer<Entity> extends AbstractTemplateLayer<Mapping<?
         }
 
         @Override
+        public Graph getGraph() {
+            return graph;
+        }
+
+        @Override
         public void setType(EntityType<?> type) {
             this.entityType = type;
             useGraph = type == null && graph != null;

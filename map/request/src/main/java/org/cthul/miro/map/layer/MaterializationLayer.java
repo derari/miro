@@ -17,6 +17,7 @@ import org.cthul.miro.db.MiException;
 import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.util.XBiConsumer;
 import org.cthul.miro.entity.map.EntityAttribute;
+import org.cthul.miro.graph.GraphApi;
 import org.cthul.miro.map.MappingKey;
 import org.cthul.miro.map.Mapping;
 import org.cthul.miro.util.Key;
@@ -39,8 +40,6 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
     @Override
     protected Template<? super Mapping<Entity>> createPartTemplate(Parent<Mapping<Entity>> parent, Object key) {
         switch (MappingKey.key(key)) {
-            case LOAD_ALL:
-                return setUp(MappingKey.LOAD, lf -> ((LoadField) lf).loadAll());
             case FETCH:
                 return link(MappingKey.INCLUDE, MappingKey.LOAD);
             case LOAD:
@@ -59,8 +58,10 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
 
         private final LinkedHashSet<String> attributes = new LinkedHashSet<>();
         private boolean all = false;
+        private final Composer cmp;
 
         public LoadField(Composer cmp) {
+            this.cmp = cmp;
         }
         
         @Deprecated
@@ -70,9 +71,10 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
         
         @Override
         public void addTo(Mapping<Entity> builder) {
+            GraphApi graph = (GraphApi) cmp.get(MappingKey.TYPE).getGraph();
             if (all) {
                 builder.configureWith(rs -> {
-                    return getOwner().getAttributes().newInitializer(rs);
+                    return getOwner().getAttributes().newInitializer(rs, graph);
 //                    List<String> list = new ArrayList<>();
 //                    for (int i = 0; i < rs.getColumnCount(); i++) {
 //                        String col = rs.getColumnLabel(i+1);
@@ -84,7 +86,7 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
 //                    return getOwner().attributeConfiguration(list).newInitializer(rs);
                 });
             } else {
-                builder.configureWith(getOwner().getAttributes().newConfiguration(attributes));
+                builder.configureWith(getOwner().getAttributes().newConfiguration(graph, attributes));
             }
         }
 
@@ -103,7 +105,7 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
 
         @Override
         public boolean allowReadOnly(Predicate<Object> isLatest) {
-            return true;
+            return isLatest.test(cmp.get(MappingKey.TYPE));
         }
 
         @Override
@@ -123,7 +125,7 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
 
         @Override
         public void add(String entry) {
-            EntityAttribute<?> at = getOwner().getAttributes().getAttributeMap().get(entry);
+            EntityAttribute<?,GraphApi> at = getOwner().getAttributes().getAttributeMap().get(entry);
             resultColumns.addAll(at.getColumns());
         }
 
@@ -146,7 +148,7 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
         
         @Override
         public void set(String key, Supplier<?> value) {
-            EntityAttribute<Entity> at = getOwner().getAttributes().getAttributeMap().get(key);
+            EntityAttribute<Entity, GraphApi> at = getOwner().getAttributes().getAttributeMap().get(key);
             XBiConsumer<Entity, Object, MiException> setter = at::set;
             if (setter == null) throw new IllegalArgumentException("Unknown setter: " + key);
             setUps.add(new XConsumer<Entity, MiException>() {

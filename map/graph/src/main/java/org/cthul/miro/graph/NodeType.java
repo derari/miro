@@ -13,13 +13,6 @@ import org.cthul.miro.entity.EntityType;
 public interface NodeType<Node> {
     
     /**
-     * Creates a typed array of the given length.
-     * @param length
-     * @return array
-     */
-    Node[] newArray(int length);
-    
-    /**
      * Creates a node selector that always creates new nodes.
      * @param graph used only to obtain nodes of other types
      * @return node factory

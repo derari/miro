@@ -1,8 +1,6 @@
 package org.cthul.miro.entity.map;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.entity.EntityConfiguration;
@@ -11,15 +9,34 @@ import org.cthul.miro.entity.EntityInitializer;
 /**
  *
  * @param <Entity>
+ * @param <Cnn>
  */
-public interface EntityAttributes<Entity> {
+public interface EntityAttributes<Entity, Cnn> {
     
-    default EntityConfiguration<Entity> newConfiguration(Collection<String> fields) {
+    default EntityConfiguration<Entity> newConfiguration(Cnn cnn) {
+        return new EntityConfiguration<Entity>() {
+            @Override
+            public EntityInitializer<Entity> newInitializer(MiResultSet resultSet) throws MiException {
+                return EntityAttributes.this.newInitializer(resultSet, cnn);
+            }
+            @Override
+            public String toString() {
+                return EntityAttributes.this.toString();
+            }
+        };
+    }
+    
+    
+    default EntityConfiguration<Entity> newConfiguration(Cnn cnn, String... fields) {
+        return newConfiguration(cnn, Arrays.asList(fields));
+    }
+    
+    default EntityConfiguration<Entity> newConfiguration(Cnn cnn, Collection<String> fields) {
         List<String> list = new ArrayList<>(fields);
         return new EntityConfiguration<Entity>() {
             @Override
             public EntityInitializer<Entity> newInitializer(MiResultSet resultSet) throws MiException {
-                return EntityAttributes.this.newInitializer(resultSet, list);
+                return EntityAttributes.this.newInitializer(resultSet, cnn, list);
             }
             @Override
             public String toString() {
@@ -28,13 +45,15 @@ public interface EntityAttributes<Entity> {
         };
     }
     
-    EntityInitializer<Entity> newInitializer(MiResultSet rs, List<String> fields) throws MiException;
+    EntityInitializer<Entity> newInitializer(MiResultSet rs, Cnn cnn) throws MiException;
     
-    static <E> AttributesConfiguration<E> build() {
+    EntityInitializer<Entity> newInitializer(MiResultSet rs, Cnn cnn, List<String> fields) throws MiException;
+    
+    static <E, Cnn> AttributesConfiguration<E, Cnn> build() {
         return build(null);
     }
     
-    static <E> AttributesConfiguration<E> build(Class<E> clazz) {
+    static <E, Cnn> AttributesConfiguration<E, Cnn> build(Class<E> clazz) {
         return new AttributesConfiguration<>(clazz);
     }
     

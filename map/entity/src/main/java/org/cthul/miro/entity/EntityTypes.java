@@ -52,12 +52,35 @@ public class EntityTypes {
         if (cfg.isEmpty()) return noConfiguration();
         return new MultiConfiguration<>(cfg);
     }
+    
+    /**
+     * Combines multiple initialiters into one.
+     * @param <Entity>
+     * @param initializers
+     * @return combined initialiter
+     */
+    public static <Entity> EntityInitializer<Entity> multiInitializer(Collection<EntityInitializer<? super Entity>> initializers) {
+        List<EntityInitializer<? super Entity>> cfg = new ArrayList<>(initializers.size());
+        collectInitializers(initializers, cfg);
+        if (cfg.isEmpty()) return noInitialization();
+        return new MultiInitializer<>(cfg);
+    }
 
     private static <Entity> void collectConfigurations(Collection<EntityConfiguration<? super Entity>> configurations, List<EntityConfiguration<? super Entity>> target) {
         configurations.forEach(c -> {
             if (c instanceof MultiConfiguration) {
                 target.addAll(((MultiConfiguration<Entity>) c).configurations);
             } else if (c != NO_CONFIGURATION) {
+                target.add(c);
+            }
+        });
+    }
+
+    private static <Entity> void collectInitializers(Collection<EntityInitializer<? super Entity>> initializers, List<EntityInitializer<? super Entity>> target) {
+        initializers.forEach(c -> {
+            if (c instanceof MultiInitializer) {
+                target.addAll(((MultiInitializer<Entity>) c).initializers);
+            } else if (c != NO_INITIALIZATION) {
                 target.add(c);
             }
         });
@@ -115,13 +138,7 @@ public class EntityTypes {
             cfg.addAll(ct.initializers);
             factory = ct.factory;
         }
-        initializers.stream().forEach((c) -> {
-            if (c instanceof MultiInitializer) {
-                cfg.addAll(((MultiInitializer<? super Entity>) c).initializers);
-            } else if (c != NO_INITIALIZATION) {
-                cfg.add(c);
-            }
-        });
+        collectInitializers(initializers, cfg);
         if (cfg.isEmpty()) return factory;
         return new ConfiguredFactory<>(factory, cfg);
     }
@@ -302,11 +319,6 @@ public class EntityTypes {
                 throw Closables.closeAll(e, initializers);
             }
             return new ConfiguredFactory<>(factory, initializers);
-        }
-
-        @Override
-        public Entity[] newArray(int length) {
-            return type.newArray(length);
         }
 
         @Override

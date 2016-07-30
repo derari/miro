@@ -1,7 +1,5 @@
 package org.cthul.miro.graph;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.entity.EntityInitializer;
@@ -14,6 +12,12 @@ import org.cthul.miro.entity.EntityType;
  */
 public interface Graph extends AutoCloseable {
     
+    <Node> NodeSet<Node> getNodeSet(Object typeKey);
+    
+    default <Node> NodeSet<Node> getNodeSet(Class<Node> typeKey) {
+        return getNodeSet((Object) typeKey);
+    }
+    
     /**
      * Finds or creates nodes of the given type and ensures that the specified
      * attributes are initialized.
@@ -24,11 +28,11 @@ public interface Graph extends AutoCloseable {
      * @throws MiException 
      */
     default <Node> NodeSelector<Node> newNodeSelector(Object typeKey, List<?> attributes) throws MiException {
-        return this.<Node>newNodeSelector(typeKey).with(newAttributeLoader(typeKey, attributes));
+        return this.<Node>getNodeSet(typeKey).newNodeSelector(attributes);
     }
     
     default <Node> NodeSelector<Node> newNodeSelector(Class<Node> typeKey, List<?> attributes) throws MiException {
-        return newNodeSelector((Object) typeKey, attributes);
+        return this.<Node>getNodeSet(typeKey).newNodeSelector(attributes);
     }
     
     /**
@@ -38,10 +42,12 @@ public interface Graph extends AutoCloseable {
      * @return node selector
      * @throws MiException 
      */
-    <Node> NodeSelector<Node> newNodeSelector(Object typeKey) throws MiException;
+    default <Node> NodeSelector<Node> newNodeSelector(Object typeKey) throws MiException {
+        return this.<Node>getNodeSet(typeKey).newNodeSelector();
+    }
     
     default <Node> NodeSelector<Node> newNodeSelector(Class<Node> typeKey) throws MiException {
-        return newNodeSelector((Object) typeKey);
+        return this.<Node>getNodeSet(typeKey).newNodeSelector();
     }
     
     /**
@@ -54,11 +60,11 @@ public interface Graph extends AutoCloseable {
      * @throws MiException 
      */
     default <Node> NodeSelector<Node> newNodeSelector(Object typeKey, Object... attributes) throws MiException {
-        return newNodeSelector(typeKey, Arrays.asList(attributes));
+        return this.<Node>getNodeSet(typeKey).newNodeSelector(attributes);
     }
     
     default <Node> NodeSelector<Node> newNodeSelector(Class<Node> typeKey, Object... attributes) throws MiException {
-        return newNodeSelector((Object) typeKey, attributes);
+        return this.<Node>getNodeSet(typeKey).newNodeSelector(attributes);
     }
     
     /**
@@ -68,11 +74,11 @@ public interface Graph extends AutoCloseable {
      * @return entity type
      */
     default <Node> EntityType<Node> getEntityType(Object typeKey) {
-        return getEntityType(typeKey, Collections.emptyList());
+        return this.<Node>getNodeSet(typeKey).getEntityType();
     }
     
     default <Node> EntityType<Node> getEntityType(Class<Node> typeKey) {
-        return getEntityType((Object) typeKey);
+        return this.<Node>getNodeSet(typeKey).getEntityType();
     }
     
     /**
@@ -83,10 +89,12 @@ public interface Graph extends AutoCloseable {
      * @param attributes
      * @return entity type
      */
-    <Node> EntityType<Node> getEntityType(Object typeKey, List<?> attributes);
+    default <Node> EntityType<Node> getEntityType(Object typeKey, List<?> attributes) {
+        return this.<Node>getNodeSet(typeKey).getEntityType(attributes);
+    }
     
     default <Node> EntityType<Node> getEntityType(Class<Node> typeKey, List<?> attributes) {
-        return getEntityType((Object) typeKey, attributes);
+        return this.<Node>getNodeSet(typeKey).getEntityType(attributes);
     }
     
     /**
@@ -98,11 +106,11 @@ public interface Graph extends AutoCloseable {
      * @return entity type
      */
     default <Node> EntityType<Node> getEntityType(Object typeKey, Object... attributes) {
-        return getEntityType(typeKey, Arrays.asList(attributes));
+        return this.<Node>getNodeSet(typeKey).getEntityType(attributes);
     }
     
     default <Node> EntityType<Node> getEntityType(Class<Node> typeKey, Object... attributes) {
-        return getEntityType((Object) typeKey, attributes);
+        return this.<Node>getNodeSet(typeKey).getEntityType(attributes);
     }
     
     /**
@@ -113,10 +121,12 @@ public interface Graph extends AutoCloseable {
      * @return entity initializer
      * @throws MiException 
      */
-    <Node> EntityInitializer<Node> newAttributeLoader(Object typeKey, List<?> attributes) throws MiException;
+    default <Node> EntityInitializer<Node> newAttributeLoader(Object typeKey, List<?> attributes) throws MiException {
+        return this.<Node>getNodeSet(typeKey).newAttributeLoader(attributes);
+    }
     
     default <Node> EntityInitializer<Node> newAttributeLoader(Class<Node> typeKey, List<?> attributes) throws MiException {
-        return newAttributeLoader((Object) typeKey, attributes);
+        return this.<Node>getNodeSet(typeKey).newAttributeLoader(attributes);
     }
     
     /**
@@ -128,11 +138,11 @@ public interface Graph extends AutoCloseable {
      * @throws MiException 
      */
     default <Node> EntityInitializer<Node> newAttributeLoader(Object typeKey, Object... attributes) throws MiException {
-        return newAttributeLoader(typeKey, Arrays.asList(attributes));
+        return this.<Node>getNodeSet(typeKey).newAttributeLoader(attributes);
     }
     
     default <Node> EntityInitializer<Node> newAttributeLoader(Class<Node> typeKey, Object... attributes) throws MiException {
-        return newAttributeLoader((Object) typeKey, attributes);
+        return this.<Node>getNodeSet(typeKey).newAttributeLoader(attributes);
     }
     
     @Override

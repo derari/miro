@@ -52,8 +52,8 @@ public class Results<Entity> implements AutoCloseable {
         return build(ResultBuilders.getListResult());
     }
     
-    public Entity[] asArray() throws MiException {
-        return build(ResultBuilders.getArrayResult());
+    public Entity[] asArray(Class<Entity> clazz) throws MiException {
+        return build(ResultBuilders.getArrayResult(clazz));
     }
     
     public ResultCursor<Entity> asCursor() throws MiException {
@@ -76,8 +76,8 @@ public class Results<Entity> implements AutoCloseable {
         return _build(ResultBuilders.getListResult());
     }
     
-    public Entity[] _asArray() {
-        return _build(ResultBuilders.getArrayResult());
+    public Entity[] _asArray(Class<Entity> clazz) {
+        return _build(ResultBuilders.getArrayResult(clazz));
     }
     
     public ResultCursor<Entity> _asCursor() {
@@ -212,16 +212,16 @@ public class Results<Entity> implements AutoCloseable {
             return _quickGet()._asList();
         }
         
-        public MiAction<Entity[]> array() {
-            return andThen(Results::asArray);
+        public MiAction<Entity[]> array(Class<Entity> clazz) {
+            return andThen(r -> r.asArray(clazz));
         }
         
-        public Entity[] asArray() throws InterruptedException, ExecutionException, MiException {
-            return quickGet().asArray();
+        public Entity[] asArray(Class<Entity> clazz) throws InterruptedException, ExecutionException, MiException {
+            return quickGet().asArray(clazz);
         }
         
-        public Entity[] _asArray() {
-            return _quickGet()._asArray();
+        public Entity[] _asArray(Class<Entity> clazz) {
+            return _quickGet()._asArray(clazz);
         }
         
         // TODO: cursor

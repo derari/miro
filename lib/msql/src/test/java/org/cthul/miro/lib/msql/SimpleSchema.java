@@ -11,7 +11,7 @@ import org.cthul.miro.entity.EntityFactory;
 import org.cthul.miro.entity.map.EntityAttributesBuilder;
 import org.cthul.miro.graph.GraphApi;
 import org.cthul.miro.graph.NodeType;
-import org.cthul.miro.graph.impl.AbstractEntityNodeType;
+import org.cthul.miro.graph.impl.AbstractNodeType;
 import org.cthul.miro.graph.impl.AbstractTypeBuilder;
 import org.cthul.miro.graph.impl.GraphSchemaBuilder;
 import org.cthul.strings.JavaNames;
@@ -66,7 +66,7 @@ public class SimpleSchema extends GraphSchemaBuilder {
         }
 
         @Override
-        protected AbstractEntityNodeType.BatchLoader<E> newBatchLoader(GraphApi graph, List<?> attributes) throws MiException {
+        protected AbstractNodeType.BatchLoader<E> newBatchLoader(GraphApi graph, List<?> attributes) throws MiException {
             throw new UnsupportedOperationException();
         }
 

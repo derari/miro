@@ -5,9 +5,10 @@ import org.cthul.miro.entity.base.ResultColumns;
 /**
  * Base class for configuring a mapping from result columns to entity attributes.
  * @param <Entity>
+ * @param <Cnn>
  * @param <This>
  */
-public interface EntityAttributesBuilder<Entity, This> extends EntityAttributeBuilder<Entity, This> {
+public interface EntityAttributesBuilder<Entity, Cnn, This> extends EntityAttributeBuilder<Entity, Cnn, This> {
     
     /**
      * Optional operation.
@@ -20,41 +21,41 @@ public interface EntityAttributesBuilder<Entity, This> extends EntityAttributeBu
      * @param attribute
      * @return this 
      */
-    This add(EntityAttribute<Entity> attribute);
+    This add(EntityAttribute<Entity, Cnn> attribute);
     
     @Override
-    default EntityAttributeBuilder<Entity, This> as(String key) {
+    default EntityAttributeBuilder<Entity, Cnn, This> as(String key) {
         return new NewField<>(this, entityClass(), key);
     }
 
     @Override
-    default Single<Entity, This> column(ResultColumns.ColumnRule rule, String column) {
+    default Single<Entity, Cnn, This> column(ResultColumns.ColumnRule rule, String column) {
         return as(null).column(rule, column);
     }
 
     @Override
-    default Group<Entity, This> columns(ResultColumns.ColumnRule allRule, ResultColumns.ColumnRule eachRule, String... columns) {
+    default Group<Entity, Cnn, This> columns(ResultColumns.ColumnRule allRule, ResultColumns.ColumnRule eachRule, String... columns) {
         return as(null).columns(allRule, eachRule, columns);
     }
 
-    public class NewField<Entity, Mapping> extends SimpleAttributeBuilder<Entity, Mapping> {
+    public class NewField<Entity, Cnn, Mapping> extends SimpleAttributeBuilder<Entity, Cnn, Mapping> {
         
-        private final EntityAttributesBuilder<Entity, Mapping> mapping;
+        private final EntityAttributesBuilder<Entity, Cnn, Mapping> mapping;
 
-        public NewField(EntityAttributesBuilder<Entity, Mapping> mapping, Class<Entity> clazz, String key) {
+        public NewField(EntityAttributesBuilder<Entity, Cnn, Mapping> mapping, Class<Entity> clazz, String key) {
             super(clazz, key);
             this.mapping = mapping;
         }
 
         @Override
-        protected Mapping build(EntityAttribute<Entity> field) {
+        protected Mapping build(EntityAttribute<Entity, Cnn> field) {
             return mapping.add(field);
         }
     }
 
-    interface Delegator<Entity, This extends EntityAttributesBuilder<Entity, This>> extends EntityAttributesBuilder<Entity, This> {
+    interface Delegator<Entity, Cnn, This extends EntityAttributesBuilder<Entity, Cnn, This>> extends EntityAttributesBuilder<Entity, Cnn, This> {
 
-        EntityAttributesBuilder<Entity, ?> internalEntityFieldsBuilder();
+        EntityAttributesBuilder<Entity, Cnn, ?> internalEntityFieldsBuilder();
 
         @Override
         default Class<Entity> entityClass() {
@@ -62,7 +63,7 @@ public interface EntityAttributesBuilder<Entity, This> extends EntityAttributeBu
         }
 
         @Override
-        public default This add(EntityAttribute<Entity> field) {
+        public default This add(EntityAttribute<Entity, Cnn> field) {
             internalEntityFieldsBuilder().add(field);
             return (This) this;
         }

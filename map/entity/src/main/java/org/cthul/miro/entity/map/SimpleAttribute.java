@@ -10,13 +10,14 @@ import org.cthul.miro.util.XBiConsumer;
 /**
  *
  * @param <Entity>
+ * @param <Cnn>
  */
-public abstract class SimpleAttribute<Entity> implements EntityAttribute<Entity> {
+public abstract class SimpleAttribute<Entity, Cnn> implements EntityAttribute<Entity, Cnn> {
     
     private final String key;
-    private final ColumnValue columnValue;
+    private final ColumnMapping columnValue;
 
-    public SimpleAttribute(String key, ColumnValue columnValue) {
+    public SimpleAttribute(String key, ColumnMapping columnValue) {
         this.key = key;
         this.columnValue = columnValue;
     }
@@ -37,15 +38,15 @@ public abstract class SimpleAttribute<Entity> implements EntityAttribute<Entity>
     }
 
     @Override
-    public EntityFactory<?> newValueReader(MiResultSet rs) throws MiException {
-        return columnValue.newValueReader(rs);
+    public EntityFactory<?> newValueReader(MiResultSet rs, Cnn cnn) throws MiException {
+        return columnValue.newValueReader(rs, cnn);
     }
 
-    public static class ReadWrite<Entity> extends SimpleAttribute<Entity> {
+    public static class ReadWrite<Entity, Cnn> extends SimpleAttribute<Entity, Cnn> {
         private final Function<? super Entity, Object> getter;
         private final XBiConsumer<? super Entity, Object, MiException> setter;
 
-        public ReadWrite(String key, ColumnValue columnValue, Function<? super Entity, Object> getter, XBiConsumer<? super Entity, Object, MiException> setter) {
+        public ReadWrite(String key, ColumnMapping columnValue, Function<? super Entity, Object> getter, XBiConsumer<? super Entity, Object, MiException> setter) {
             super(key, columnValue);
             this.getter = getter;
             this.setter = setter;
@@ -62,7 +63,7 @@ public abstract class SimpleAttribute<Entity> implements EntityAttribute<Entity>
         }
     }
     
-    public static class Builder<Entity> extends SimpleAttributeBuilder<Entity, EntityAttribute<Entity>> {
+    public static class Builder<Entity, Cnn> extends SimpleAttributeBuilder<Entity, Cnn, EntityAttribute<Entity, Cnn>> {
 
         public Builder() {
         }
@@ -72,7 +73,7 @@ public abstract class SimpleAttribute<Entity> implements EntityAttribute<Entity>
         }
 
         @Override
-        protected EntityAttribute<Entity> build(EntityAttribute<Entity> field) {
+        protected EntityAttribute<Entity, Cnn> build(EntityAttribute<Entity, Cnn> field) {
             return field;
         }
     }

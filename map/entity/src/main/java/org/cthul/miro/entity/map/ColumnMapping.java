@@ -8,11 +8,11 @@ import org.cthul.miro.entity.EntityFactory;
 /**
  *
  */
-public interface ColumnValue {
+public interface ColumnMapping<Cnn> {
     
     List<String> getColumns();
     
     Object[] toColumns(Object value, Object[] result);
 
-    EntityFactory<?> newValueReader(MiResultSet rs) throws MiException;    
+    EntityFactory<?> newValueReader(MiResultSet rs, Cnn cnn) throws MiException;    
 }

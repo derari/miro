@@ -9,11 +9,15 @@ import org.cthul.miro.entity.base.ResultColumns.ColumnRule;
 /**
  *
  * @param <Entity>
+ * @param <Cnn>
  * @param <Result>
  */
-public interface EntityAttributeBuilder<Entity, Result> extends ColumnValueBuilder<Entity, EntityAttributeBuilder.Single<Entity, Result>, EntityAttributeBuilder.Group<Entity, Result>> {
+public interface EntityAttributeBuilder<Entity, Cnn, Result> 
+                extends ColumnMappingBuilder<Entity, Cnn, 
+                                             EntityAttributeBuilder.Single<Entity, Cnn, Result>, 
+                                             EntityAttributeBuilder.Group<Entity, Cnn, Result>> {
     
-    EntityAttributeBuilder<Entity, Result> as(String key);
+    EntityAttributeBuilder<Entity, Cnn, Result> as(String key);
     
     interface FieldAccess<Entity, Result, This extends FieldAccess<Entity, Result, This>> {
         
@@ -86,9 +90,9 @@ public interface EntityAttributeBuilder<Entity, Result> extends ColumnValueBuild
         }
     }
     
-    abstract class Single<Entity, Result> 
-                    extends ColumnValueBuilder.Single<Entity, Single<Entity, Result>>
-                    implements FieldAccess<Entity, Result, Single<Entity, Result>> {
+    abstract class Single<Entity, Cnn, Result> 
+                    extends ColumnMappingBuilder.Single<Entity, Cnn, Single<Entity, Cnn, Result>>
+                    implements FieldAccess<Entity, Result, Single<Entity, Cnn, Result>> {
         
         private final String key;
         private final Class<Entity> clazz;
@@ -100,7 +104,7 @@ public interface EntityAttributeBuilder<Entity, Result> extends ColumnValueBuild
             this.clazz = clazz;
         }
 
-        protected abstract Result build(EntityAttribute<Entity> f);
+        protected abstract Result build(EntityAttribute<Entity, Cnn> f);
 
         @Override
         public Class<Entity> entityClass() {
@@ -108,15 +112,15 @@ public interface EntityAttributeBuilder<Entity, Result> extends ColumnValueBuild
         }
 
         @Override
-        public Single<Entity, Result> get(Function<Entity, Object> getter) {
+        public Single<Entity, Cnn, Result> get(Function<Entity, Object> getter) {
             this.getter = getter;
             return this;
         }
         
         @Override
         public Result set(XBiConsumer<? super Entity, ?, MiException> setter) {
-            ColumnValue cv = buildColumnValue();
-            EntityAttribute<Entity> f;
+            ColumnMapping cv = buildColumnValue();
+            EntityAttribute<Entity, Cnn> f;
             f = new SimpleAttribute.ReadWrite<>(key, cv, getter, (XBiConsumer) setter);
             return build(f);
         }
@@ -151,9 +155,9 @@ public interface EntityAttributeBuilder<Entity, Result> extends ColumnValueBuild
         }
     }
     
-    abstract class Group<Entity, Result> 
-                    extends ColumnValueBuilder.Group<Entity, Group<Entity, Result>>
-                    implements FieldAccess<Entity, Result, Group<Entity, Result>> {
+    abstract class Group<Entity, Cnn, Result> 
+                    extends ColumnMappingBuilder.Group<Entity, Cnn, Group<Entity, Cnn, Result>>
+                    implements FieldAccess<Entity, Result, Group<Entity, Cnn, Result>> {
         
         private final String key;
         private final Class<Entity> clazz;
@@ -165,7 +169,7 @@ public interface EntityAttributeBuilder<Entity, Result> extends ColumnValueBuild
             this.clazz = clazz;
         }
         
-        protected abstract Result build(EntityAttribute<Entity> f);
+        protected abstract Result build(EntityAttribute<Entity, Cnn> f);
 
         @Override
         public Class<Entity> entityClass() {
@@ -173,15 +177,15 @@ public interface EntityAttributeBuilder<Entity, Result> extends ColumnValueBuild
         }
         
         @Override
-        public Group<Entity, Result> get(Function<Entity, Object> getter) {
+        public Group<Entity, Cnn, Result> get(Function<Entity, Object> getter) {
             this.getter = getter;
             return this;
         }
 
         @Override
         public Result set(XBiConsumer<? super Entity, ?, MiException> setter) {
-            ColumnValue cv = buildColumnValue();
-            EntityAttribute<Entity> f = new SimpleAttribute.ReadWrite<>(key, cv, getter, (XBiConsumer) setter);
+            ColumnMapping cv = buildColumnValue();
+            EntityAttribute<Entity, Cnn> f = new SimpleAttribute.ReadWrite<>(key, cv, getter, (XBiConsumer) setter);
             return build(f);
         }
     }

@@ -8,6 +8,7 @@ import org.cthul.miro.request.template.InternalComposer;
 import org.cthul.miro.request.part.ListNode;
 import org.cthul.miro.request.template.Template;
 import org.cthul.miro.entity.map.EntityAttribute;
+import org.cthul.miro.graph.GraphApi;
 import org.cthul.miro.map.MappedType;
 import org.cthul.miro.map.MappingKey;
 import org.cthul.miro.util.Key;
@@ -53,7 +54,7 @@ public class FilterLayer<Entity> extends AbstractMappingLayer<Entity, Object> {
     
     protected class PropertiesIn implements ListNode<Object>, Copyable<Object> {
         
-        final List<EntityAttribute<Entity>> properties;
+        final List<EntityAttribute<Entity, GraphApi>> properties;
         final Key<ListNode<Object[]>> valueFilterKey;
         final ListNode<Object[]> valueFilter;
         Object[][] bags = null;
@@ -80,7 +81,7 @@ public class FilterLayer<Entity> extends AbstractMappingLayer<Entity, Object> {
             if (bags == null) bags = new Object[properties.size()][];
             int total = 0;
             for (int i = 0; i < bags.length; i++) {
-                EntityAttribute<Entity> at = properties.get(i);
+                EntityAttribute<Entity, GraphApi> at = properties.get(i);
                 Object v = at.get(e);
                 bags[i] = at.toColumns(v, bags[i]);
                 total += bags[i].length;

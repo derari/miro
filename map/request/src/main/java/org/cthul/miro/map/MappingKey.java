@@ -91,6 +91,8 @@ public interface MappingKey<V> extends Key<V> {
         void setGraph(Graph graph);
         
         void setType(EntityType<?> type);
+        
+        Graph getGraph();
     }
     
     static interface Configuration {

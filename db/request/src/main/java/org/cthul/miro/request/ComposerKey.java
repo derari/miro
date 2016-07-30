@@ -1,12 +1,11 @@
 package org.cthul.miro.request;
 
 import org.cthul.miro.request.template.InternalComposer;
-import org.cthul.miro.request.part.ListNode;
 import org.cthul.miro.request.part.Copyable;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
-import org.cthul.miro.request.template.Template;
 import org.cthul.miro.request.template.Templates;
+import org.cthul.miro.request.template.Templates.ComposableTemplate;
 import org.cthul.miro.util.Key;
 
 /**
@@ -16,26 +15,21 @@ import org.cthul.miro.util.Key;
 public interface ComposerKey<Value> extends Key<Value> {
     
     /** This key is always required. */
-    final ComposerKey<?> ALWAYS = QCKey.ALWAYS;
+    final ComposerKey<?> ALWAYS = CKey.ALWAYS;
     
     /** Phase listeners are notified about phases in the query building process. */
-    final ComposerKey<PhaseListener> PHASE = QCKey.PHASE;
+    final ComposerKey<PhaseListener> PHASE = CKey.PHASE;
     
-    /** Allows to add attributes to the result. */
-    final ComposerKey<ListNode<String>> RESULT = QCKey.RESULT;
-    
-    static QCKey key(Object o) {
-        return Key.castDefault(o, QCKey.NIL);
+    static CKey key(Object o) {
+        return Key.castDefault(o, CKey.NIL);
     }
     
     @SuppressWarnings("LocalVariableHidesMemberVariable")
-    enum QCKey implements ComposerKey {
+    enum CKey implements ComposerKey {
         
         ALWAYS,
         
         PHASE,
-        
-        RESULT,
         
         NIL;
     }
@@ -64,7 +58,7 @@ public interface ComposerKey<Value> extends Key<Value> {
             return new Multi();
         }
         
-        static <B> Template<B> handle(BiConsumer<? super InternalComposer<? extends B>, ? super Phase> action) {
+        static <B> ComposableTemplate<B> handle(BiConsumer<? super InternalComposer<? extends B>, ? super Phase> action) {
             class PL implements PhaseListener, Copyable<B> {
                 final InternalComposer<? extends B> ic;
                 public PL(InternalComposer<? extends B> ic) {

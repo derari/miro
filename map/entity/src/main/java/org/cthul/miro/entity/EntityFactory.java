@@ -2,6 +2,7 @@ package org.cthul.miro.entity;
 
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.util.Completable;
+import org.cthul.miro.util.XFunction;
 
 /**
  * Creates new entities.
@@ -46,5 +47,23 @@ public interface EntityFactory<Entity> extends Completable, AutoCloseable {
      */
     default EntityFactory<Entity> with(EntityInitializer<? super Entity> initializer) {
         return EntityTypes.initializingFactory(this, initializer);
+    }
+    
+    default <T> EntityFactory<T> andThen(XFunction<? super Entity, ? extends T, MiException> function) {
+        return new EntityFactory<T>() {
+            @Override
+            public T newEntity() throws MiException {
+                Entity e = EntityFactory.this.newEntity();
+                return function.apply(e);
+            }
+            @Override
+            public void complete() throws MiException {
+                EntityFactory.this.complete();
+            }
+            @Override
+            public void close() throws MiException {
+                EntityFactory.this.close();
+            }
+        };
     }
 }

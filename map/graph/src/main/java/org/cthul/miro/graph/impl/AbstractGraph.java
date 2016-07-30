@@ -1,7 +1,6 @@
 package org.cthul.miro.graph.impl;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.cthul.miro.db.MiConnection;
@@ -9,11 +8,7 @@ import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.stmt.MiQueryString;
 import org.cthul.miro.db.stmt.MiUpdateString;
 import org.cthul.miro.db.syntax.RequestType;
-import org.cthul.miro.entity.EntityInitializer;
-import org.cthul.miro.entity.EntityType;
-import org.cthul.miro.graph.GraphApi;
-import org.cthul.miro.graph.NodeSelector;
-import org.cthul.miro.graph.NodeType;
+import org.cthul.miro.graph.*;
 
 /**
  *
@@ -81,18 +76,8 @@ public abstract class AbstractGraph implements GraphApi {
     }
 
     @Override
-    public <Node> NodeSelector<Node> newNodeSelector(Object typeKey) throws MiException {
-        return this.<Node>nodeSet(typeKey).newNodeSelector();
-    }
-
-    @Override
-    public <Node> EntityType<Node> getEntityType(Object typeKey, List<?> attributes) {
-        return this.<Node>nodeSet(typeKey).getEntityType(attributes);
-    }
-
-    @Override
-    public <Node> EntityInitializer<Node> newAttributeLoader(Object typeKey, List<?> attributes) throws MiException {
-        return this.<Node>nodeSet(typeKey).newAttributeLoader(attributes);
+    public <Node> NodeSet<Node> getNodeSet(Object typeKey) {
+        return nodeSet(typeKey);
     }
 
     @Override

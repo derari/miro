@@ -7,7 +7,7 @@ import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.entity.EntityFactory;
 import org.cthul.miro.entity.base.ResultColumns;
-import org.cthul.miro.entity.map.ColumnValue;
+import org.cthul.miro.entity.map.ColumnMapping;
 
 /**
  * Reads column values from a result set.
@@ -22,9 +22,9 @@ public interface ColumnReader {
      */
     Object[] get(Object[] array) throws MiException;
     
-    interface Factory {
+    interface Factory<Cnn> {
         
-        ColumnReader create(MiResultSet rs) throws MiException;
+        ColumnReader create(MiResultSet rs, Cnn cnn) throws MiException;
     }
     
     @SuppressWarnings({"ConfusingArrayVararg", "PrimitiveArrayArgumentToVariableArgMethod"})
@@ -39,19 +39,19 @@ public interface ColumnReader {
     }
     
     static ColumnReader create(MiResultSet resultSet, int... indices) throws MiException {
-        return create(resultSet, indices, null);
+        return create(resultSet, indices, (Function[]) null);
     }
     
-    @SuppressWarnings({"ConfusingArrayVararg", "PrimitiveArrayArgumentToVariableArgMethod"})
-    static ColumnReader create(MiResultSet resultSet, String[] columns, Function<Object, Object>[] postProcess) throws MiException {
-        int[] indices = ResultColumns.findAllColumns(resultSet, columns);
-        return create(resultSet, indices, postProcess);
-    }
-    
-    static ColumnReader create(MiResultSet resultSet, List<String> columns, Function<Object, Object>[] postProcess) throws MiException {
-        int[] indices = ResultColumns.findAllColumns(resultSet, columns);
-        return create(resultSet, indices, postProcess);
-    }
+//    @SuppressWarnings({"ConfusingArrayVararg", "PrimitiveArrayArgumentToVariableArgMethod"})
+//    static ColumnReader create(MiResultSet resultSet, String[] columns, Function<Object, Object>[] postProcess) throws MiException {
+//        int[] indices = ResultColumns.findAllColumns(resultSet, columns);
+//        return create(resultSet, indices, postProcess);
+//    }
+//    
+//    static ColumnReader create(MiResultSet resultSet, List<String> columns, Function<Object, Object>[] postProcess) throws MiException {
+//        int[] indices = ResultColumns.findAllColumns(resultSet, columns);
+//        return create(resultSet, indices, postProcess);
+//    }
     
     static ColumnReader create(MiResultSet resultSet, int[] indices, Function<Object, Object>[] postProcess) throws MiException {
         class IndexReader implements ColumnReader {
@@ -76,10 +76,10 @@ public interface ColumnReader {
         return new IndexReader();
     }
     
-    static ColumnReader create(MiResultSet resultSet, ColumnValue[] columns) throws MiException {
+    static <Cnn> ColumnReader create(MiResultSet resultSet, Cnn cnn, ColumnMapping<Cnn>[] columns) throws MiException {
         EntityFactory<?>[] readers = new EntityFactory[columns.length];
         for (int i = 0; i < readers.length; i++) {
-            readers[i] = columns[i].newValueReader(resultSet);
+            readers[i] = columns[i].newValueReader(resultSet, cnn);
         }
         class ValueReader implements ColumnReader {
             @Override
@@ -98,35 +98,35 @@ public interface ColumnReader {
         return new ValueReader();
     }
     
-    static ColumnReader.Factory factory(String... columns) {
-        return rs -> create(rs, columns);
+//    static <Cnn> ColumnReader.Factory<Cnn> factory(String... columns) {
+//        return (rs, cnn) -> create(rs, columns);
+//    }
+//    
+//    static <Cnn> ColumnReader.Factory<Cnn> factory(List<String> columns) {
+//        return rs -> create(rs, columns);
+//    }
+//    
+//    static <Cnn> ColumnReader.Factory<Cnn> factory(int... indices) {
+//        return rs -> create(rs, indices);
+//    }
+//    
+    static <Cnn> ColumnReader.Factory<Cnn> factory(ColumnMapping<Cnn>... columns) {
+        return (rs, cnn) -> create(rs, cnn, columns);
     }
     
-    static ColumnReader.Factory factory(List<String> columns) {
-        return rs -> create(rs, columns);
-    }
-    
-    static ColumnReader.Factory factory(int... indices) {
-        return rs -> create(rs, indices);
-    }
-    
-    static ColumnReader.Factory factory(ColumnValue... columns) {
-        return rs -> create(rs, columns);
-    }
-    
-    static ColumnReader.Factory factory(String column, Function<Object, Object> postProcess) {
-        return factory(new String[]{column}, new Function[]{postProcess});
-    }
-    
-    static ColumnReader.Factory factory(String[] columns, Function<Object, Object>[] postProcess) {
-        return rs -> create(rs, columns, postProcess);
-    }
-    
-    static ColumnReader.Factory factory(List<String> columns, Function<Object, Object>[] postProcess) {
-        return rs -> create(rs, columns, postProcess);
-    }
-    
-    static ColumnReader.Factory factory(int[] indices, Function<Object, Object>[] postProcess) {
-        return rs -> create(rs, indices, postProcess);
-    }
+//    static ColumnReader.Factory factory(String column, Function<Object, Object> postProcess) {
+//        return factory(new String[]{column}, new Function[]{postProcess});
+//    }
+//    
+//    static ColumnReader.Factory factory(String[] columns, Function<Object, Object>[] postProcess) {
+//        return rs -> create(rs, columns, postProcess);
+//    }
+//    
+//    static ColumnReader.Factory factory(List<String> columns, Function<Object, Object>[] postProcess) {
+//        return rs -> create(rs, columns, postProcess);
+//    }
+//    
+//    static ColumnReader.Factory factory(int[] indices, Function<Object, Object>[] postProcess) {
+//        return rs -> create(rs, indices, postProcess);
+//    }
 }

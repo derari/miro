@@ -1,6 +1,5 @@
 package org.cthul.miro.graph.impl;
 
-import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,12 +8,12 @@ import java.util.function.Supplier;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.entity.EntityConfiguration;
-import org.cthul.miro.entity.map.ColumnValue;
 import org.cthul.miro.entity.map.AttributesConfiguration;
 import org.cthul.miro.entity.map.EntityAttribute;
 import org.cthul.miro.graph.GraphApi;
 import org.cthul.miro.entity.map.EntityAttributesBuilder;
 import org.cthul.miro.graph.TypeBuilder;
+import org.cthul.miro.entity.map.ColumnMapping;
 
 /**
  *
@@ -22,15 +21,15 @@ import org.cthul.miro.graph.TypeBuilder;
  * @param <This>
  */
 public abstract class AbstractTypeBuilder<Entity, This extends AbstractTypeBuilder<Entity, This>> 
-                extends AbstractEntityNodeType<Entity> 
-                implements TypeBuilder<Entity, This>, 
-                           EntityAttributesBuilder.Delegator<Entity, This> {
+                extends AbstractNodeType<Entity> 
+                implements TypeBuilder<Entity, GraphApi, This>, 
+                           EntityAttributesBuilder.Delegator<Entity, GraphApi, This> {
 
     private final Class<Entity> clazz;
-    private final AttributesConfiguration<Entity> attributes;
+    private final AttributesConfiguration<Entity, GraphApi> attributes;
     private final List<String> keys = new ArrayList<>();
     private boolean keysToConstructor;
-    private ColumnReader.Factory keyReaderFactory = null;
+    private ColumnReader.Factory<GraphApi> keyReaderFactory = null;
     private Function<Object[], Entity> constructor = null;
 
     public AbstractTypeBuilder(Class<Entity> clazz) {
@@ -45,7 +44,7 @@ public abstract class AbstractTypeBuilder<Entity, This extends AbstractTypeBuild
         this.attributes = new AttributesConfiguration<>(clazz);
     }
 
-    public AttributesConfiguration<Entity> getAttributes() {
+    public AttributesConfiguration<Entity, GraphApi> getAttributes() {
         return attributes;
     }
 
@@ -78,22 +77,17 @@ public abstract class AbstractTypeBuilder<Entity, This extends AbstractTypeBuild
     }
 
     @Override
-    public EntityAttributesBuilder<Entity, ?> internalEntityFieldsBuilder() {
+    public EntityAttributesBuilder<Entity, GraphApi, ?> internalEntityFieldsBuilder() {
         return attributes;
     }
     
     @Override
-    public Entity[] newArray(int length) {
-        return (Entity[]) Array.newInstance(clazz, length);
-    }
-
-    @Override
     protected EntityConfiguration<Entity> createAttributeReader(GraphApi graph, List<?> attributes) {
-        return this.attributes.newConfiguration(flattenStr(attributes));
+        return this.attributes.newConfiguration(graph, flattenStr(attributes));
     }
 
     @Override
-    protected Entity newEntity(Object[] key) throws MiException {
+    protected Entity newEntity(GraphApi graph, Object[] key) throws MiException {
         if (constructor == null) {
             if (keysToConstructor) throw new IllegalStateException("Constructor required");
             try {
@@ -118,7 +112,7 @@ public abstract class AbstractTypeBuilder<Entity, This extends AbstractTypeBuild
             return e;
         }
         for (int i = 0; i < key.length; i++) {
-            EntityAttribute<Entity> at = attributes.getAttributeMap().get(keys.get(i));
+            EntityAttribute<Entity, GraphApi> at = attributes.getAttributeMap().get(keys.get(i));
             at.set(e, key[i]);
         }
         return e;
@@ -128,30 +122,22 @@ public abstract class AbstractTypeBuilder<Entity, This extends AbstractTypeBuild
     protected Object[] getKey(Entity e, Object[] array) throws MiException {
         if (array == null) array = new Object[keys.size()];
         for (int i = 0; i < array.length; i++) {
-            EntityAttribute<Entity> at = attributes.getAttributeMap().get(keys.get(i));
+            EntityAttribute<Entity, GraphApi> at = attributes.getAttributeMap().get(keys.get(i));
             array[i] = at.get(e);
         }
         return array;
     }
 
     @Override
-    protected ColumnReader getConstructorArguments(MiResultSet rs) throws MiException {
-        if (keysToConstructor) {
-            return newKeyReader(rs);
-        }
-        return super.getConstructorArguments(rs);
-    }
-
-    @Override
-    protected ColumnReader newKeyReader(MiResultSet resultSet) throws MiException {
+    protected ColumnReader newKeyReader(MiResultSet resultSet, GraphApi graph) throws MiException {
         if (keyReaderFactory == null) {
-            ColumnValue[] keyColumns = new ColumnValue[keys.size()];
+            ColumnMapping<GraphApi>[] keyColumns = new ColumnMapping[keys.size()];
             for (int i = 0; i < keyColumns.length; i++) {
                 keyColumns[i] = attributes.getAttributeMap().get(keys.get(i));
             }
             keyReaderFactory = ColumnReader.factory(keyColumns);
         }
-        return keyReaderFactory.create(resultSet);
+        return keyReaderFactory.create(resultSet, graph);
     }
     
     private final static Object[] NO_ARGS = {};

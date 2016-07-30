@@ -5,10 +5,7 @@ import org.cthul.miro.db.MiException;
 import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.entity.EntityType;
 import org.cthul.miro.entity.EntityTypes;
-import org.cthul.miro.graph.Graph;
-import org.cthul.miro.graph.GraphApi;
-import org.cthul.miro.graph.NodeSelector;
-import org.cthul.miro.graph.NodeType;
+import org.cthul.miro.graph.*;
 
 /**
  * A set of nodes of one type in a graph.
@@ -19,12 +16,12 @@ import org.cthul.miro.graph.NodeType;
  * As entity type, its factories return nodes of the set.
  * @param <Node>
  */
-public abstract class NodeSet<Node> {
+public abstract class AbstractNodeSet<Node> implements NodeSet<Node> {
 
     private final NodeType<Node> nodeType;
     private final GraphApi graph;
 
-    public NodeSet(NodeType<Node> nodeType, GraphApi graph) {
+    public AbstractNodeSet(NodeType<Node> nodeType, GraphApi graph) {
         this.graph = graph;
         this.nodeType = nodeType;
     }
@@ -33,7 +30,8 @@ public abstract class NodeSet<Node> {
         return nodeType;
     }
 
-    protected GraphApi getGraph() {
+    @Override
+    public GraphApi getGraph() {
         return graph;
     }
 
@@ -50,13 +48,13 @@ public abstract class NodeSet<Node> {
     
     protected abstract void putNode(Object[] key, Node e);
 
-    //<editor-fold defaultstate="collapsed" desc="Graph implementation">
     /**
      * Finds or creates nodes in the set and
      * ensures that the specified attributes are initialized.
      * @return node selector
      * @see Graph#newNodeSelector(Object, List)
      */
+    @Override
     public NodeSelector<Node> newNodeSelector() {
         return new NodesOfSet();
     }
@@ -68,6 +66,7 @@ public abstract class NodeSet<Node> {
      * @return entity type
      * @see Graph#getEntityType(Object, List)
      */
+    @Override
     public EntityType<Node> getEntityType(List<?> attributes) {
         return getNodeType().asEntityType(getGraph(), newNodeSelector(), attributes);
     }
@@ -79,11 +78,11 @@ public abstract class NodeSet<Node> {
      * @throws MiException
      * @see Graph#newAttributeLoader(Object, List)
      */
+    @Override
     public EntityInitializer<Node> newAttributeLoader(List<?> attributes) throws MiException {
         if (attributes.isEmpty()) return EntityTypes.noInitialization();
         return getNodeType().newAttributeLoader(getGraph(), attributes);
     }
-    //</editor-fold>
 
     private class NodesOfSet implements NodeSelector<Node> {
         private NodeSelector<Node> factory = null;

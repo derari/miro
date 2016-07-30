@@ -1,10 +1,11 @@
 package org.cthul.miro.lib.msql;
 
+import java.util.ArrayList;
+import java.util.List;
 import static org.cthul.matchers.fluent8.FluentAssert.assertThat;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.entity.EntityType;
-import org.cthul.miro.entity.map.ColumnValueBuilder;
 import org.cthul.miro.ext.jdbc.JdbcConnection;
 import org.cthul.miro.result.Results;
 import org.cthul.miro.sql.SelectQuery;
@@ -15,6 +16,7 @@ import org.cthul.miro.test.TestDB;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.cthul.miro.entity.map.ColumnMappingBuilder;
 
 /**
  *
@@ -45,8 +47,15 @@ public class MaterializationTest {
     {
         schema.setUp(Person.class)
                 .any("a_id", "a_street", "a_city")
-                .readAs((rs, i) -> addressType.newFactory(rs.subResult("a_")))
-                ;
+                .readWith(rs -> addressType.newFactory(rs.subResult("a_")))
+                .field("address");
+        schema.setUp(Address.class)
+                .any("p_id", "p_first_name", "p_last_name")
+                .readAs((rs, i) -> {
+                    List<Person> list = new ArrayList<>();
+                    
+                    return list;
+                });
     }
     
     @Test
@@ -75,6 +84,7 @@ public class MaterializationTest {
            ._getSingle();
         
         assertThat(p.firstName).is("John");
+        assertThat(p.address.street).is("Street 1");
     }
     
     

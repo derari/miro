@@ -1,17 +1,11 @@
 package org.cthul.miro.graph.impl;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
-import org.cthul.miro.entity.EntityInitializer;
-import org.cthul.miro.entity.EntityType;
-import org.cthul.miro.graph.Graph;
-import org.cthul.miro.graph.GraphSchema;
-import org.cthul.miro.graph.NodeSelector;
-import org.cthul.miro.graph.NodeType;
+import org.cthul.miro.graph.*;
 
 /**
  * Allows to configure node types for a {@link GraphSchema}.
@@ -59,22 +53,8 @@ public class GraphSchemaBuilder implements GraphSchema, Graph {
     }
 
     @Override
-    public <Node> NodeSelector<Node> newNodeSelector(Object typeKey) throws MiException {
-        return nullGraph().newNodeSelector(typeKey);
-    }
-
-    @Override
-    public <Node> EntityType<Node> getEntityType(Object typeKey, List<?> attributes) {
-        NodeType<Node> n = nodeType(typeKey);
-        if (attributes.isEmpty() && n instanceof EntityType) {
-            return (EntityType<Node>) n;
-        }
-        return nullGraph().getEntityType(typeKey, attributes);
-    }
-
-    @Override
-    public <Node> EntityInitializer<Node> newAttributeLoader(Object typeKey, List<?> attributes) throws MiException {
-        return nullGraph().newAttributeLoader(typeKey, attributes);
+    public <Node> NodeSet<Node> getNodeSet(Object typeKey) {
+        return nullGraph().getNodeSet(typeKey);
     }
 
     @Override

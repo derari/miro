@@ -1,9 +1,7 @@
 package org.cthul.miro.entity.base;
 
-import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import org.cthul.miro.entity.EntityFactory;
 import org.cthul.miro.entity.EntityType;
@@ -17,7 +15,7 @@ import org.cthul.miro.db.MiException;
  */
 public abstract class BasicEntityType<Entity> implements EntityType<Entity> {
     
-    public static <Entity> BasicEntityType<Entity> build(Supplier<Entity> factory, IntFunction<Entity[]> arrayFactory) {
+    public static <Entity> BasicEntityType<Entity> build(Supplier<Entity> factory) {
         String name = null;
         try {
             name = factory.getClass().getMethod("get")
@@ -27,10 +25,6 @@ public abstract class BasicEntityType<Entity> implements EntityType<Entity> {
             @Override
             protected Entity newEntity() {
                 return factory.get();
-            }
-            @Override
-            public Entity[] newArray(int length) {
-                return arrayFactory.apply(length);
             }
         };
     }
@@ -51,10 +45,6 @@ public abstract class BasicEntityType<Entity> implements EntityType<Entity> {
                 } catch (IllegalAccessException | InstantiationException | InvocationTargetException ex) {
                     throw new RuntimeException(ex);
                 }
-            }
-            @Override
-            public Entity[] newArray(int length) {
-                return (Entity[]) Array.newInstance(clazz, length);
             }
         };
     }
