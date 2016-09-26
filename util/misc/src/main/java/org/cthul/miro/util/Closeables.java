@@ -6,7 +6,7 @@ import java.util.Arrays;
  * Helpful methods for closing or completing multiple objects at once,
  * with checked exception support.
  */
-public class Closables {
+public class Closeables {
 
     public static void closeUnchecked(AutoCloseable... closeables) {
         closeAll(RuntimeException.class, Arrays.asList(closeables));

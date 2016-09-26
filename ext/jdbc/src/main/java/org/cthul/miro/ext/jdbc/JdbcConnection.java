@@ -17,7 +17,7 @@ import org.cthul.miro.futures.MiAction;
 import org.cthul.miro.function.MiFunction;
 import org.cthul.miro.function.MiSupplier;
 import org.cthul.miro.futures.MiFutures;
-import org.cthul.miro.util.Closables;
+import org.cthul.miro.util.Closeables;
 
 /**
  *
@@ -84,12 +84,16 @@ public class JdbcConnection implements MiConnection {
         try {
             return executeQuery(stmt.call());
         } catch (Throwable t) {
-            throw Closables.exceptionAs(t, MiException.class);
+            throw Closeables.exceptionAs(t, MiException.class);
         }
     }
 
     public MiAction<ResultSet> queryAction(MiSupplier<PreparedStatement> stmt) {
-        return fExecuteQuery.asAction(QUERY_EXECUTOR, stmt);
+        return MiFutures.build()
+                .notResettable()
+                .executor(QUERY_EXECUTOR)
+                .defaultExecutor(MiFutures.defaultExecutor())
+                .action(fExecuteQuery, stmt);
     }
     
     public long executeStatement(PreparedStatement stmt) throws MiException {
@@ -104,7 +108,7 @@ public class JdbcConnection implements MiConnection {
         try {
             return executeStatement(stmt.call());
         } catch (Throwable t) {
-            throw Closables.exceptionAs(t, MiException.class);
+            throw Closeables.exceptionAs(t, MiException.class);
         }
     }
 
@@ -114,7 +118,6 @@ public class JdbcConnection implements MiConnection {
                 .executor(QUERY_EXECUTOR)
                 .defaultExecutor(MiFutures.defaultExecutor())
                 .action(fExecuteStmt, stmt);
-//        return fExecuteStmt.asAction(QUERY_EXECUTOR, stmt);
     }
     
     public static interface ConnectionProvider {

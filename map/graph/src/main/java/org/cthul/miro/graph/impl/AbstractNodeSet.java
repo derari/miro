@@ -5,6 +5,7 @@ import org.cthul.miro.db.MiException;
 import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.entity.EntityType;
 import org.cthul.miro.entity.EntityTypes;
+import org.cthul.miro.entity.InitializationBuilder;
 import org.cthul.miro.graph.*;
 
 /**
@@ -16,7 +17,7 @@ import org.cthul.miro.graph.*;
  * As entity type, its factories return nodes of the set.
  * @param <Node>
  */
-public abstract class AbstractNodeSet<Node> implements NodeSet<Node> {
+public abstract class AbstractNodeSet<Node> implements GraphNodes<Node> {
 
     private final NodeType<Node> nodeType;
     private final GraphApi graph;
@@ -44,20 +45,14 @@ public abstract class AbstractNodeSet<Node> implements NodeSet<Node> {
         return "graph[" + String.valueOf(s) + "]";
     }
     
-    protected abstract Node getNode(Object... key);
-    
-    protected abstract void putNode(Object[] key, Node e);
-
     /**
      * Finds or creates nodes in the set and
      * ensures that the specified attributes are initialized.
-     * @return node selector
+     * @throws org.cthul.miro.db.MiException
      * @see Graph#newNodeSelector(Object, List)
      */
     @Override
-    public NodeSelector<Node> newNodeSelector() {
-        return new NodesOfSet();
-    }
+    public abstract void newNodeSelector(SelectorBuilder<? super Node> builder) throws MiException;
     
     /**
      * Returns an entity type that will find or create nodes in the graph and
@@ -67,9 +62,7 @@ public abstract class AbstractNodeSet<Node> implements NodeSet<Node> {
      * @see Graph#getEntityType(Object, List)
      */
     @Override
-    public EntityType<Node> getEntityType(List<?> attributes) {
-        return getNodeType().asEntityType(getGraph(), newNodeSelector(), attributes);
-    }
+    public abstract EntityType<Node> getEntityType(List<?> attributes);
     
     /**
      * Creates an initializer that will load the given attributes from the database.
@@ -84,45 +77,9 @@ public abstract class AbstractNodeSet<Node> implements NodeSet<Node> {
         return getNodeType().newAttributeLoader(getGraph(), attributes);
     }
 
-    private class NodesOfSet implements NodeSelector<Node> {
-        private NodeSelector<Node> factory = null;
-
-        NodeSelector<Node> factory() throws MiException {
-            if (factory == null) {
-                factory = getNodeType().newNodeFactory(getGraph());
-            }
-            return factory;
-        }
-
-        @Override
-        public Node get(Object... key) throws MiException {
-            Node e = getNode(key);
-            if (e == null) {
-                e = factory().get(key);
-                putNode(key, e);
-            }
-            return e;
-        }
-
-        @Override
-        public void complete() throws MiException {
-            if (factory != null) {
-                factory.complete();
-            }
-        }
-
-        @Override
-        public void close() throws MiException {
-            if (factory != null) {
-                factory.close();
-            }
-        }
-
-        @Override
-        public String toString() {
-            String s = factory != null ? factory.toString() :
-                    ("new " + getNodeType());
-            return shortString(s);
-        }
+    @Override
+    public void newAttributeLoader(List<?> attributes, InitializationBuilder<? extends Node> builder) throws MiException {
+        getNodeType().newAttributeLoader(getGraph(), attributes, builder);
     }
+    
 }

@@ -8,12 +8,14 @@ import java.util.function.Supplier;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.entity.EntityConfiguration;
-import org.cthul.miro.entity.map.AttributesConfiguration;
+import org.cthul.miro.entity.FactoryBuilder;
+import org.cthul.miro.entity.map.PropertiesConfiguration;
 import org.cthul.miro.entity.map.EntityAttribute;
 import org.cthul.miro.graph.GraphApi;
-import org.cthul.miro.entity.map.EntityAttributesBuilder;
 import org.cthul.miro.graph.TypeBuilder;
 import org.cthul.miro.entity.map.ColumnMapping;
+import org.cthul.miro.graph.SelectorBuilder;
+import org.cthul.miro.entity.map.EntityPropertiesBuilder;
 
 /**
  *
@@ -23,10 +25,10 @@ import org.cthul.miro.entity.map.ColumnMapping;
 public abstract class AbstractTypeBuilder<Entity, This extends AbstractTypeBuilder<Entity, This>> 
                 extends AbstractNodeType<Entity> 
                 implements TypeBuilder<Entity, GraphApi, This>, 
-                           EntityAttributesBuilder.Delegator<Entity, GraphApi, This> {
+                           EntityPropertiesBuilder.Delegator<Entity, GraphApi, This> {
 
     private final Class<Entity> clazz;
-    private final AttributesConfiguration<Entity, GraphApi> attributes;
+    private final PropertiesConfiguration<Entity, GraphApi> attributes;
     private final List<String> keys = new ArrayList<>();
     private boolean keysToConstructor;
     private ColumnReader.Factory<GraphApi> keyReaderFactory = null;
@@ -35,16 +37,16 @@ public abstract class AbstractTypeBuilder<Entity, This extends AbstractTypeBuild
     public AbstractTypeBuilder(Class<Entity> clazz) {
         super(clazz.getSimpleName());
         this.clazz = clazz;
-        this.attributes = new AttributesConfiguration<>(clazz);
+        this.attributes = new PropertiesConfiguration<>(clazz);
     }
 
     public AbstractTypeBuilder(Class<Entity> clazz, Object shortString) {
         super(shortString);
         this.clazz = clazz;
-        this.attributes = new AttributesConfiguration<>(clazz);
+        this.attributes = new PropertiesConfiguration<>(clazz);
     }
 
-    public AttributesConfiguration<Entity, GraphApi> getAttributes() {
+    public PropertiesConfiguration<Entity, GraphApi> getAttributes() {
         return attributes;
     }
 
@@ -77,7 +79,7 @@ public abstract class AbstractTypeBuilder<Entity, This extends AbstractTypeBuild
     }
 
     @Override
-    public EntityAttributesBuilder<Entity, GraphApi, ?> internalEntityFieldsBuilder() {
+    public EntityPropertiesBuilder<Entity, GraphApi, ?> internalEntityFieldsBuilder() {
         return attributes;
     }
     
@@ -85,9 +87,8 @@ public abstract class AbstractTypeBuilder<Entity, This extends AbstractTypeBuild
     protected EntityConfiguration<Entity> createAttributeReader(GraphApi graph, List<?> attributes) {
         return this.attributes.newConfiguration(graph, flattenStr(attributes));
     }
-
-    @Override
-    protected Entity newEntity(GraphApi graph, Object[] key) throws MiException {
+    
+    private void initConstructor() {
         if (constructor == null) {
             if (keysToConstructor) throw new IllegalStateException("Constructor required");
             try {
@@ -104,19 +105,40 @@ public abstract class AbstractTypeBuilder<Entity, This extends AbstractTypeBuild
                 throw new IllegalArgumentException("Default constructor expected");
             }
         }
-        if (keysToConstructor) {
-            return constructor.apply(key);
-        }
-        Entity e = constructor.apply(NO_ARGS);
-        if (key == null) {
-            return e;
-        }
-        for (int i = 0; i < key.length; i++) {
-            EntityAttribute<Entity, GraphApi> at = attributes.getAttributeMap().get(keys.get(i));
-            at.set(e, key[i]);
-        }
-        return e;
     }
+
+    @Override
+    public void newNodeFactory(GraphApi graph, SelectorBuilder<? super Entity> builder) throws MiException {
+        initConstructor();
+        if (keysToConstructor) {
+            builder.setFactory(constructor::apply);
+        } else {
+            EntityAttribute<Entity, GraphApi>[] keyAts = new EntityAttribute[keys.size()];
+            for (int i = 0; i < keys.size(); i++) {
+                keyAts[i] = attributes.getAttributeMap().get(keys.get(i));
+            }
+            builder.setFactory(key -> {
+                Entity e = constructor.apply(NO_ARGS);
+                if (key == null) return e;
+                for (int i = 0; i < key.length; i++) {
+                    keyAts[i].set(e, key[i]);
+                }
+                return e;
+            });
+        }
+        builder.addName("new " + clazz.getSimpleName());
+    }
+
+//    @Override
+//    public void newEntityFactory(GraphApi graph, FactoryBuilder<? super Entity> builder) throws MiException {
+//        initConstructor();
+//        if (keysToConstructor) {
+//            super.newEntityFactory(graph, builder);
+//        } else {
+//            builder.setFactory(() -> constructor.apply(NO_ARGS));
+//            builder.addName("new " + clazz.getSimpleName());
+//        }
+//    }
 
     @Override
     protected Object[] getKey(Entity e, Object[] array) throws MiException {
@@ -134,6 +156,7 @@ public abstract class AbstractTypeBuilder<Entity, This extends AbstractTypeBuild
             ColumnMapping<GraphApi>[] keyColumns = new ColumnMapping[keys.size()];
             for (int i = 0; i < keyColumns.length; i++) {
                 keyColumns[i] = attributes.getAttributeMap().get(keys.get(i));
+                if (keyColumns[i] == null) throw new IllegalArgumentException(keys.get(i));
             }
             keyReaderFactory = ColumnReader.factory(keyColumns);
         }

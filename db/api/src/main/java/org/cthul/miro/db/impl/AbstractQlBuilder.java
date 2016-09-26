@@ -35,6 +35,12 @@ public abstract class AbstractQlBuilder<This extends QlBuilder<This>> extends Ab
     }
 
     @Override
+    public This constant(Object key) {
+        getSyntax().appendConstanct(key, this);
+        return (This) this;
+    }
+
+    @Override
     public This pushArgument(Object arg) {
         getWriteDelegatee().pushArgument(arg);
         return (This) this;

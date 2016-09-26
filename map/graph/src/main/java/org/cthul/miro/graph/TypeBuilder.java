@@ -2,7 +2,7 @@ package org.cthul.miro.graph;
 
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.cthul.miro.entity.map.EntityAttributesBuilder;
+import org.cthul.miro.entity.map.EntityPropertiesBuilder;
 
 /**
  *
@@ -10,7 +10,7 @@ import org.cthul.miro.entity.map.EntityAttributesBuilder;
  * @param <Cnn>
  * @param <This>
  */
-public interface TypeBuilder<Entity, Cnn, This extends TypeBuilder<Entity, Cnn, This>> extends EntityAttributesBuilder<Entity, Cnn, This> {
+public interface TypeBuilder<Entity, Cnn, This extends TypeBuilder<Entity, Cnn, This>> extends EntityPropertiesBuilder<Entity, Cnn, This> {
     
     This key(String attribute);
     

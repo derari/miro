@@ -106,21 +106,29 @@ public interface SelectBuilder extends SqlTableClause, SqlJoinableClause, SqlFil
 //        @Override
 //        SelectBuilder.Join outer();
         
+        boolean isEmpty();
+        
+        JoinType getJoinType();
+        
         @Override
         Where on();
 
         @Override
         default SelectBuilder.Join sql(String sql, Object... args) {
-            MiSqlParser.parsePartialSelectOrCode(sql, args, "JOIN", this, this);
+            String key = isEmpty() ? getJoinType().toString() : "";
+            MiSqlParser.parsePartialSelectOrCode(sql, args, key, this, this);
             return this;
         }
     }
     
     interface Where extends Composite<Where>, SqlJoinableClause.Where<Where> {
 
+        boolean isOpen();
+        
         @Override
         default Where sql(String sql, Object... args) {
-            MiSqlParser.parsePartialSelectOrCode(sql, args, "WHERE", this, this);
+            String key = isOpen() ? "" : "WHERE";
+            MiSqlParser.parsePartialSelectOrCode(sql, args, key, this, this);
             return this;
         }
     }

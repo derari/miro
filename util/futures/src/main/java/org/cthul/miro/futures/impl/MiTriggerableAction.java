@@ -9,6 +9,7 @@ import org.cthul.miro.futures.MiFuture;
 import org.cthul.miro.futures.MiResettableFuture;
 import org.cthul.miro.futures.MiResult;
 import static org.cthul.miro.futures.MiFutures.futureAsAction;
+import static org.cthul.miro.futures.MiFutures.futureAsAction;
 
 /**
  *

@@ -37,6 +37,10 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
         return new StringLiteral(string);
     }
     
+    static Fluent cnst(Object key) {
+        return new Constant(key);
+    }
+    
     static Fluent lazy(Consumer<? super QlBuilder<?>> code) {
         return new Lazy(code);
     }
@@ -126,6 +130,24 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
         @Override
         public String toString() {
             return '"' + string + '"';
+        }
+    }
+    
+    class Constant implements Fluent {
+        private final Object key;
+
+        public Constant(Object key) {
+            this.key = key;
+        }
+
+        @Override
+        public void appendTo(QlBuilder<?> qlBuilder) {
+            qlBuilder.constant(key);
+        }
+
+        @Override
+        public String toString() {
+            return "%" + key + "%";
         }
     }
     
@@ -267,6 +289,11 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
         @Override
         default Builder stringLiteral(String string) {
             return append(new StringLiteral(string));
+        }
+
+        @Override
+        public default Builder constant(Object key) {
+            return append(new Constant(key));
         }
 
         @Override

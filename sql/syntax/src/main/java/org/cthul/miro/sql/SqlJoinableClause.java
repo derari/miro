@@ -62,7 +62,7 @@ public interface SqlJoinableClause extends SqlClause {
             s = s.trim().toUpperCase();
             if (s.isEmpty()) return INNER;
             if (s.startsWith("LEFT")) return LEFT;
-            if (s.startsWith("OUTER")) return OUTER;
+            if (s.startsWith("FULL") || s.startsWith("OUTER")) return OUTER;
             if (s.startsWith("RIGHT")) return RIGHT;
             if (s.startsWith("INNER")) return INNER;
             throw new IllegalArgumentException(s);

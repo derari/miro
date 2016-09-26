@@ -15,6 +15,8 @@ public interface SqlDQML<Stmt> extends RequestType<Stmt>, ClauseType<Stmt> {
     
     static SqlDQML<SelectQuery> select() { return Type.SELECT; }
     static SqlDQML<InsertStatement> insert() { return Type.INSERT; }
+//    static SqlDQML<Void> update() { return Type.UPDATE; }
+//    static SqlDQML<Void> delete() { return Type.DELETE; }
     
     default Type type() {
         return (Type) this;

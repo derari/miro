@@ -18,7 +18,7 @@ public abstract class QlBuilderDelegator<This extends QlBuilder<This>>
 
     @Override
     protected MiDBString getBuilderForNestedClause() {
-        return getDelegatee();
+        return getWriteDelegatee();
     }
     
     protected abstract QlBuilder<?> getDelegatee();
@@ -80,6 +80,12 @@ public abstract class QlBuilderDelegator<This extends QlBuilder<This>>
     @Override
     public This stringLiteral(String string) {
         getWriteDelegatee().stringLiteral(string);
+        return _this();
+    }
+
+    @Override
+    public This constant(Object key) {
+        getWriteDelegatee().constant(key);
         return _this();
     }
 

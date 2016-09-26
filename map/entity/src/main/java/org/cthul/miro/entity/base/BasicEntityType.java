@@ -3,10 +3,10 @@ package org.cthul.miro.entity.base;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.function.Supplier;
-import org.cthul.miro.entity.EntityFactory;
 import org.cthul.miro.entity.EntityType;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
+import org.cthul.miro.entity.FactoryBuilder;
 
 /**
  * A simple entity type that can create new entities without input
@@ -63,10 +63,11 @@ public abstract class BasicEntityType<Entity> implements EntityType<Entity> {
     public BasicEntityType(String shortString) {
         this.shortString = shortString;
     }
-    
+
     @Override
-    public EntityFactory<Entity> newFactory(MiResultSet rs) throws MiException {
-        return new Factory(rs);
+    public void newFactory(MiResultSet rs, FactoryBuilder<? super Entity> builder) throws MiException {
+        builder.setFactory(this::newEntity);
+        builder.addName("new " + toString());
     }
     
     protected abstract Entity newEntity();
@@ -78,32 +79,5 @@ public abstract class BasicEntityType<Entity> implements EntityType<Entity> {
 
     protected String getShortString() {
         return shortString != null ? shortString : super.toString();
-    }
-    
-    protected class Factory implements EntityFactory<Entity> {
-        
-//        protected final MiResultSet resultSet;
-
-        public Factory(MiResultSet resultSet) {
-//            this.resultSet = resultSet;
-        }
-
-        @Override
-        public Entity newEntity() throws MiException {
-            return BasicEntityType.this.newEntity();
-        }
-
-        @Override
-        public void complete() throws MiException {
-        }
-
-        @Override
-        public void close() throws MiException {
-        }
-
-        @Override
-        public String toString() {
-            return "new " + BasicEntityType.this.toString();
-        }
     }
 }

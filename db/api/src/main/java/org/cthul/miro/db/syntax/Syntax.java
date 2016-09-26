@@ -27,4 +27,22 @@ public interface Syntax {
     default <Cls> Cls newClause(MiDBString stmt, Object owner, ClauseType<Cls> type, ClauseType<Cls> onDefault) {
         return onDefault.createDefaultClause(this, stmt, owner);
     }
+    
+    default void appendConstanct(Object key, QlBuilder<?> query) {
+        throw new IllegalArgumentException(String.valueOf(key));
+    }
+    
+    default QlCode getConstanct(Object key) {
+        class Constant implements QlCode {
+            @Override
+            public void appendTo(QlBuilder<?> qlBuilder) {
+                appendConstanct(key, qlBuilder);
+            }
+            @Override
+            public String toString() {
+                return String.valueOf(key);
+            }
+        }
+        return new Constant();
+    }
 }

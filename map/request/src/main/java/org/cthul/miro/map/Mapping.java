@@ -4,8 +4,6 @@ import org.cthul.miro.entity.EntityConfiguration;
 import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.entity.EntityType;
 import org.cthul.miro.entity.EntityTypes;
-import org.cthul.miro.graph.Graph;
-import org.cthul.miro.map.layer.GenericMappingLayer;
 
 /**
  *

@@ -32,6 +32,10 @@ public abstract class AbstractCache<K, V> {
         return putNew(key);
     }
     
+    protected V forcePut(K key, V value) {
+        return cache.put(key, value);
+    }
+    
     protected V tryPut(K key, V value) {
         V v = value == null ? (V) NULL : value;
         V old = cache.putIfAbsent(key, v);
@@ -39,7 +43,12 @@ public abstract class AbstractCache<K, V> {
     }
     
     protected V putNew(K key) {
-        V value = create(key);
+        V value;
+        try {
+            value = create(key);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(String.valueOf(key), e);
+        }
         return tryPut(key, value);
     }
     

@@ -6,6 +6,7 @@ import org.cthul.miro.entity.EntityFactory;
 import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
+import org.cthul.miro.entity.InitializationBuilder;
 
 /**
  * An entity configuration that applies values from an internal factory.
@@ -27,6 +28,11 @@ public abstract class NestedFactoryConfiguration<Entity, Inner> implements Entit
     @Override
     public EntityInitializer<Entity> newInitializer(MiResultSet rs) throws MiException {
         return new NestedInitializer(nestedFactory(rs));
+    }
+
+    @Override
+    public void newInitializer(MiResultSet resultSet, InitializationBuilder<? extends Entity> builder) throws MiException {
+        builder.add(newInitializer(resultSet));
     }
     
     protected abstract EntityFactory<Inner> nestedFactory(MiResultSet rs) throws MiException;

@@ -2,7 +2,6 @@ package org.cthul.miro.sql.set;
 
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.map.MappingKey;
-import org.cthul.miro.sql.map.MappedSqlType;
 
 /**
  *
@@ -35,5 +34,9 @@ public class PeopleDao2 extends SqlEntitySet<Person, PeopleDao2> {
     public PeopleDao2 selectLastName() {
         return sql(sql -> sql.select().sql("p.last_name AS `lastName`"))
                .setUp(MappingKey.LOAD, "lastName");
+    }
+    
+    public PeopleDao2 selectFirstAndLast() {
+        return doSafe(me -> me.selectFirstName().selectLastName());
     }
 }

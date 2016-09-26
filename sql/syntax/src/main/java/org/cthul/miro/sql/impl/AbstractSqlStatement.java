@@ -74,6 +74,7 @@ public abstract class AbstractSqlStatement<Request extends MiDBString> extends A
 
         @Override
         protected QlBuilder<?> getWriteDelegatee() {
+            closeNestedClause();
             if (!open) {
                 open = true;
                 if (!empty && sep != null) {
@@ -85,6 +86,10 @@ public abstract class AbstractSqlStatement<Request extends MiDBString> extends A
                 }
             }
             return getDelegatee();
+        }
+
+        public boolean isOpen() {
+            return open;
         }
         
         @Override
@@ -108,6 +113,10 @@ public abstract class AbstractSqlStatement<Request extends MiDBString> extends A
         }
 
         protected abstract W newOnCondition();
+
+        public JoinType getJoinType() {
+            return joinType;
+        }
 
         @Override
         public This as(JoinType jt) {

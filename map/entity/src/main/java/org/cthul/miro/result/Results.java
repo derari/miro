@@ -52,7 +52,7 @@ public class Results<Entity> implements AutoCloseable {
         return build(ResultBuilders.getListResult());
     }
     
-    public Entity[] asArray(Class<Entity> clazz) throws MiException {
+    public Entity[] asArray(Class<? super Entity> clazz) throws MiException {
         return build(ResultBuilders.getArrayResult(clazz));
     }
     
@@ -76,7 +76,7 @@ public class Results<Entity> implements AutoCloseable {
         return _build(ResultBuilders.getListResult());
     }
     
-    public Entity[] _asArray(Class<Entity> clazz) {
+    public Entity[] _asArray(Class<? super Entity> clazz) {
         return _build(ResultBuilders.getArrayResult(clazz));
     }
     
@@ -212,15 +212,15 @@ public class Results<Entity> implements AutoCloseable {
             return _quickGet()._asList();
         }
         
-        public MiAction<Entity[]> array(Class<Entity> clazz) {
+        public MiAction<Entity[]> array(Class<? super Entity> clazz) {
             return andThen(r -> r.asArray(clazz));
         }
         
-        public Entity[] asArray(Class<Entity> clazz) throws InterruptedException, ExecutionException, MiException {
+        public Entity[] asArray(Class<? super Entity> clazz) throws InterruptedException, ExecutionException, MiException {
             return quickGet().asArray(clazz);
         }
         
-        public Entity[] _asArray(Class<Entity> clazz) {
+        public Entity[] _asArray(Class<? super Entity> clazz) {
             return _quickGet()._asArray(clazz);
         }
         

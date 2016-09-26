@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.entity.EntityInitializer;
-import org.cthul.miro.util.Closables;
+import org.cthul.miro.util.Closeables;
 import org.cthul.miro.util.Completable;
 
 /**
@@ -64,7 +64,7 @@ public interface NodeSelector<Node> extends AutoCloseable, Completable {
         return this;
     }
     
-    default NodeSelector<Node> with(EntityInitializer<? super Node> initializer) {
+    default NodeSelector<Node> and(EntityInitializer<? super Node> initializer) {
         class InitializingSelector implements NodeSelector<Node> {
             @Override
             public Node get(Object... key) throws MiException {
@@ -74,11 +74,11 @@ public interface NodeSelector<Node> extends AutoCloseable, Completable {
             }
             @Override
             public void complete() throws MiException {
-                Closables.completeAll(MiException.class, NodeSelector.this, initializer);
+                Closeables.completeAll(MiException.class, NodeSelector.this, initializer);
             }
             @Override
             public void close() throws MiException {
-                Closables.closeAll(MiException.class, NodeSelector.this, initializer);
+                Closeables.closeAll(MiException.class, NodeSelector.this, initializer);
             }
             @Override
             public String toString() {

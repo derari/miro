@@ -15,7 +15,7 @@ import org.cthul.miro.graph.*;
  */
 public abstract class AbstractGraph implements GraphApi {
     
-    private final Map<Object, NodeSet<?>> nodeSets = new HashMap<>();
+    private final Map<Object, GraphNodes<?>> nodeSets = new HashMap<>();
     private final Function<Object, NodeType<?>> typeLookUp;
     private final MiConnection connection;
 
@@ -39,7 +39,7 @@ public abstract class AbstractGraph implements GraphApi {
         nodeSets.put(typeKey, newNodeSet(type));
     }
     
-    protected abstract NodeSet<?> newNodeSet(NodeType<?> type);
+    protected abstract GraphNodes<?> newNodeSet(NodeType<?> type);
     
     //<editor-fold defaultstate="collapsed" desc="MiConnection implemention">
     @Override
@@ -59,8 +59,8 @@ public abstract class AbstractGraph implements GraphApi {
     //</editor-fold>
     
     @SuppressWarnings("unchecked")
-    protected <Node> NodeSet<Node> nodeSet(Object key) {
-        NodeSet<Node> n = (NodeSet<Node>) nodeSets.get(key);
+    protected <Node> GraphNodes<Node> nodeSet(Object key) {
+        GraphNodes<Node> n = (GraphNodes<Node>) nodeSets.get(key);
         if (n == null) {
             if (typeLookUp != null) {
                 NodeType<?> t = typeLookUp.apply(key);
@@ -76,7 +76,7 @@ public abstract class AbstractGraph implements GraphApi {
     }
 
     @Override
-    public <Node> NodeSet<Node> getNodeSet(Object typeKey) {
+    public <Node> GraphNodes<Node> getNodeSet(Object typeKey) {
         return nodeSet(typeKey);
     }
 

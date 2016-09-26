@@ -9,8 +9,9 @@ import org.cthul.miro.sql.SqlFilterableClause;
 import org.cthul.miro.sql.SqlJoinableClause.JoinType;
 import org.cthul.miro.sql.syntax.MiSqlParser;
 import org.cthul.miro.db.syntax.QlCode;
+import org.cthul.miro.sql.SelectBuilder;
+import org.cthul.miro.sql.SqlBuilder;
 import org.cthul.miro.util.Key;
-import org.cthul.miro.sql.template.JoinedView;
 
 public interface SqlTemplatesBuilder<This extends SqlTemplatesBuilder<This>> {
     
@@ -56,6 +57,8 @@ public interface SqlTemplatesBuilder<This extends SqlTemplatesBuilder<This>> {
     
     This attribute(SqlAttribute attribute);
     
+    This key(String attributeKey);
+    
     default This from(String table) {
         MiSqlParser.Table t = MiSqlParser.parseFromPart(table).getTable();
         return from(t, t.getKey());
@@ -92,6 +95,17 @@ public interface SqlTemplatesBuilder<This extends SqlTemplatesBuilder<This>> {
     This join(JoinedView view);
     
     <V extends Template<? super SqlFilterableClause>> This where(Key<? super V> key, V filter);
+    
+    This selectSnippet(SqlSnippet<? super SelectBuilder> snippet);
+    
+    default This selectSnippet(String key, Consumer<? super SelectBuilder> snippet) {
+        return SqlTemplatesBuilder.this.selectSnippet(new SqlSnippet<SelectBuilder>(key) {
+            @Override
+            protected void writePart(SelectBuilder builder, Object[] args) {
+                snippet.accept(builder);
+            }
+        });
+    }
     
     default Using<This> using(Object... dependencies) {
         return using(Arrays.asList(dependencies));
@@ -146,6 +160,11 @@ public interface SqlTemplatesBuilder<This extends SqlTemplatesBuilder<This>> {
         }
 
         @Override
+        public default B key(String attributeKey) {
+            return actualSqlTemplatesBuilder().key(attributeKey);
+        }
+
+        @Override
         public default B join(JoinedView view) {
             throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
@@ -153,6 +172,12 @@ public interface SqlTemplatesBuilder<This extends SqlTemplatesBuilder<This>> {
         @Override
         default <V extends Template<? super SqlFilterableClause>> B where(Key<? super V> key, V filter) {
             throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public default B selectSnippet(SqlSnippet<? super SelectBuilder> snippet) {
+            snippet.getDependencies().addAll(dependencies());
+            return actualSqlTemplatesBuilder().selectSnippet(snippet);
         }
     }
 
@@ -163,6 +188,12 @@ public interface SqlTemplatesBuilder<This extends SqlTemplatesBuilder<This>> {
         @Override
         default This attribute(SqlAttribute attribute) {
             internalSqlTemplatesBuilder().attribute(attribute);
+            return (This) this;
+        }
+
+        @Override
+        default This key(String attributeKey) {
+            internalSqlTemplatesBuilder().key(attributeKey);
             return (This) this;
         }
 
@@ -181,6 +212,12 @@ public interface SqlTemplatesBuilder<This extends SqlTemplatesBuilder<This>> {
         @Override
         default<V extends Template<? super SqlFilterableClause>> This where(Key<? super V> key, V filter) {
             internalSqlTemplatesBuilder().where(key, filter);
+            return (This) this;
+        }
+
+        @Override
+        public default This selectSnippet(SqlSnippet<? super SelectBuilder> snippet) {
+            internalSqlTemplatesBuilder().selectSnippet(snippet);
             return (This) this;
         }
     }

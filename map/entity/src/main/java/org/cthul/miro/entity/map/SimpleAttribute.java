@@ -38,8 +38,18 @@ public abstract class SimpleAttribute<Entity, Cnn> implements EntityAttribute<En
     }
 
     @Override
+    public boolean accept(MiResultSet rs, Cnn cnn) throws MiException {
+        return columnValue.accept(rs, cnn);
+    }
+
+    @Override
     public EntityFactory<?> newValueReader(MiResultSet rs, Cnn cnn) throws MiException {
         return columnValue.newValueReader(rs, cnn);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "/" + getKey();
     }
 
     public static class ReadWrite<Entity, Cnn> extends SimpleAttribute<Entity, Cnn> {
@@ -63,7 +73,7 @@ public abstract class SimpleAttribute<Entity, Cnn> implements EntityAttribute<En
         }
     }
     
-    public static class Builder<Entity, Cnn> extends SimpleAttributeBuilder<Entity, Cnn, EntityAttribute<Entity, Cnn>> {
+    public static class Builder<Entity, Cnn> extends SimplePropertyBuilder<Entity, Cnn, EntityAttribute<Entity, Cnn>> {
 
         public Builder() {
         }

@@ -5,17 +5,21 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import org.cthul.miro.entity.EntityConfiguration;
-import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.entity.EntityFactory;
 import org.cthul.miro.entity.EntityType;
 import org.cthul.miro.entity.EntityTypes;
+import org.cthul.miro.entity.FactoryBuilder;
+import org.cthul.miro.entity.InitializationBuilder;
 import org.cthul.miro.graph.GraphApi;
 import org.cthul.miro.graph.NodeSelector;
+import org.cthul.miro.graph.NodeSet;
 import org.cthul.miro.graph.NodeType;
+import org.cthul.miro.graph.SelectorBuilder;
 import org.cthul.miro.graph.impl.KeyMap.MultiKey;
 import org.cthul.miro.util.Completable;
+import org.cthul.miro.util.XSupplier;
 
 /**
  * Framework for a {@link NodeType} implementation.
@@ -36,18 +40,24 @@ public abstract class AbstractNodeType<Entity> implements NodeType<Entity> {
 
     //<editor-fold defaultstate="collapsed" desc="NodeType implementation">
     @Override
-    public NodeSelector<Entity> newNodeFactory(GraphApi graph) throws MiException {
-        return new NodeFactory<>(this, graph);
-    }
-    
+    public abstract void newNodeFactory(GraphApi graph, SelectorBuilder<? super Entity> builder) throws MiException;
+
+//    @Override
+//    public void newEntityFactory(MiResultSet rs, GraphApi graph, FactoryBuilder<? super Entity> builder) throws MiException {
+//        ColumnReader kr = newKeyReader(rs, graph);
+//        NodeSet<Entity> ns = b -> newNodeFactory(graph, b);
+//        selectorAsFactory(kr, ns, builder);
+//    }
+
     @Override
-    public EntityInitializer<Entity> newAttributeLoader(GraphApi graph, List<?> attributes) throws MiException {
-        if (attributes.isEmpty()) return EntityTypes.noInitialization();
-        return createAttributeLoader(graph, attributes);
-    }
-    
-    protected EntityInitializer<Entity> createAttributeLoader(GraphApi graph, List<?> attributes) throws MiException {
-        return new AttributeLoader(newBatchLoader(graph, attributes));
+    public void newAttributeLoader(GraphApi graph, List<?> attributes, InitializationBuilder<? extends Entity> builder) throws MiException {
+        BatchLoader<Entity> batchLoader = newBatchLoader(graph, attributes);
+        builder.addInitializer(entity -> {
+            Object[] key = getKey(entity, null);
+            batchLoader.add(entity, key);
+        });
+        builder.addCompleteAndClose(batchLoader)
+                .addName("attributes from " + batchLoader);
     }
     
     @Override
@@ -59,19 +69,10 @@ public abstract class AbstractNodeType<Entity> implements NodeType<Entity> {
     protected abstract EntityConfiguration<Entity> createAttributeReader(GraphApi graph, List<?> attributes);
 
     @Override
-    public EntityType<Entity> asEntityType(GraphApi graph, NodeSelector<Entity> nodeSelector) {
-        return new SelectorAsType<>(this, graph, nodeSelector);
+    public EntityType<Entity> asEntityType(GraphApi graph, NodeSet<Entity> nodeSet) {
+        return new SetAsType<>(this, graph, nodeSet);
     }
     //</editor-fold>
-
-    /**
-     * Creates a new entity, with the given key if {@code key} is not null.
-     * @param graph
-     * @param key optional key
-     * @return new entity
-     * @throws MiException
-     */
-    protected abstract Entity newEntity(GraphApi graph, Object[] key) throws MiException;
     
     /**
      * Returns the key of an entity.
@@ -103,43 +104,20 @@ public abstract class AbstractNodeType<Entity> implements NodeType<Entity> {
     }
     
     /**
-     * A {@link NodeSelector} that always creates new nodes.
-     * @param <Entity> 
-     */
-    protected static class NodeFactory<Entity> implements NodeSelector<Entity> {
-        
-        private final AbstractNodeType<Entity> nodeType;
-        private final GraphApi graph;
-
-        public NodeFactory(AbstractNodeType<Entity> nodeType, GraphApi graph) {
-            this.nodeType = nodeType;
-            this.graph = graph;
-        }
-
-        @Override
-        public Entity get(Object... key) throws MiException {
-            return nodeType.newEntity(graph, key);
-        }
-
-        @Override
-        public void complete() throws MiException { }
-
-        @Override
-        public String toString() {
-            return "new " + nodeType;
-        }
-    }
-    
-    /**
      * Loads entity attributes in a batch.
      * @param <Entity> 
      */
-    protected static interface BatchLoader<Entity> extends Completable {
+    protected static interface BatchLoader<Entity> extends Completable, AutoCloseable {
         
         void add(Entity e, Object[] key) throws MiException;
 
         @Override
         void complete() throws MiException;
+
+        @Override
+        default void close() throws MiException {
+            complete();
+        }
     }
     
     protected abstract class AbstractBatchLoader implements BatchLoader<Entity> {
@@ -209,12 +187,12 @@ public abstract class AbstractNodeType<Entity> implements NodeType<Entity> {
 
         @Override
         public String toString() {
-            return "simple batch";
+            return "simple " + super.toString();
         }
     }
     
     /** Used by AbstractBatchLoader */
-    protected class SelectByKey implements NodeSelector<Entity>, EntityType<Entity> {
+    protected class SelectByKey implements NodeSet<Entity>, EntityType<Entity> {
         private final GraphApi graph;
         private final KeyMap.MultiKey<Entity> map;
 
@@ -224,73 +202,43 @@ public abstract class AbstractNodeType<Entity> implements NodeType<Entity> {
         }
 
         @Override
-        public Entity get(Object... key) throws MiException {
-            Entity e = map.get(key);
-            if (e == null) throw new IllegalArgumentException(
-                    "unexpected key: " + Arrays.toString(key));
-            return e;
+        public void newNodeSelector(SelectorBuilder<? super Entity> builder) throws MiException {
+            builder.setFactory(key -> {
+                Entity e = map.get(key);
+                if (e == null) throw new IllegalArgumentException(
+                        "unexpected key: " + Arrays.toString(key));
+                return e;
+            });
+            builder.addName("SelectByKey");
         }
 
         @Override
-        public void complete() throws MiException { }
-
-        @Override
-        public EntityFactory<Entity> newFactory(MiResultSet rs) throws MiException {
+        public void newFactory(MiResultSet rs, FactoryBuilder<? super Entity> builder) throws MiException {
             ColumnReader kr = newKeyReader(rs, graph);
-            return new SelectorAsFactory<>(kr, this);
+            selectorAsFactory(kr, this, builder);
         }
 
         @Override
         public String toString() {
-            return "";
+            return "SelectByKey";
         }
     }
     
-    protected class AttributeLoader implements EntityInitializer<Entity> {
-
-        private final BatchLoader<Entity> attributeQuery;
-
-        public AttributeLoader(BatchLoader<Entity> attributeQuery) {
-            this.attributeQuery = attributeQuery;
-        }
-
-        @Override
-        public void apply(Entity entity) throws MiException {
-            Object[] key = getKey(entity, null);
-            attributeQuery.add(entity, key);
-        }
-
-        @Override
-        public void complete() throws MiException {
-            attributeQuery.complete();
-        }
-
-        @Override
-        public void close() throws MiException {
-            complete();
-        }
-
-        @Override
-        public String toString() {
-            return "attributes from " + attributeQuery;
-        }
-    }
-    
-    protected static class SelectorAsType<Entity> implements EntityType<Entity> {
+    protected static class SetAsType<Entity> implements EntityType<Entity> {
         private final AbstractNodeType<Entity> type;
         private final GraphApi graph;
-        private final NodeSelector<Entity> nodeSelector;
+        private final NodeSet<Entity> nodeSet;
 
-        public SelectorAsType(AbstractNodeType<Entity> type, GraphApi graph, NodeSelector<Entity> nodeSelector) {
+        public SetAsType(AbstractNodeType<Entity> type, GraphApi graph, NodeSet<Entity> nodeSet) {
             this.type = type;
             this.graph = graph;
-            this.nodeSelector = nodeSelector;
+            this.nodeSet = nodeSet;
         }
 
         @Override
-        public EntityFactory<Entity> newFactory(MiResultSet rs) throws MiException {
+        public void newFactory(MiResultSet rs, FactoryBuilder<? super Entity> builder) throws MiException {
             ColumnReader kr = type.newKeyReader(rs, graph);
-            return new SelectorAsFactory<>(kr, nodeSelector);
+            selectorAsFactory(kr, nodeSet, builder);
         }
 
         @Override
@@ -299,41 +247,17 @@ public abstract class AbstractNodeType<Entity> implements NodeType<Entity> {
         }
     }
     
-    protected static class SelectorAsFactory<Entity> implements EntityFactory<Entity> {
-        
-        private final ColumnReader keyReader;
-        private final NodeSelector<Entity> nodeFactory;
-        private Object[] tmpKey = null;
-
-//        public SelectorAsFactory(KeyReader keyReader, AbstractNodeType<Entity> type) {
-//            this(keyReader, new NodeFactory<>(type));
-//        }
-        
-        public SelectorAsFactory(ColumnReader keyReader, NodeSelector<Entity> nodeFactory) {
-            this.keyReader = keyReader;
-            this.nodeFactory = nodeFactory;
-        }
-
-        @Override
-        public Entity newEntity() throws MiException {
-            tmpKey = keyReader.get(tmpKey);
-            return nodeFactory.get(tmpKey);
-        }
-
-        @Override
-        public void complete() throws MiException {
-            nodeFactory.complete();
-        }
-
-        @Override
-        public void close() throws MiException {
-            nodeFactory.close();
-        }
-
-        @Override
-        public String toString() {
-            return nodeFactory.toString();
-        }
+    protected static <Entity> void selectorAsFactory(ColumnReader keyReader, NodeSet<Entity> nodeSet, FactoryBuilder<? super Entity> builder) throws MiException {
+        NodeSelector<Entity> nodeFactory = CompositeSelector.buildNestedFrom(builder, nodeSet);
+        builder.setFactory(new XSupplier<Entity, MiException>() {
+            Object[] tmpKey = null;
+            @Override
+            public Entity get() throws MiException {
+                tmpKey = keyReader.get(tmpKey);
+                return nodeFactory.get(tmpKey);
+            }
+        });
+        builder.addName(nodeFactory);
     }
     
     protected static List<Object> flatten(List<?> list) {

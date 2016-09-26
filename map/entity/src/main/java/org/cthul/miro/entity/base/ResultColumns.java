@@ -1,6 +1,10 @@
 package org.cthul.miro.entity.base;
 
+import java.sql.ResultSet;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.entity.EntityFactory;
@@ -64,25 +68,20 @@ public class ResultColumns {
             return findColumns(rs, columns);
         }
         final int[] indices = findColumns(rs, columns);
-        boolean allFound = true;
         for (int i = 0; i < indices.length; i++) {
             if (indices[i] < 0) {
-                allFound = false;
                 if (i == 0 && allMissing(indices)) {
-                    // all are missing -> don't apply single column rule
-                    break;
-                }
-                // apply rule for single missing column
-                if (eachColumn.skipIfMissing(columns[i])) {
+                    // apply rule for all columns missing
+                    if (allColumns.skipIfMissing(columns)) {
+                        return null;
+                    }
+                } else if (eachColumn.skipIfMissing(columns[i])) {
+                    // apply rule for single missing column
                     return null;
                 }
-                // goto all columns rule
+                // take as-is
                 break;
             }
-        }
-        // not all columns found -> apply rule
-        if (!allFound && allColumns.skipIfMissing(columns)) {
-            return null;
         }
         return indices;
     }
@@ -101,11 +100,7 @@ public class ResultColumns {
         REQUIRED {
             @Override
             public boolean skipIfMissing(Object column) throws MiException {
-                if (column instanceof String[]) {
-                    column = String.join("','", (String[]) column);
-                    throw new MiException("No columns '" + column + "'");
-                }
-                throw new MiException("No column '" + column + "'");
+                throw missingColumn(column);
             }
         },
         /** Skip the setter for missing columns */
@@ -124,6 +119,112 @@ public class ResultColumns {
         };
         
         public abstract boolean skipIfMissing(Object column) throws MiException;
+        
+        public boolean errorOnMissing() {
+            return this == REQUIRED;
+        }
+        
+        public boolean defaultOnMissing() {
+            return this == DEFAULT;
+        }
+    }
+    
+    private static MiException missingColumn(Object column) {
+        if (column instanceof String[]) {
+            column = String.join("','", (String[]) column);
+            return new MiException("No columns '" + column + "'");
+        }
+        return new MiException("No column '" + column + "'");
+    }
+    
+    public static interface ColumnMatcher {
+        
+        Integer test(MiResultSet resultSet) throws MiException;
+        
+        Integer find(MiResultSet resultSet) throws MiException;
+    }
+    
+    public static ColumnMatcher match(ColumnRule rule, String name) {
+        return new ColumnMatcher() {
+            @Override
+            public Integer test(MiResultSet resultSet) throws MiException {
+                int i = resultSet.findColumn(name);
+                if (i < 0 && !rule.defaultOnMissing()) return null;
+                return i;
+            }
+            @Override
+            public Integer find(MiResultSet resultSet) throws MiException {
+                int i = resultSet.findColumn(name);
+                if (i < 0 && rule.skipIfMissing(name)) return null;
+                return i;
+            }
+            @Override
+            public String toString() {
+                return rule + " " + name;
+            }
+        };
+    }
+    
+    public static ColumnMatcher matchPattern(ColumnRule rule, String name) {
+        return match(rule, Pattern.compile(name));
+    }
+    
+    public static ColumnMatcher match(ColumnRule rule, Pattern name) {
+        return match(rule, name.asPredicate());
+    }
+    
+    public static ColumnMatcher matchPrefix(ColumnRule rule, String name) {
+        Predicate<String> prefix = new Predicate<String>() {
+            @Override
+            public boolean test(String t) {
+                return t.startsWith(name);
+            }
+            @Override
+            public String toString() {
+                return name + "*";
+            }
+        };
+        return match(rule, prefix);
+    }
+    
+    public static ColumnMatcher matchPrefixIgnoreCase(ColumnRule rule, String name) {
+        String ucase = name.toUpperCase();
+        Predicate<String> prefix = new Predicate<String>() {
+            @Override
+            public boolean test(String t) {
+                return t.toUpperCase().startsWith(ucase);
+            }
+            @Override
+            public String toString() {
+                return name + "*";
+            }
+        };
+        return match(rule, prefix);
+    }
+    
+    public static ColumnMatcher match(ColumnRule rule, Predicate<String> name) {
+        return new ColumnMatcher() {
+            @Override
+            public Integer test(MiResultSet resultSet) throws MiException {
+                int c = resultSet.getColumnCount() + 1;
+                for (int i = 1; i < c; i++) {
+                    String l = resultSet.getColumnLabel(i);
+                    if (name.test(l)) return i;
+                }
+                if (rule.defaultOnMissing()) return -1;
+                return null;
+            }
+            @Override
+            public Integer find(MiResultSet resultSet) throws MiException {
+                Integer i = test(resultSet);
+                if (i == null && rule.skipIfMissing(name)) return null;
+                return i;
+            }
+            @Override
+            public String toString() {
+                return rule + " " + name;
+            }
+        };
     }
     
 //    public static ColumnValue readColumn(ColumnRule rule, String column) {
@@ -140,8 +241,8 @@ public class ResultColumns {
 //        };
 //    }
 //    
-    public static EntityFactory<?> readColumn(MiResultSet rs, ColumnRule rule, String column, ColumnMappingBuilder.MultiValue multi) throws MiException {
-        Integer index = findColumn(rule, rs, column);
+    public static EntityFactory<?> readColumn(MiResultSet rs, ColumnMatcher column, ColumnMappingBuilder.MultiValue multi) throws MiException {
+        Integer index = column.find(rs);
         if (index == null) return null;
         class SingleColumnValue implements EntityFactory<Object> {
             Object[] v = multi != null ? new Object[1] : null;
@@ -153,6 +254,10 @@ public class ResultColumns {
                 }
                 v[0] = o;
                 return multi.join(v);
+            }
+            @Override
+            public String toString() {
+                return column + "(#" + index + ")";
             }
         }
         return new SingleColumnValue();

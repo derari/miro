@@ -1,10 +1,14 @@
 package org.cthul.miro.graph.impl;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.cthul.miro.db.MiConnection;
-import org.cthul.miro.graph.GraphApi;
+import org.cthul.miro.db.MiException;
+import org.cthul.miro.entity.EntityType;
+import org.cthul.miro.entity.FactoryBuilder;
 import org.cthul.miro.graph.NodeType;
+import org.cthul.miro.graph.SelectorBuilder;
 
 /**
  *
@@ -30,11 +34,18 @@ public class FakeGraph extends AbstractGraph {
                 super((NodeType) type, FakeGraph.this);
             }
             @Override
-            protected Node getNode(Object... key) {
-                return null;
+            public void newNodeSelector(SelectorBuilder<? super Node> builder) throws MiException {
+                getNodeType().newNodeFactory(getGraph(), builder);
             }
             @Override
-            protected void putNode(Object[] key, Node e) {
+            public EntityType<Node> getEntityType(List<?> attributes) {
+                return getNodeType().asEntityType(getGraph(), this, attributes);
+//                return (rs, b) -> {
+//                    getNodeType().newEntityFactory(rs, getGraph(), b);
+//                    if (attributes.isEmpty()) return;
+//                    FactoryBuilder<Node> fb = (FactoryBuilder) b;
+//                    fb.add(getNodeType().getAttributeReader(getGraph(), attributes), rs);
+//                };
             }
             @Override
             protected String shortString(Object s) {

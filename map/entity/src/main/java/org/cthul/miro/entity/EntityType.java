@@ -14,11 +14,15 @@ public interface EntityType<Entity> {
     /**
      * Creates a new entity factory.
      * <p> Closing the factory should not close the result set.
-     * @param rs
+     * @param resultSet
      * @return factory
      * @throws MiException 
      */
-    EntityFactory<Entity> newFactory(MiResultSet rs) throws MiException;
+    default EntityFactory<Entity> newFactory(MiResultSet resultSet) throws MiException {
+        return EntityTypes.buildFactory(this, resultSet);
+    }
+
+    void newFactory(MiResultSet resultSet, FactoryBuilder<? super Entity> builder) throws MiException;
     
     /**
      * Creates a type that will create initializing factories.

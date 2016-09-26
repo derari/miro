@@ -1,6 +1,5 @@
 package org.cthul.miro.sql.set;
 
-import org.cthul.miro.sql.set.EntitySchemaBuilder;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.graph.Graph;
 
@@ -14,14 +13,14 @@ public class AddressBookDB {
     private final AddressDao addressDao;
 
     public AddressBookDB(MiConnection cnn) {
-        this(new EntitySchemaBuilder(), cnn);
+        this(new MappedSqlSchema(), cnn);
     }
     
-    private AddressBookDB(EntitySchemaBuilder schemaBuilder, MiConnection cnn) {
+    private AddressBookDB(MappedSqlSchema schemaBuilder, MiConnection cnn) {
         this(schemaBuilder, schemaBuilder.newFakeGraph(cnn), cnn);
     }
 
-    private AddressBookDB(EntitySchemaBuilder schemaBuilder, Graph graph, MiConnection cnn) {
+    private AddressBookDB(MappedSqlSchema schemaBuilder, Graph graph, MiConnection cnn) {
         this.graph = graph;
         this.people = new PeopleImpl(cnn, schemaBuilder.getSelectLayer(Person.class));
         schemaBuilder.getMappingBuilder(Address.class)

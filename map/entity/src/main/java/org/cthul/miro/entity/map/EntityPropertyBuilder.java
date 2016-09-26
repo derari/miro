@@ -4,6 +4,7 @@ import org.cthul.miro.util.XBiConsumer;
 import java.lang.reflect.Field;
 import java.util.function.Function;
 import org.cthul.miro.db.MiException;
+import org.cthul.miro.entity.base.ResultColumns.ColumnMatcher;
 import org.cthul.miro.entity.base.ResultColumns.ColumnRule;
 
 /**
@@ -12,12 +13,12 @@ import org.cthul.miro.entity.base.ResultColumns.ColumnRule;
  * @param <Cnn>
  * @param <Result>
  */
-public interface EntityAttributeBuilder<Entity, Cnn, Result> 
+public interface EntityPropertyBuilder<Entity, Cnn, Result> 
                 extends ColumnMappingBuilder<Entity, Cnn, 
-                                             EntityAttributeBuilder.Single<Entity, Cnn, Result>, 
-                                             EntityAttributeBuilder.Group<Entity, Cnn, Result>> {
+                                             EntityPropertyBuilder.Single<Entity, Cnn, Result>, 
+                                             EntityPropertyBuilder.Group<Entity, Cnn, Result>> {
     
-    EntityAttributeBuilder<Entity, Cnn, Result> as(String key);
+    EntityPropertyBuilder<Entity, Cnn, Result> as(String key);
     
     interface FieldAccess<Entity, Result, This extends FieldAccess<Entity, Result, This>> {
         
@@ -68,6 +69,10 @@ public interface EntityAttributeBuilder<Entity, Cnn, Result>
                 @Override
                 public void accept(Object t, Object u) throws MiException {
                     try {
+                        if (field.getType() == int.class) {
+                            // TODO: rework all this setting to Field
+                            u = ((Number) u).intValue();
+                        }
                         field.set(t, u);
                     } catch (ReflectiveOperationException ex) {
                         throw new MiException(ex);
@@ -98,8 +103,8 @@ public interface EntityAttributeBuilder<Entity, Cnn, Result>
         private final Class<Entity> clazz;
         private Function<? super Entity, Object> getter = WRITE_ONLY;
 
-        public Single(String key, Class<Entity> clazz, String column, ColumnRule rule) {
-            super(column, rule);
+        public Single(String key, Class<Entity> clazz, ColumnMatcher column) {
+            super(column);
             this.key = key;
             this.clazz = clazz;
         }

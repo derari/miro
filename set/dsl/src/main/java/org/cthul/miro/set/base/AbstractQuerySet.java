@@ -12,7 +12,7 @@ import org.cthul.miro.result.Results;
 import org.cthul.miro.util.Key;
 import org.cthul.miro.map.MappingKey;
 import org.cthul.miro.map.layer.MappedQuery;
-import org.cthul.miro.request.part.ListNode;
+import org.cthul.miro.request.part.BatchNode;
 
 /**
  *
@@ -72,8 +72,8 @@ public abstract class AbstractQuerySet<Entity, Stmt extends MiQuery, This extend
         return compose(ic -> action.accept(ic.node(key)));
     }
 
-    protected <V> This setUp(Key<? extends ListNode<V>> key, V... values) {
-        return compose(ic -> ic.node(key).addAll(values));
+    protected <V> This setUp(Key<? extends BatchNode<V>> key, V... values) {
+        return compose(ic -> ic.node(key).set(values));
     }
 
     @Override
@@ -81,52 +81,4 @@ public abstract class AbstractQuerySet<Entity, Stmt extends MiQuery, This extend
         MappedQuery<Entity, Stmt> qry = new MappedQuery<>(cnn, requestType);
         return qry.query(getComposer());
     }
-    
-//    @Override
-//    public List<Entity> asList() throws MiException {
-//        if (list == null) {
-//            Results.Action<Entity> result = result(entitySet, getComposer());
-//            try {
-//                list = result.asList();
-//            } catch (InterruptedException ex) {
-//                Thread.currentThread().interrupt();
-//                throw new MiException("interrupted");
-//            } catch (ExecutionException ex) {
-//                throw new MiException(ex);
-//            }
-////            list = new AbstractList<Entity>() {
-////                List<Entity> data = null;
-////                Boolean empty = null;
-////                List<Entity> result() {
-////                    if (data == null) {
-////                        data = result._asList();
-////                    }
-////                    return data;
-////                }
-////                @Override
-////                public Iterator<Entity> iterator() {
-////                    return result().iterator();
-////                }
-////                @Override
-////                public Entity get(int index) {
-////                    return result().get(index);
-////                }
-////                @Override
-////                public boolean isEmpty() {
-////                    if (data == null) {
-////                        if (empty == null) {
-////                            empty = composer._execute()._getFirst() == null;
-////                        }
-////                        return empty;
-////                    }
-////                    return result().isEmpty();
-////                }
-////                @Override
-////                public int size() {
-////                    return result().size();
-////                }
-////            };
-//        }
-//        return list;
-//    }
 }

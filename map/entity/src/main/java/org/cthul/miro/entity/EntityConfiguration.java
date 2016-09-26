@@ -18,7 +18,11 @@ public interface EntityConfiguration<Entity> {
      * @return initializer
      * @throws MiException 
      */
-    EntityInitializer<Entity> newInitializer(MiResultSet resultSet) throws MiException;
+    default EntityInitializer<Entity> newInitializer(MiResultSet resultSet) throws MiException {
+        return EntityTypes.buildInitializer(this, resultSet);
+    }
+
+    void newInitializer(MiResultSet resultSet, InitializationBuilder<? extends Entity> builder) throws MiException;
     
     /**
      * Creates a configuration that will apply both this and the given configuration.

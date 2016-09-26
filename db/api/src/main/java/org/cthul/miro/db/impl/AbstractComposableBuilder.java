@@ -16,8 +16,7 @@ public abstract class AbstractComposableBuilder implements AutocloseableBuilder 
 
     protected void checkActive(AutocloseableBuilder active) {
         if (active == null) {
-            autocloseableBuilder.close();
-            autocloseableBuilder = NO_CLOSABLE;
+            closeNestedClause();
         } else if (active != autocloseableBuilder) {
             throw new IllegalStateException(active + " is closed");
         }
@@ -29,7 +28,8 @@ public abstract class AbstractComposableBuilder implements AutocloseableBuilder 
     }
     
     protected void closeNestedClause() {
-        checkActive(null);
+        autocloseableBuilder.close();
+        autocloseableBuilder = NO_CLOSABLE;
     }
     
     /**

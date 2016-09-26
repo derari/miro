@@ -1,10 +1,14 @@
 package org.cthul.miro.sql.template;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.request.impl.ValueKey;
 import org.cthul.miro.sql.template.JoinedView.Layers;
 import org.cthul.miro.request.template.Template;
@@ -18,12 +22,14 @@ import org.cthul.miro.util.Key;
 /**
  *
  */
-public class SqlTemplates implements SqlTemplatesBuilder<SqlTemplates> {
+public class SqlTemplates 
+                implements SqlTemplatesBuilder<SqlTemplates> {
 
     private final Map<String, SqlAttribute> attributes = new HashMap<>();
     private final Map<String, SqlTable> tables = new HashMap<>();
     private final Map<String, JoinedView> joinedViews = new HashMap<>();
     private final Map<String, SqlSnippet<? super SelectBuilder>> selectSnippets = new ConcurrentHashMap<>();
+    private final List<String> keyAttributes = new ArrayList<>();
     private final Key<ViewComposer> mainKey;
 
     public SqlTemplates(String name) {
@@ -53,10 +59,11 @@ public class SqlTemplates implements SqlTemplatesBuilder<SqlTemplates> {
     }
     
     protected void collectJoinedSelectTemplateLayers(Layers<SelectBuilder> bag) {
+        // TODO: rewrite so that joined layers are looked up on demand
         joinedViews.values().forEach(jv -> jv.collectSelectTemplateLayers(bag));
     }
 
-    protected Map<String, SqlAttribute> getAttributes() {
+    public Map<String, SqlAttribute> getAttributes() {
         return attributes;
     }
 
@@ -98,28 +105,87 @@ public class SqlTemplates implements SqlTemplatesBuilder<SqlTemplates> {
     @Override
     public SqlTemplates attribute(SqlAttribute attribute) {
         attributes.put(attribute.getKey(), attribute);
+        return (SqlTemplates) this;
+    }
+
+    @Override
+    public SqlTemplates key(String attributeKey) {
+        keyAttributes.add(attributeKey);
         return this;
     }
 
     @Override
     public SqlTemplates table(SqlTable table) {
         tables.put(table.getKey(), table);
-        return this;
+        return (SqlTemplates) this;
     }
 
     @Override
     public SqlTemplates join(JoinedView view) {
         joinedViews.put(view.getPrefix(), view);
-        return this;
+        return (SqlTemplates) this;
     }
 
     @Override
     public <V extends Template<? super SqlFilterableClause>> SqlTemplates where(Key<? super V> key, V filter) {
 //        templates.put(key, filter);
-        return this;
+        return (SqlTemplates) this;
+    }
+
+    @Override
+    public SqlTemplates selectSnippet(SqlSnippet<? super SelectBuilder> snippet) {
+        selectSnippets.put(snippet.getKey(), snippet);
+        return (SqlTemplates) this;
+    }
+    
+    public JoinedView joinedAs(String prefix, Function<List<SqlAttribute>, List<Object>> foreignKeys) {
+        return new JoinedView() {
+            Function<List<SqlAttribute>, List<Object>> keySupplier = foreignKeys;
+            QlCode condition = null;
+            @Override
+            public String getPrefix() {
+                return prefix;
+            }
+            @Override
+            public Key<ViewComposer> getViewKey() {
+                return getMainKey();
+            }
+            @Override
+            public void collectSelectTemplateLayers(JoinedView.Layers<SelectBuilder> bag) {
+                if (condition == null) condition = initCondition();
+                JoinedLayer<SelectBuilder> jl = new JoinedLayer<>(SqlTemplates.this, getViewKey(), prefix, condition);
+                if (bag.add(getViewKey(), jl)) {
+                    collectJoinedSelectTemplateLayers(bag);
+                }
+            }
+            @Override
+            public String toString() { 
+                return getViewKey() + " AS " + prefix;
+            }
+            private QlCode initCondition() {
+                QlCode.Builder code = QlCode.build();
+                List<SqlAttribute> keys = new ArrayList<>();
+                keyAttributes.forEach(k -> keys.add(getAttributes().get(k)));
+                List<Object> foreigns = keySupplier.apply(keys);
+                for (int i = 0; i < foreigns.size(); i++) {
+                    if (i > 0) code.append(" AND ");
+                    SqlAttribute key = keys.get(i);
+                    code.append(key.expression()).append(" ");
+                    AttributeFilter.appendComparative(foreigns.get(i), code, (v, q) -> {
+                        ((QlCode) v).appendTo(q);
+                    });
+                }
+                keySupplier = null;
+                return code;
+            }
+        };
     }
     
     public JoinedView joinedAs(String prefix, String condition) {
+        return joinedAs(prefix, MiSqlParser.parseCode(condition));
+    }
+    
+    private JoinedView joinedAs(String prefix, QlCode condition) {
         return new JoinedView() {
             @Override
             public String getPrefix() { 

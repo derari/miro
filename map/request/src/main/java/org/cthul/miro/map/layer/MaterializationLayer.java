@@ -20,6 +20,7 @@ import org.cthul.miro.entity.map.EntityAttribute;
 import org.cthul.miro.graph.GraphApi;
 import org.cthul.miro.map.MappingKey;
 import org.cthul.miro.map.Mapping;
+import org.cthul.miro.request.ComposerKey;
 import org.cthul.miro.util.Key;
 import org.cthul.miro.util.XConsumer;
 
@@ -39,6 +40,11 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
 
     @Override
     protected Template<? super Mapping<Entity>> createPartTemplate(Parent<Mapping<Entity>> parent, Object key) {
+        switch (ComposerKey.key(key)) {
+//            case ALWAYS:
+//                return parent.andSetUp(MappingKey.INCLUDE, inc -> 
+//                        inc.addAll(getOwner().getKeys()));
+        }
         switch (MappingKey.key(key)) {
             case FETCH:
                 return link(MappingKey.INCLUDE, MappingKey.LOAD);
@@ -49,7 +55,7 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
             case SET:
                 return newNodePart(SetField::new);
         }
-        return super.createPartTemplate(parent, key);
+        return null;
     }
 
     protected class LoadField 
@@ -57,37 +63,16 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
                                 StatementPart<Mapping<Entity>> {
 
         private final LinkedHashSet<String> attributes = new LinkedHashSet<>();
-        private boolean all = false;
         private final Composer cmp;
 
         public LoadField(Composer cmp) {
             this.cmp = cmp;
         }
         
-        @Deprecated
-        public void loadAll() {
-            all = true;
-        }
-        
         @Override
         public void addTo(Mapping<Entity> builder) {
             GraphApi graph = (GraphApi) cmp.get(MappingKey.TYPE).getGraph();
-            if (all) {
-                builder.configureWith(rs -> {
-                    return getOwner().getAttributes().newInitializer(rs, graph);
-//                    List<String> list = new ArrayList<>();
-//                    for (int i = 0; i < rs.getColumnCount(); i++) {
-//                        String col = rs.getColumnLabel(i+1);
-//                        getOwner().getAttributes().getAttributeMap().
-//                        if (getOwner().getSetters().containsKey(col)) {
-//                            list.add(col);
-//                        }
-//                    }
-//                    return getOwner().attributeConfiguration(list).newInitializer(rs);
-                });
-            } else {
-                builder.configureWith(getOwner().getAttributes().newConfiguration(graph, attributes));
-            }
+            builder.configureWith(getOwner().getAttributes().newConfiguration(graph, attributes));
         }
 
         @Override
@@ -99,7 +84,6 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
         public Object copyFor(InternalComposer<Object> ic) {
             LoadField copy = new LoadField(ic);
             copy.attributes.addAll(attributes);
-            copy.all = all;
             return copy;
         }
 
@@ -126,6 +110,7 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
         @Override
         public void add(String entry) {
             EntityAttribute<?,GraphApi> at = getOwner().getAttributes().getAttributeMap().get(entry);
+            if (at == null) throw new IllegalArgumentException(entry);
             resultColumns.addAll(at.getColumns());
         }
 

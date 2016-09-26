@@ -9,7 +9,7 @@ public class TemplateStack<Builder> implements Template<Builder> {
     private Template<? super Builder> top;
 
     public TemplateStack() {
-        this(Templates.noOp());
+        this(Templates.end());
     }
 
     public TemplateStack(Template<? super Builder> parent) {

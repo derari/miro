@@ -21,6 +21,11 @@ public abstract class AbstractMiFutureFunction<T, R> extends AbstractMiSubmittab
         super(executor, defaultExecutor, resettable);
         this.function = function;
     }
+
+    protected AbstractMiFutureFunction<T, R> run(T arg) {
+        run(new Runner(arg));
+        return this;
+    }
     
     protected AbstractMiFutureFunction<T, R> submit(T arg) {
         submit(new Runner(arg));

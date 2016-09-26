@@ -1,5 +1,6 @@
 package org.cthul.miro.request.part;
 
+import java.util.Collection;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -13,7 +14,7 @@ import org.cthul.miro.request.template.InternalComposer;
  *
  * @param <Entry>
  */
-public interface ListNode<Entry> extends Templates.ComposableNode<ListNode<Entry>> {
+public interface ListNode<Entry> extends Templates.ComposableNode<ListNode<Entry>>, BatchNode<Entry> {
     
     void add(Entry entry);
     
@@ -27,6 +28,16 @@ public interface ListNode<Entry> extends Templates.ComposableNode<ListNode<Entry
     
     default void addAll(Stream<? extends Entry> entries) {
         entries.forEach(this::add);
+    }
+
+    @Override
+    public default void set(Collection<? extends Entry> values) {
+        addAll(values);
+    }
+
+    @Override
+    public default void set(Entry... values) {
+        addAll(values);
     }
 
     @Override

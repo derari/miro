@@ -6,8 +6,8 @@ import org.cthul.miro.function.MiFunction;
 import org.cthul.miro.futures.MiFuture;
 import org.cthul.miro.futures.MiResettableAction;
 import org.cthul.miro.futures.MiResettableFuture;
-import static org.cthul.miro.futures.MiFutures.futureAsAction;
 import org.cthul.miro.function.MiSupplier;
+import static org.cthul.miro.futures.MiFutures.futureAsAction;
 
 /**
  * The result of a supplier that has to be submitted or triggered.
@@ -58,6 +58,11 @@ public class MiSubmittableAction<V> extends AbstractMiSubmittable<V> implements 
             trigger = new Trigger();
         }
         return trigger;
+    }
+
+    @Override
+    protected void tryRunNow(long ms) {
+        run();
     }
     
     protected void run() {

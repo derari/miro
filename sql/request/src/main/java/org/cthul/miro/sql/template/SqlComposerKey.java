@@ -38,22 +38,5 @@ public interface SqlComposerKey<Value> extends Key<Value> {
         SNIPPETS,
         
         NIL;
-    }
-    
-    interface AttributeFilter {
-        
-        ListNode<Object[]> forAttributes(String... attributeKeys);
-    }
-    
-    class AttributeFilterKey extends ValueKey<ListNode<Object[]>> {
-        private final String[] attributeKeys;
-        public AttributeFilterKey(String... attributeKeys) {
-            super(Arrays.stream(attributeKeys).collect(Collectors.joining(",")));
-            this.attributeKeys = attributeKeys;
-        }
-
-        public String[] getAttributeKeys() {
-            return attributeKeys;
-        }
-    }
+    }    
 }

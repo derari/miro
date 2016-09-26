@@ -5,9 +5,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.request.template.Template;
 import org.cthul.miro.sql.SqlFilterableClause;
-import org.cthul.miro.sql.template.SqlComposerKey.AttributeFilterKey;
 import org.cthul.miro.request.Composer;
 import org.cthul.miro.request.StatementPart;
 import org.cthul.miro.request.part.Copyable;
@@ -16,6 +16,9 @@ import org.cthul.miro.request.part.MapNode;
 import org.cthul.miro.request.template.InternalComposer;
 import org.cthul.miro.request.template.Templates;
 import org.cthul.miro.sql.SqlClause;
+import org.cthul.miro.sql.SqlClause.BooleanExpression;
+import org.cthul.miro.sql.template.AttributeFilter.AttributeFilterKey;
+import org.cthul.miro.sql.template.AttributeFilter.Comparative;
 
 /**
  * Maps the public {@link SqlComposerKey}s to internal {@link ViewComposer} methods.
@@ -43,7 +46,7 @@ public class GeneralSqlLayer<Builder extends SqlFilterableClause> extends Abstra
             case SNIPPETS:
                 return Templates.link(getOwner().getMainKey());
             case ATTRIBUTE_FILTER:
-                return Templates.newNode(AttributeFilter::new);
+                return Templates.newNode(AttributeFilterHub::new);
         }
         if (key instanceof SnippetKey) {
             SnippetKey sk = (SnippetKey) key;
@@ -55,10 +58,10 @@ public class GeneralSqlLayer<Builder extends SqlFilterableClause> extends Abstra
         return null;
     }
     
-    protected class AttributeFilter implements SqlComposerKey.AttributeFilter, Copyable<Object> {
-        private final InternalComposer<?> ic;
+    protected class AttributeFilterHub implements AttributeFilter, Copyable<Object> {
+        final InternalComposer<?> ic;
 
-        public AttributeFilter(InternalComposer<?> ic) {
+        public AttributeFilterHub(InternalComposer<?> ic) {
             this.ic = ic;
         }
 
@@ -69,7 +72,7 @@ public class GeneralSqlLayer<Builder extends SqlFilterableClause> extends Abstra
 
         @Override
         public Object copyFor(InternalComposer<Object> ic) {
-            return new AttributeFilter(ic);
+            return new AttributeFilterHub(ic);
         }
 
         @Override
@@ -95,19 +98,33 @@ public class GeneralSqlLayer<Builder extends SqlFilterableClause> extends Abstra
         
         @Override
         public void addTo(SqlFilterableClause sql) {
-            if (attributes.size() == 1) {
-                sql.where().ql(attributes.get(0).expression())
-                        .in().list(values.stream().map(k -> k[0]));
+            if (attributes.size() == 1 && values.size() > 1) {
+                if (Arrays.stream(values.get(0)).noneMatch(v -> v instanceof Comparative)) {
+                    sql.where().ql(attributes.get(0).expression())
+                            .in().list(values.stream().map(v -> v[0]));
+                    return;
+                }
+            }
+            if (values.size() == 1) {
+                appendAttributeFilter(sql.where(), values.get(0));
             } else {
-                int len = attributes.size();
                 SqlClause.Junction<?> junc = sql.where().either();
-                values.forEach(k -> {
-                    SqlClause.Conjunction<?> conj = junc.or().all();
-                    for (int i = 0; i < len; i++) {
-                        conj.and().ql(attributes.get(i).expression())
-                                .ql(" = ?").pushArgument(k[i]);
-                    }
-                });
+                values.forEach(v -> appendAttributeFilter(junc.or(), v));
+            }
+        }
+        
+        private void appendAttributeFilter(BooleanExpression<?> exp, Object[] valueTuple) {
+            int len = attributes.size();
+            if (len == 1) {
+                exp.ql(attributes.get(0).expression()).ql(" ");
+                AttributeFilter.appendComparative(valueTuple[0], exp);
+            } else {
+                SqlClause.Conjunction<?> conj = exp.all();
+                for (int i = 0; i < len; i++) {
+                    QlBuilder<?> ql = conj.and();
+                    ql.ql(attributes.get(i).expression()).ql(" ");
+                    AttributeFilter.appendComparative(valueTuple[i], ql);
+                }
             }
         }
 

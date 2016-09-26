@@ -17,7 +17,6 @@ import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.set.base.AbstractQuerySet;
 import org.cthul.miro.map.Mapping;
 import org.cthul.miro.map.layer.MappedQuery;
-import org.cthul.miro.sql.map.MappedSqlType;
 
 /**
  *

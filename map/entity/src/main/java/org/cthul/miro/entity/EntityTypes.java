@@ -3,14 +3,18 @@ package org.cthul.miro.entity;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
-import org.cthul.miro.db.impl.PrefixedResultSet;
-import org.cthul.miro.function.MiFunction;
-import org.cthul.miro.util.Closables;
+import org.cthul.miro.util.Closeables;
+import org.cthul.miro.util.Completable;
+import org.cthul.miro.util.CompletableBuilder;
+import org.cthul.miro.util.CompleteAndClose;
+import org.cthul.miro.util.XConsumer;
+import org.cthul.miro.util.XSupplier;
 
 /**
  * Contains utility methods related to entity types.
@@ -53,19 +57,6 @@ public class EntityTypes {
         return new MultiConfiguration<>(cfg);
     }
     
-    /**
-     * Combines multiple initialiters into one.
-     * @param <Entity>
-     * @param initializers
-     * @return combined initialiter
-     */
-    public static <Entity> EntityInitializer<Entity> multiInitializer(Collection<EntityInitializer<? super Entity>> initializers) {
-        List<EntityInitializer<? super Entity>> cfg = new ArrayList<>(initializers.size());
-        collectInitializers(initializers, cfg);
-        if (cfg.isEmpty()) return noInitialization();
-        return new MultiInitializer<>(cfg);
-    }
-
     private static <Entity> void collectConfigurations(Collection<EntityConfiguration<? super Entity>> configurations, List<EntityConfiguration<? super Entity>> target) {
         configurations.forEach(c -> {
             if (c instanceof MultiConfiguration) {
@@ -76,14 +67,46 @@ public class EntityTypes {
         });
     }
 
-    private static <Entity> void collectInitializers(Collection<EntityInitializer<? super Entity>> initializers, List<EntityInitializer<? super Entity>> target) {
-        initializers.forEach(c -> {
-            if (c instanceof MultiInitializer) {
-                target.addAll(((MultiInitializer<Entity>) c).initializers);
-            } else if (c != NO_INITIALIZATION) {
-                target.add(c);
-            }
-        });
+    public static <Entity, T extends Throwable> EntityInitializer<Entity> buildInitializer(XConsumer<? super InitializationBuilder<Entity>, T> action) throws T {
+        InitBuilder<Entity> b = new InitBuilder<>();
+        action.accept(b);
+        return b.buildInitializer();
+    }
+    
+    public static <Entity> EntityInitializer<Entity> buildInitializer(EntityConfiguration<Entity> cfg, MiResultSet rs) throws MiException {
+        return buildInitializer(b -> cfg.newInitializer(rs, b));
+    }
+    
+    public static <Entity, T extends Throwable> EntityInitializer<Entity> buildNestedInitializer(CompletableBuilder parent, XConsumer<? super InitializationBuilder<Entity>, T> action) throws T {
+        NestedInitBuilder<Entity> b = new NestedInitBuilder<>(parent);
+        action.accept(b);
+        return b.buildInitializer();
+    }
+    
+    public static <Entity, T extends Throwable> EntityFactory<Entity> buildFactory(XConsumer<? super FactoryBuilder<Entity>, T> action) throws T {
+        FacBuilder<Entity> b = new FacBuilder<>();
+        action.accept(b);
+        return b.buildFactory();
+    }
+    
+    public static <Entity, T extends Throwable> EntityFactory<Entity> buildFactory(EntityType<Entity> type, MiResultSet rs) throws MiException {
+        return buildFactory(b -> type.newFactory(rs, b));
+    }
+    
+    public static <Entity, T extends Throwable> EntityFactory<Entity> buildNestedFactory(CompletableBuilder parent, XConsumer<? super FactoryBuilder<Entity>, T> action) throws T {
+        NestedFacBuilder<Entity> b = new NestedFacBuilder<>(parent);
+        action.accept(b);
+        return b.buildFactory();
+    }
+    
+    /**
+     * Combines multiple initializers into one.
+     * @param <Entity>
+     * @param initializers
+     * @return combined initializer
+     */
+    public static <Entity> EntityInitializer<Entity> multiInitializer(Collection<EntityInitializer<? super Entity>> initializers) {
+       return buildInitializer(b -> initializers.forEach(i -> b.add(i)));
     }
 
     /**
@@ -131,16 +154,10 @@ public class EntityTypes {
     }
     
     public static <Entity> EntityFactory<Entity> initializingFactory(EntityFactory<Entity> factory, Collection<EntityInitializer<? super Entity>> initializers) {
-        List<EntityInitializer<? super Entity>> cfg = new ArrayList<>();
-        if (factory instanceof ConfiguredFactory) {
-            @SuppressWarnings("unchecked")
-            ConfiguredFactory<Entity> ct = (ConfiguredFactory) factory;
-            cfg.addAll(ct.initializers);
-            factory = ct.factory;
-        }
-        collectInitializers(initializers, cfg);
-        if (cfg.isEmpty()) return factory;
-        return new ConfiguredFactory<>(factory, cfg);
+        return buildFactory(b -> {
+            b.set(factory);
+            initializers.forEach(i -> b.add(i));
+        });
     }
     
     public static <Entity> EntityFactory<Entity> batch(EntityFactory<Entity> factory) {
@@ -157,26 +174,13 @@ public class EntityTypes {
         return NO_INITIALIZATION;
     }
     
-    public static <Entity> EntityConfiguration<Entity> newConfiguration(MiFunction<? super MiResultSet, ? extends EntityInitializer<Entity>> init) {
-        return new EntityConfiguration<Entity>() {
-            @Override
-            public EntityInitializer<Entity> newInitializer(MiResultSet resultSet) throws MiException {
-                try {
-                    return init.call(resultSet);
-                } catch (Throwable e) {
-                    throw Closables.exceptionAs(e, MiException.class);
-                }
-            }
-            @Override
-            public String toString() {
-                return init.toString();
-            }
-        };
-    }
-    
     public static <Entity> EntityConfiguration<Entity> asConfiguration(EntityInitializer<Entity> init) {
         Objects.requireNonNull(init, "initializer");
         return new EntityConfiguration<Entity>() {
+            @Override
+            public void newInitializer(MiResultSet resultSet, InitializationBuilder<? extends Entity> builder) throws MiException {
+                builder.add(init);
+            }
             @Override
             public EntityInitializer<Entity> newInitializer(MiResultSet resultSet) throws MiException {
                 return init;
@@ -193,9 +197,9 @@ public class EntityTypes {
         Objects.requireNonNull(cfg, "configuration");
         return new EntityConfiguration<Entity>() {
             @Override
-            public EntityInitializer<Entity> newInitializer(MiResultSet resultSet) throws MiException {
-                MiResultSet rs = new PrefixedResultSet(prefix, resultSet);
-                return cfg.newInitializer(rs);
+            public void newInitializer(MiResultSet resultSet, InitializationBuilder<? extends Entity> builder) throws MiException {
+                MiResultSet rs = resultSet.subResult(prefix);
+                builder.add(cfg, rs);
             }
             @Override
             public String toString() {
@@ -204,14 +208,30 @@ public class EntityTypes {
         };
     }
     
+    public static <Entity> EntityType<Entity> asType(EntityFactory<Entity> factory) {
+        Objects.requireNonNull(factory, "factory");
+        return new EntityType<Entity>() {
+            @Override
+            public void newFactory(MiResultSet resultSet, FactoryBuilder<? super Entity> builder) throws MiException {
+                builder.set(factory);
+            }
+            @Override
+            public EntityFactory<Entity> newFactory(MiResultSet resultSet) throws MiException {
+                return factory;
+            }
+            @Override
+            public String toString() {
+                return String.valueOf(factory);
+            }
+        };
+    }
+    
     @SuppressWarnings("rawtypes")
     private static final EntityInitializer NO_INITIALIZATION = new EntityInitializer<Object>() {
         @Override
         public void apply(Object entity) throws MiException { }
-
         @Override
         public void complete() throws MiException { }
-
         @Override
         public String toString() {
             return "no-op";
@@ -221,15 +241,21 @@ public class EntityTypes {
     @SuppressWarnings("rawtypes")
     private static final EntityConfiguration NO_CONFIGURATION = new EntityConfiguration<Object>() {
         @Override
-        @SuppressWarnings("unchecked")
-        public EntityInitializer<Object> newInitializer(MiResultSet rs) throws MiException {
+        public EntityInitializer<Object> newInitializer(MiResultSet resultSet) throws MiException {
             return NO_INITIALIZATION;
+        }
+        @Override
+        public void newInitializer(MiResultSet resultSet, InitializationBuilder<? extends Object> builder) throws MiException {
         }
         @Override
         public String toString() {
             return "no-op";
         }
     };
+    
+    private static boolean blank(Collection<?> c) {
+        return CompleteAndClose.blank(c);
+    }
     
     protected static class MultiConfiguration<Entity> implements EntityConfiguration<Entity> {
         
@@ -240,59 +266,16 @@ public class EntityTypes {
         }
 
         @Override
-        public EntityInitializer<Entity> newInitializer(MiResultSet rs) throws MiException {
-            List<EntityInitializer<? super Entity>> initializers = new ArrayList<>(configurations.size());
-            try {
-                for (EntityConfiguration<? super Entity> cfg: configurations) {
-                    initializers.add(cfg.newInitializer(rs));
-                }
-            } catch (MiException e) {
-                throw Closables.closeAll(e, initializers);
-            }
-            return new MultiInitializer<>(initializers);
-        }
-
-        @Override
-        public String toString() {
-            StringBuilder sb = new StringBuilder();
-            sb.append('(');
-            configurations.stream().forEach(c -> {
-                sb.append(c).append(", ");
-            });
-            sb.setLength(sb.length()-2);
-            return sb.append(')').toString();
-        }
-    }
-    
-    protected static class MultiInitializer<Entity> implements EntityInitializer<Entity> {
-
-        private final List<EntityInitializer<? super Entity>> initializers;
-
-        public MultiInitializer(List<EntityInitializer<? super Entity>> initializers) {
-            this.initializers = initializers;
-        }
-        
-        @Override
-        public void apply(Entity entity) throws MiException {
-            for (EntityInitializer<? super Entity> i: initializers) {
-                i.apply(entity);
+        public void newInitializer(MiResultSet resultSet, InitializationBuilder<? extends Entity> builder) throws MiException {
+            for (EntityConfiguration<? super Entity> cfg: configurations) {
+                builder.add(cfg, resultSet);
             }
         }
 
         @Override
-        public void complete() throws MiException {
-            Closables.completeAll(MiException.class, initializers);
-        }
-
-        @Override
-        public void close() throws MiException {
-            complete();
-            Closables.closeAll(MiException.class, initializers);
-        }
-
-        @Override
         public String toString() {
-            return initializers.stream().map(Object::toString).collect(Collectors.joining(","));
+            return configurations.stream().map(Object::toString)
+                    .collect(Collectors.joining(", ", "(", ")"));
         }
     }
     
@@ -305,20 +288,13 @@ public class EntityTypes {
             this.type = type;
             this.configurations = configurations;
         }
-        
+
         @Override
-        public EntityFactory<Entity> newFactory(MiResultSet rs) throws MiException {
-            List<EntityInitializer<? super Entity>> initializers = new ArrayList<>(configurations.size());
-            EntityFactory<Entity> factory;
-            try {
-                for (EntityConfiguration<? super Entity> cfg: configurations) {
-                    initializers.add(cfg.newInitializer(rs));
-                }
-                factory = type.newFactory(rs);
-            } catch (MiException e) {
-                throw Closables.closeAll(e, initializers);
+        public void newFactory(MiResultSet resultSet, FactoryBuilder<? super Entity> builder) throws MiException {
+            FactoryBuilder<Entity> fb = builder.set(type, resultSet);
+            for (EntityConfiguration<? super Entity> cfg: configurations) {
+                fb.add(cfg, resultSet);
             }
-            return new ConfiguredFactory<>(factory, initializers);
         }
 
         @Override
@@ -333,50 +309,258 @@ public class EntityTypes {
         }
     }
     
-    protected static class ConfiguredFactory<Entity> implements EntityFactory<Entity> {
+    public static class NestedInitBuilder<Entity> 
+                    extends CompleteAndClose.NestedCompletableBuilder<InitializationBuilder<Entity>> 
+                    implements InitializationBuilder<Entity> {
+        
+        private List<XConsumer<? super Entity, ?>> consumers = null;
 
-        private final EntityFactory<Entity> factory;
-        private final List<EntityInitializer<? super Entity>> initializers;
-
-        public ConfiguredFactory(EntityFactory<Entity> factory, List<EntityInitializer<? super Entity>> initializers) {
-            this.factory = factory;
-            this.initializers = initializers;
+        public NestedInitBuilder(CompletableBuilder completableBuilder) {
+            super(completableBuilder);
         }
         
         @Override
-        public Entity newEntity() throws MiException {
-            Entity e = factory.newEntity();
-            for (EntityInitializer<? super Entity> i: initializers) {
-                i.apply(e);
+        public InitializationBuilder<Entity> add(EntityInitializer<? super Entity> initializer) {
+            if (initializer == NO_INITIALIZATION) {
+                return this;
+            } else if (initializer instanceof CompositeInitializer) {
+                CompositeInitializer<Entity> ci = (CompositeInitializer) initializer;
+                if (consumers == null) consumers = new ArrayList<>();
+                consumers.addAll(ci.consumers);
+                addName(ci.completeAndClose);
+                addCompleteAndClose(ci.completeAndClose);
+                return this;
+            } else {
+                addInitializer(initializer::apply);
+                addName(initializer);
+                addCompleteAndClose(initializer);
             }
-            return e;
+            return this;
+        }
+
+        @Override
+        public InitializationBuilder<Entity> addInitializer(XConsumer<? super Entity, ?> initializer) {
+            if (consumers == null) consumers = new ArrayList<>();
+            consumers.add(initializer);
+            return this;
+        }
+
+        @Override
+        public InitializationBuilder<Entity> addCompletable(Completable completable) {
+            if (completable instanceof CompositeInitializer) {
+                return super.addCompletable(((CompositeInitializer) completable).completeAndClose);
+            }
+            return super.addCompletable(completable);
+        }
+
+        @Override
+        public InitializationBuilder<Entity> addCloseable(AutoCloseable closeable) {
+            if (closeable instanceof CompositeInitializer) {
+                return super.addCloseable(((CompositeInitializer) closeable).completeAndClose);
+            }
+            return super.addCloseable(closeable);
+        }
+
+        @Override
+        public InitializationBuilder<Entity> addName(Object name) {
+            if (name instanceof CompositeInitializer) {
+                return super.addName(((CompositeInitializer) name).completeAndClose);
+            }
+            return super.addName(name);
+        }
+        
+        public EntityInitializer<Entity> buildInitializer() {
+            CompleteAndClose cc = buildCompleteAndClose();
+            if (cc == CompleteAndClose.NO_OP && blank(consumers)) {
+                return NO_INITIALIZATION;
+            }
+            return new CompositeInitializer<>(consumers, cc);
+        }
+    }
+
+    protected static class InitBuilder<Entity> extends NestedInitBuilder<Entity> {
+        
+        private final CompleteAndClose.Builder<?> ccBuilder;
+
+        public InitBuilder() {
+            this(new CompleteAndClose.Builder<>());
+        }
+
+        private InitBuilder(CompleteAndClose.Builder<?> ccBuilder) {
+            super(ccBuilder);
+            this.ccBuilder = ccBuilder;
+        }
+
+        @Override
+        protected void addNestedName(Object name) {
+            ccBuilder.addName(name);
+        }
+
+        @Override
+        public CompleteAndClose buildCompleteAndClose() {
+            return ccBuilder.buildCompleteAndClose();
+        }
+    }
+    
+    protected static class NestedFacBuilder<Entity> extends NestedInitBuilder<Entity> implements FactoryBuilder<Entity> {
+
+        private XSupplier<? extends Entity, ?> factory = null;
+        private Object factoryName = null;
+
+        public NestedFacBuilder(CompletableBuilder completableBuilder) {
+            super(completableBuilder);
+        }
+
+        @Override
+        public <E extends Entity> FactoryBuilder<E> set(EntityFactory<E> factory) {
+            if (factory instanceof CompositeFactory) {
+                CompositeFactory<E> cf = (CompositeFactory<E>) factory;
+                setFactory(cf.supplier).add(cf.setup);
+            } else {
+                setFactory(factory::newEntity);
+                addCompletable(factory);
+                addCloseable(factory);
+            }
+            return (FactoryBuilder) this;
+        }
+
+        @Override
+        public <E extends Entity> FactoryBuilder<E> setFactory(XSupplier<E, ?> factory) {
+            this.factory = factory;
+            return (FactoryBuilder) this;
+        }
+
+        @Override
+        public InitializationBuilder<Entity> addName(Object name) {
+            if (factoryName == null) {
+                factoryName = name;
+                return this;
+            } else {
+                return super.addName(name);
+            }
+        }
+        
+        public EntityFactory<Entity> buildFactory() {
+            if (factory == null) throw new NullPointerException("factory");
+            return new CompositeFactory<>(factory, factoryName, buildInitializer());
+        }
+
+        @Override
+        public String toString() {
+            return (factoryName != null ? factoryName : "?") + 
+                    " with " + super.toString();
+        }
+    }
+    
+    protected static class FacBuilder<Entity> extends NestedFacBuilder<Entity> {
+        
+        private final CompleteAndClose.Builder<?> ccBuilder;
+
+        public FacBuilder() {
+            this(new CompleteAndClose.Builder<>());
+        }
+
+        private FacBuilder(CompleteAndClose.Builder<?> ccBuilder) {
+            super(ccBuilder);
+            this.ccBuilder = ccBuilder;
+        }
+
+        @Override
+        protected void addNestedName(Object name) {
+            ccBuilder.addName(name);
+        }
+
+        @Override
+        public CompleteAndClose buildCompleteAndClose() {
+            return ccBuilder.buildCompleteAndClose();
+        }
+    }
+    
+    protected static class CompositeInitializer<Entity> implements EntityInitializer<Entity> {
+
+        private final List<XConsumer<? super Entity, ?>> consumers;
+        private final CompleteAndClose completeAndClose;
+
+        public CompositeInitializer(List<XConsumer<? super Entity, ?>> consumers, CompleteAndClose completeAndClose) {
+            this.consumers = blank(consumers) ? Collections.emptyList() : new ArrayList<>(consumers);
+            this.completeAndClose = completeAndClose;
+        }
+
+        @Override
+        public void apply(Entity entity) throws MiException {
+            try {
+                for (XConsumer<? super Entity, ?> c: consumers) {
+                    c.accept(entity);
+                }
+            } catch (Throwable e) {
+                throw Closeables.exceptionAs(e, MiException.class);
+            }
         }
 
         @Override
         public void complete() throws MiException {
-            factory.complete();
-            Closables.completeAll(MiException.class, initializers);
+            try {
+                completeAndClose.complete();
+            } catch (Exception e) {
+                throw Closeables.exceptionAs(e, MiException.class);
+            }
         }
 
         @Override
         public void close() throws MiException {
             try {
-                factory.close();
-            } catch (MiException e) {
-                throw Closables.closeAll(e, initializers);
+                completeAndClose.close();
+            } catch (Exception e) {
+                throw Closeables.exceptionAs(e, MiException.class);
             }
-            Closables.closeAll(MiException.class, initializers);
         }
 
         @Override
         public String toString() {
-            StringBuilder sb = new StringBuilder();
-            sb.append(factory).append(" with ");
-            initializers.stream().forEach(i -> {
-                sb.append(i).append(", ");
-            });
-            sb.setLength(sb.length()-2);
-            return sb.toString();
+            return completeAndClose.toString();
+        }
+    }
+    
+    protected static class CompositeFactory<Entity> implements EntityFactory<Entity> {
+
+        private final XSupplier<? extends Entity, ?> supplier;
+        private final Object factoryName;
+        private final EntityInitializer<? super Entity> setup;
+
+        public CompositeFactory(XSupplier<? extends Entity, ?> supplier, Object factoryName, EntityInitializer<? super Entity> setup) {
+            this.supplier = supplier;
+            this.factoryName = factoryName;
+            this.setup = setup;
+        }
+
+        @Override
+        public Entity newEntity() throws MiException {
+            Entity e;
+            try {
+                e = supplier.get();
+            } catch (Throwable t) {
+                throw Closeables.exceptionAs(t, MiException.class);
+            }
+            setup.apply(e);
+            return e;
+        }
+
+        @Override
+        public void complete() throws MiException {
+            setup.complete();
+        }
+
+        @Override
+        public void close() throws MiException {
+            setup.close();
+        }
+
+        @Override
+        public String toString() {
+            if (setup == NO_INITIALIZATION) {
+                return String.valueOf(factoryName);
+            }
+            return String.valueOf(factoryName) + " with " + setup.toString();
         }
     }
     

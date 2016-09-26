@@ -1,12 +1,14 @@
 package org.cthul.miro.futures.impl;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.cthul.miro.futures.MiFuture;
+import org.cthul.miro.futures.MiFutures;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -30,7 +32,7 @@ public class AbstractMiFutureTest {
     
     @BeforeClass
     public static void beforeClass() {
-        executor = Executors.newCachedThreadPool();
+        executor = Executors.newFixedThreadPool(1);
     }
     
     @AfterClass
@@ -222,6 +224,30 @@ public class AbstractMiFutureTest {
         f.await();
         assertThat(temp1, is(0));
         assertThat(temp2, is(2));
+    }
+    
+    @Test
+    public void test_contention() throws InterruptedException, ExecutionException {
+        Thread[] t = {null};
+        MiFuture<Integer> f1 = MiFutures.build()
+                .executor(executor).action(() -> {
+            assertThat(Thread.currentThread(), is(t[0]));
+            return 1;
+        }).andThen(i -> {
+            assertThat(Thread.currentThread(), is(t[0]));
+            return i+1;
+        }).andThen(i -> {
+            assertThat(Thread.currentThread(), is(t[0]));
+            return i+1;
+        }).getTrigger();
+        MiFuture<Integer> f2 = MiFutures.build()
+                .executor(executor).action(() -> {
+            t[0] = Thread.currentThread();
+            return f1.get();
+        }).getTrigger();
+        f2.isDone();
+        sleep(100);
+        assertThat(f2.get(), is(3));
     }
     
     public static void sleep(long millis) {

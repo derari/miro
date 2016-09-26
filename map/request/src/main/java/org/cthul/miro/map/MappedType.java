@@ -31,7 +31,6 @@ public abstract class MappedType<Entity, This extends MappedType<Entity, This>> 
         super(clazz, shortString);
     }
     
-
     public TemplateLayer<Mapping<Entity>> getMaterializationLayer() {
         if (materializationLayer == null) {
             EntityType<Entity> et = GraphSchema.build()
@@ -49,6 +48,7 @@ public abstract class MappedType<Entity, This extends MappedType<Entity, This>> 
         List<String> columns = new ArrayList<>();
         for (String p: properties) {
             EntityAttribute<?,?> at = getAttributes().getAttributeMap().get(p);
+            if (at == null) throw new IllegalArgumentException("Unknown property: " + p);
             columns.addAll(at.getColumns());
         }
         return getColumnFilterKey(columns);

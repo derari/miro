@@ -13,6 +13,9 @@ public interface JoinedView {
     
     Key<ViewComposer> getViewKey();
     
+    // TODO:
+    // List<String> getKeyAttributes();
+    
     void collectSelectTemplateLayers(Layers<SelectBuilder> bag);
     
     interface Layers<B> {

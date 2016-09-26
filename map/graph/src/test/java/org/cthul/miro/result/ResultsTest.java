@@ -7,7 +7,6 @@ import java.util.concurrent.ExecutionException;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.entity.EntityConfiguration;
 import org.cthul.miro.entity.EntityFactory;
-import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.entity.EntityTypes;
 import org.cthul.miro.graph.NodeSelector;
 import org.cthul.miro.db.MiResultSet;
@@ -15,14 +14,15 @@ import org.cthul.miro.db.MiException;
 import org.cthul.miro.ext.jdbc.JdbcConnection;
 import org.cthul.miro.db.stmt.MiQueryString;
 import org.cthul.miro.entity.EntityType;
-import org.cthul.miro.entity.map.AttributesConfiguration;
-import org.cthul.miro.entity.base.MultiInitializer;
+import org.cthul.miro.entity.InitializationBuilder;
+import org.cthul.miro.entity.map.PropertiesConfiguration;
 import org.cthul.miro.entity.base.NestedFactoryConfiguration;
 import org.cthul.miro.entity.base.ResultColumns;
 import org.cthul.miro.entity.base.ResultReadingEntityType;
 import org.cthul.miro.graph.Graph;
 import org.cthul.miro.graph.GraphApi;
 import org.cthul.miro.graph.GraphSchema;
+import org.cthul.miro.graph.SelectorBuilder;
 import org.cthul.miro.graph.impl.AbstractNodeType;
 import org.cthul.miro.graph.impl.ColumnReader;
 import org.cthul.miro.sql.SqlClause;
@@ -154,13 +154,13 @@ public class ResultsTest {
     }
     
     static final List<String> PERSON_FIELD_IDS = Arrays.asList("first_name", "last_name");
-    static final AttributesConfiguration<Person, GraphApi> PERSON_FIELDS = new AttributesConfiguration<Person, GraphApi>()
+    static final PropertiesConfiguration<Person, GraphApi> PERSON_FIELDS = new PropertiesConfiguration<Person, GraphApi>()
             .optional("first_name").set((p, o) -> p.firstName = (String) o)
             .optional("last_name").set((p, o) -> p.lastName = (String) o);
     static final PersonEntity PERSON_ENTITY = new PersonEntity();
     
     static final List<String> ADDRESS_FIELD_IDS = Arrays.asList("street", "city");
-    static final AttributesConfiguration<Address, GraphApi> ADDRESS_FIELDS = new AttributesConfiguration<Address, GraphApi>(Address.class)
+    static final PropertiesConfiguration<Address, GraphApi> ADDRESS_FIELDS = new PropertiesConfiguration<Address, GraphApi>(Address.class)
             .optional("street").field("street")
             .optional("city").field("city");
     static final AddressEntity ADDRESS_ENTITY = new AddressEntity();
@@ -232,9 +232,9 @@ public class ResultsTest {
         }
 
         @Override
-        public EntityInitializer<Address> newInitializer(MiResultSet resultSet) throws MiException {
+        public void newInitializer(MiResultSet resultSet, InitializationBuilder<? extends Address> builder) throws MiException {
             EntityFactory<Person> personFactory = personType.newFactory(resultSet.subResult("p_"));
-            AttributesConfiguration<Address, GraphApi> cfg = new AttributesConfiguration<Address, GraphApi>(Address.class)
+            PropertiesConfiguration<Address, GraphApi> cfg = new PropertiesConfiguration<Address, GraphApi>(Address.class)
                     .allOrNone("id", "p_id").readAs((rs, i) -> {
                         List<Person> list = new ArrayList<>();
                         int id = rs.getInt(i[0]);
@@ -245,9 +245,8 @@ public class ResultsTest {
                         rs.previous();                        
                         return list;
                     }).field("people");
-            return new MultiInitializer<Address>(resultSet)
-                    .add(cfg.newConfiguration(null))
-                    .completeAndClose(personFactory);
+            builder.addCompleteAndClose(personFactory);
+            cfg.newInitializer(resultSet, null, builder);
         }
     }
     
@@ -285,12 +284,14 @@ public class ResultsTest {
                     .clause(SqlClause.in(), in -> in.list(keys.stream().map(k -> k[0])));
             return query.execute();
         }
-        
+
         @Override
-        public Person newEntity(GraphApi graph, Object[] key) {
-            Person p = new Person();
-            p.id = (Integer) key[0];
-            return p;
+        public void newNodeFactory(GraphApi graph, SelectorBuilder<? super Person> builder) throws MiException {
+            builder.setFactory(key -> {
+                Person p = new Person();
+                p.id = (Integer) key[0];
+                return p;
+            });
         }
 
         @Override
@@ -338,12 +339,14 @@ public class ResultsTest {
             keys.forEach(o -> query.pushArgument(o[0]));
             return query.execute();
         }
-        
+
         @Override
-        public Address newEntity(GraphApi graph, Object[] key) {
-            Address a = new Address();
-            a.id = (Integer) key[0];
-            return a;
+        public void newNodeFactory(GraphApi graph, SelectorBuilder<? super Address> builder) throws MiException {
+            builder.setFactory(key -> {
+                Address a = new Address();
+                a.id = (Integer) key[0];
+                return a;
+            });
         }
 
         @Override
@@ -370,14 +373,13 @@ public class ResultsTest {
         }
 
         @Override
-        public EntityInitializer<Person> newInitializer(MiResultSet resultSet) throws MiException {
+        public void newInitializer(MiResultSet resultSet, InitializationBuilder<? extends Person> builder) throws MiException {
             NodeSelector<Address> addressSelector = graph.newNodeSelector(Address.class, addressAttributes);
-            AttributesConfiguration<Person, GraphApi> cfg = new AttributesConfiguration<Person, GraphApi>(Person.class)
+            PropertiesConfiguration<Person, GraphApi> cfg = new PropertiesConfiguration<Person, GraphApi>(Person.class)
                     .require("id").mapToValue(o -> addressSelector.get((Integer) o))
                     .field("address");
-            return new MultiInitializer<Person>(resultSet)
-                    .add(cfg.newConfiguration(null))
-                    .completeAndClose(addressSelector);
+            builder.addCompleteAndClose(addressSelector);
+            cfg.newInitializer(resultSet, null, builder);
         }
     }
     
@@ -392,9 +394,9 @@ public class ResultsTest {
         }
 
         @Override
-        public EntityInitializer<Address> newInitializer(MiResultSet resultSet) throws MiException {
+        public void newInitializer(MiResultSet resultSet, InitializationBuilder<? extends Address> builder) throws MiException {
             NodeSelector<Person> personSelector = graph.newNodeSelector(Person.class, personAttributes);
-            AttributesConfiguration<Address, GraphApi> cfg = new AttributesConfiguration<Address, GraphApi>(Address.class)
+            PropertiesConfiguration<Address, GraphApi> cfg = new PropertiesConfiguration<Address, GraphApi>(Address.class)
                     .allOrNone("id", "p_id").readAs((rs, i) -> {
                         List<Person> list = new ArrayList<>();
                         int id = rs.getInt(i[0]);
@@ -406,9 +408,8 @@ public class ResultsTest {
                         rs.previous();
                         return list;
                     }).field("people");
-            return new MultiInitializer<Address>(resultSet)
-                    .add(cfg.newConfiguration(null))
-                    .completeAndClose(personSelector);
+            builder.addCompleteAndClose(personSelector);
+            cfg.newInitializer(resultSet, null, builder);
         }
     }
 }

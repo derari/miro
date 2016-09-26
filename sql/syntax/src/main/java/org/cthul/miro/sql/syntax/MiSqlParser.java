@@ -9,6 +9,7 @@ import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import org.cthul.miro.db.syntax.ClauseType;
 import org.cthul.miro.sql.SelectBuilder;
 import org.cthul.miro.sql.SqlBuilder;
 import org.cthul.miro.sql.SqlFilterableClause;
@@ -17,6 +18,7 @@ import org.cthul.miro.sql.SqlTableClause;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.function.MiFunction;
+import org.cthul.miro.sql.SqlClause;
 
 
 /**
@@ -26,6 +28,10 @@ public class MiSqlParser {
     
     public static QlCode parseCode(String expression) {
         return new MiSqlParser(expression).parseCode();
+    }
+    
+    public static QlCode parseCode(String expression, Object... args) {
+        return new MiSqlParser(expression, args).parseCode();
     }
     
     public static Attribute parseAttribute(String attribute) {
@@ -146,6 +152,11 @@ public class MiSqlParser {
         return next = readNextToken();
     }
     
+    protected boolean peekSpace() {
+        peek();
+        return nIndex > 0 && Character.isSpaceChar(input.charAt(nIndex-1));
+    }
+    
     protected Token readNextToken() {
         if (index == input.length()) return T_AT_END;
         char c = input.charAt(index);
@@ -154,19 +165,18 @@ public class MiSqlParser {
         if (Character.isJavaIdentifierStart(c)) return word();
         if (Character.isDigit(c)) return number();
         if (isOperator(c)) return operator();
-        if (c == '?' || isSpecial(c)) {
+        if (c == '@') return macro();
+        if (c == '?') {
+            index++;
+            String s = "?";
+            QlCode.Fluent code = QlCode.ql(s);
+            return new Token(s, code, TokenType.ARGUMENT);
+        }
+        if (isSpecial(c)) {
             index++;
             String s = ""+c;
             QlCode.Fluent code = QlCode.ql(s);
-            if (c == '?') {
-                if (!args.isEmpty()) {
-                    Object a = args.pollFirst();
-                    code = code.pushArgument(a);
-                }
-                return new Token(s, code, TokenType.VALUE);
-            } else {
-                return new Token(s, code, TokenType.SPECIAL);
-            }
+            return new Token(s, code, TokenType.SPECIAL);
         }
         return T_ERROR;
     }
@@ -246,7 +256,7 @@ public class MiSqlParser {
         return new Token(s, QlCode.ql(s), TokenType.VALUE);
     }
     
-    private static final char[] SPECIALS = "(),.;".toCharArray();
+    private static final char[] SPECIALS = "(),.;{}".toCharArray();
     private static final char[] OPERATOR = "!=<>|&+-*/%".toCharArray();
     static { Arrays.sort(SPECIALS); Arrays.sort(OPERATOR); }
     
@@ -266,6 +276,17 @@ public class MiSqlParser {
         }
         String s = input.substring(start, index);
         return new Token(s, QlCode.ql(s), TokenType.OPERATOR);
+    }
+    
+    protected Token macro() {
+        int start = ++index;
+        char c = input.charAt(index);
+        while (Character.isLetter(c) || c == '_') {
+            c = input.charAt(++index);
+        }
+        String s = input.substring(start, index);
+        
+        return new Token(s, null, TokenType.MACRO);
     }
     
     protected boolean atKeyword() {
@@ -357,6 +378,11 @@ public class MiSqlParser {
         boolean space = expression_words(columns, code);
         while (!atEnd()) {
             Token c = current();
+            if (c.isMacroKey()) {
+                if (!expression_macro_operator(columns, code)) break;
+                space = true;
+                continue;
+            }
             if (!c.isOperator()) break;
             if (space) code.append(" ");
             code.append(c.code);
@@ -371,20 +397,22 @@ public class MiSqlParser {
     }
     
     protected boolean expression_words(List<ObjectRef> columns, QlCode.Builder code) {
-        boolean space = expression_not_words(columns, code);
+        boolean match = expression_not_words(columns, code);
         while (!atEnd()) {
             Token c = current();
             if (!c.isWord() || c.isKeyword()) break;
-            if (space) code.append(" ");
+            if (match) code.append(" ");
             code.append(c.code);
+            match = true;
+            boolean space = peekSpace();
             next();
-            space = true;
             QlCode.Builder code2 = QlCode.build();
             if (expression_not_words(columns, code2)) {
-                code.append(" ").append(code2);
+                if (space) code.append(" ");
+                code.append(code2);
             }
         }
-        return space; // true iff something was matched
+        return match; // true iff something was matched
     }
     
     protected boolean expression_not_words(List<ObjectRef> columns, QlCode.Builder code) {
@@ -395,10 +423,19 @@ public class MiSqlParser {
     }
     
     protected boolean expression_value(List<ObjectRef> columns, QlCode.Builder code) {
-        if (current().isValue()) {
-            code.append(current().code);
-            next();
-            return true;
+        switch (current().type) {
+            case MACRO:
+                return expression_macro_value(columns, code);
+            case ARGUMENT:
+                if (!args.isEmpty()) {
+                    Object v = args.removeFirst();
+                    code.pushArgument(v);
+                }
+                // next;
+            case VALUE:
+                code.append(current().code);
+                next();
+                return true;
         }
         ObjectRef col = objectRef();
         if (col != null) {
@@ -410,6 +447,66 @@ public class MiSqlParser {
             return true;
         }
         return expected("VALUE");
+    }
+    
+    protected boolean expression_macro_value(List<ObjectRef> columns, QlCode.Builder code) {
+        switch (current().value) {
+            case "IS_NULL":
+                return expression_macro_ql(SqlClause.isNull(), columns, code);
+            case "IN":
+                return expression_macro_in(columns, code);
+            default:
+                return expected("IS_NULL");
+        }
+    }
+    
+    protected boolean expression_macro_ql(ClauseType<? extends QlBuilder<?>> ct, List<ObjectRef> columns, QlCode.Builder code) {
+        int start = cIndex;
+        if (!next().isSpecial("{")) return true;
+        next();
+        QlCode.Builder nested = QlCode.build();
+        if (!expression_list(columns, nested)) {
+            setIndex(start);
+            return false;
+        }
+        if (!current().isSpecial("}")) {
+            expected("'}'");
+            setIndex(start);
+            return false;
+        }
+        next();
+        code.clause(ct, nested);
+        return true;
+    }
+    
+    protected boolean expression_macro_operator(List<ObjectRef> columns, QlCode.Builder code) {
+        switch (current().value) {
+            case "IN":
+                return expression_macro_in(columns, code);
+            default:
+                return expected("IN");
+        }
+    }
+    
+    protected boolean expression_macro_in(List<ObjectRef> columns, QlCode.Builder code) {
+        if (args.isEmpty()) return expected("arguments");
+        int start = cIndex;
+        boolean success = true;
+        if (!next().isSpecial("{")) {
+            success = expected("'{'");
+        } else if (!next().isArgument()) {
+            success = expected("'?'");
+        } else if (!next().isSpecial("}")) {
+            success = expected("'}'");
+        }
+        if (!success) {
+            setIndex(start);
+            return false;
+        }
+        next();
+        Object o = args.removeFirst();
+        code.clause(SqlClause.in(), in -> in.list(o));
+        return true;
     }
     
     protected boolean expression_nested(List<ObjectRef> columns, QlCode.Builder code) {
@@ -501,6 +598,7 @@ public class MiSqlParser {
         List<ObjectRef> columns = new ArrayList<>();
         QlCode.Builder code = QlCode.build();
         QlCode.Builder code2 = QlCode.build();
+        if (peekSpace()) code.append(" ");
         boolean space = false;
         while (!atEnd()) {
             if (expression(columns, code2)) {
@@ -517,7 +615,11 @@ public class MiSqlParser {
                 } else {
                     space = true;
                 }
+                if (t.code == null) {
+                    return null;
+                }
                 code.append(t.code);
+                next();
             }
         }
         return code;
@@ -649,9 +751,9 @@ public class MiSqlParser {
         return new TablePart(table);
     }
     
-    protected JoinPart joinPart(boolean requireKeyword) {
+    protected JoinPart joinPart(SqlJoinableClause.JoinType expectedType, boolean requireKeyword) {
         int start = cIndex;
-        SqlJoinableClause.JoinType type = SqlJoinableClause.JoinType.INNER;
+        SqlJoinableClause.JoinType type = null;
         if (!readKeyword("INNER")) {
             if (readKeyword("LEFT")) {
                 readKeyword("OUTER");
@@ -669,6 +771,16 @@ public class MiSqlParser {
         if (!readKeyword("JOIN") && requireKeyword) {
             setIndex(start);
             return null;
+        }
+        if (expectedType != null) {
+            if (type == null) {
+                type = expectedType;
+            } else if (type != expectedType) {
+                throw new IllegalArgumentException(
+                        "Expected " + expectedType + " JOIN, got " + type);
+            }
+        } else if (type == null) {
+            type = SqlJoinableClause.JoinType.INNER;
         }
         return join(type);
     }
@@ -748,6 +860,7 @@ public class MiSqlParser {
     }
     
     protected boolean selectStmtPart(SelectStmt stmt, String part, boolean requireKeyword) {
+        SqlJoinableClause.JoinType expectedType = null;
         if (part == null) return false;
         switch (part) {
             case "SELECT":
@@ -765,8 +878,9 @@ public class MiSqlParser {
             case "RIGHT":
             case "FULL":
             case "OUTER":
+                expectedType = SqlJoinableClause.JoinType.parse(part);
             case "JOIN":
-                JoinPart jp = joinPart(requireKeyword);
+                JoinPart jp = joinPart(expectedType, requireKeyword);
                 if (jp == null) return false;
                 stmt.joinParts.add(jp);
                 return true;
@@ -834,7 +948,7 @@ public class MiSqlParser {
     }
     
     public JoinPart parseJoinPart() {
-        return parse(p -> p.joinPart(false));
+        return parse(p -> p.joinPart(null, false));
     }
     
     public SelectStmt parsePartialSelectStmt(String defaultPart) {
@@ -864,8 +978,8 @@ public class MiSqlParser {
         return Arrays.binarySearch(KEYWORDS, word.toUpperCase()) >= 0;
     }
     
-    protected static final Token T_ERROR = new Token("<Error>", QlCode.ql("<Error>"), TokenType.ERROR);
-    protected static final Token T_AT_END = new Token("<EOI>", QlCode.ql("<EOI>"), TokenType.AT_END);
+    protected static final Token T_ERROR = new Token("<Error>", null, TokenType.ERROR);
+    protected static final Token T_AT_END = new Token("<EOI>", null, TokenType.AT_END);
     
     protected static class Token {
         public final String value;
@@ -902,6 +1016,10 @@ public class MiSqlParser {
             return type == TokenType.VALUE;
         }
         
+        public boolean isArgument() {
+            return type == TokenType.ARGUMENT;
+        }
+        
         public boolean isWord() {
             return type == TokenType.WORD;
         }
@@ -921,6 +1039,10 @@ public class MiSqlParser {
         public boolean isPlainWord() {
             return isWord() && !MiSqlParser.isKeyword(value);
         }
+        
+        public boolean isMacroKey() {
+            return type == TokenType.MACRO;
+        }
 
         @Override
         public String toString() {
@@ -930,10 +1052,13 @@ public class MiSqlParser {
     
     protected static enum TokenType {
         VALUE,
+        ARGUMENT,
         WORD,
         IDENTIFIER,
         SPECIAL,
         OPERATOR,
+        MACRO,
+//        UNKNOWN, // for constants
         AT_END,
         ERROR;
     }
@@ -1190,7 +1315,7 @@ public class MiSqlParser {
 
         @Override
         public void appendTo(SelectBuilder c) {
-            getExpression().appendTo(c.groupBy());
+            getExpression().appendTo(c.orderBy());
         }
     }
     

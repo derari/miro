@@ -1,6 +1,6 @@
 package org.cthul.miro.util;
 
-import org.cthul.miro.util.Closables.FunctionalHelper;
+import org.cthul.miro.util.Closeables.FunctionalHelper;
 
 public interface XConsumer<T, X extends Throwable> extends FunctionalHelper {
 

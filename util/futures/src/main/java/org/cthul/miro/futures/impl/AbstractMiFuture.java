@@ -126,7 +126,6 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
         if (done) {
             throw new IllegalStateException("Is already done.");
         }
-        lock.notifyAll();
         return true;
     }
     
@@ -146,6 +145,7 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
             }
             this.result = result;
             this.done = true;
+            lock.notifyAll();
             listeners = getListenersToSubmit();
         }
         submitOnCompleteListeners(listeners);
@@ -167,6 +167,7 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
             }
             this.exception = exception;
             done = true;
+            lock.notifyAll();
             listeners = getListenersToSubmit();
         }
         submitOnCompleteListeners(listeners);
@@ -243,11 +244,15 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
     protected boolean fastReset() {
         return resetState(-1, null);
     }
+    
+    protected void tryRunNow(long ms) {
+    }
 
     @Override
     public void await() throws InterruptedException {
         if (done) return;
         synchronized (lock) {
+            if (!done) tryRunNow(-1);
             while (!done) {
                 lock.wait();
             }
@@ -256,10 +261,20 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
 
     @Override
     public void await(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
+        if (timeout < 0) {
+            await();
+            return;
+        }
         if (done) return;
         synchronized (lock) {
+            long ms = unit.toMillis(timeout);
+            if (!done) {
+                long s = System.currentTimeMillis();
+                tryRunNow(ms);
+                ms = ms + s - System.currentTimeMillis();
+            }
             if (done) return;
-            lock.wait(unit.toMillis(timeout));
+            lock.wait(ms);
             if (!done) {
                 throw new TimeoutException(
                     "Not done after " + timeout + " " + unit.toString().toLowerCase() + ".");
@@ -391,6 +406,21 @@ public abstract class AbstractMiFuture<V> implements MiFuture<V> {
                 cancel(false);
             } else {
                 submit(AbstractMiFuture.this);
+            }
+        }
+
+        protected void run() {
+            if (canCancel && AbstractMiFuture.this.cancelled) {
+                cancel(false);
+            } else {
+                run(AbstractMiFuture.this);
+            }
+        }
+
+        @Override
+        protected void tryRunNow(long ms) {
+            if (AbstractMiFuture.this.beDone(ms, TimeUnit.MILLISECONDS)) {
+                run();
             }
         }
 

@@ -43,7 +43,8 @@ public abstract class AbstractTemplateLayer<Builder> implements TemplateLayer<Bu
 
         @Override
         protected Template<? super B> createPartTemplate(Object key) {
-            return AbstractTemplateLayer.this.createPartTemplate(parentAccess, key);
+            Template<? super B> t = AbstractTemplateLayer.this.createPartTemplate(parentAccess, key);
+            return t != parentAccess ? t : null;
         }
 
         @Override

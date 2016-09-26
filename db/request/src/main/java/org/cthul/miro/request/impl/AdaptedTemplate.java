@@ -7,6 +7,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.cthul.miro.request.part.Copyable;
 import org.cthul.miro.request.StatementPart;
+import org.cthul.miro.request.part.CopyManager;
 import org.cthul.miro.request.template.Templates;
 import org.cthul.miro.request.template.InternalComposer;
 import org.cthul.miro.request.template.Template;
@@ -18,47 +19,89 @@ import org.cthul.miro.util.Key;
  * @param <Builder>
  * @param <Adapted>
  */
-public class AdaptedTemplate<Builder, Adapted> implements Template<Builder> {
+public class AdaptedTemplate<Builder, Adapted> extends AbstractTemplate<Builder> implements Template<Builder> {
 
     private final Key<AdaptingComposer> composerKey = new ValueKey<>("Adapt", true);
-    private final Template<Adapted> template;
+    private final Template<Builder> template;
     private final Function<? super Builder, ? extends Adapted> adapter;
 
-    public AdaptedTemplate(Template<Adapted> template, Function<? super Builder, ? extends Adapted> adapter) {
-        this.template = template;
+    @SuppressWarnings("LeakingThisInConstructor")
+    public AdaptedTemplate(Template<Adapted> template, ParentAdapter<Builder, Adapted> parent, Function<? super Builder, ? extends Adapted> adapter) {
+        super(parent.actual);
+        parent.adaptedTemplate = this;
         this.adapter = adapter;
+        this.template = adapt(template);
+        tryPut(composerKey, composerKeyTemplate());
     }
 
     protected AdaptingComposer adapt(InternalComposer<? extends Builder> ic) {
         return new AdaptingComposer(ic);
     }
     
+    private Template<Builder> composerKeyTemplate() {
+        return new Template<Builder>() {
+            @Override
+            public void addTo(Object key, InternalComposer<? extends Builder> composer) {
+                composer.addNode(composerKey, adapt(composer));
+            }
+            @Override
+            public String toString() {
+                return composerKey.toString();
+            }
+        };
+    }
+    
+    private Template<Builder> adapt(Template<Adapted> template) {
+        return new Template<Builder>() {
+            @Override
+            public void addTo(Object key, InternalComposer<? extends Builder> composer) {
+                AdaptingComposer ac = composer.node(composerKey);
+                template.addTo(key, ac);
+            }
+            @Override
+            public String toString() {
+                return "{>>" + template;
+            }
+        };
+    }
+    
+//    @Override
+//    public void addTo(Object key, InternalComposer<? extends Builder> ic) {
+//        if (key == composerKey) {
+//            ic.addNode(composerKey, adapt(ic));
+//            return;
+//        }
+//        AdaptingComposer ac = ic.node(composerKey);
+//        template.addTo(key, ac);
+//    }
+
     @Override
-    public void addTo(Object key, InternalComposer<? extends Builder> ic) {
-        if (key == composerKey) {
-            ic.addNode(composerKey, adapt(ic));
-            return;
+    protected Template<? super Builder> createPartTemplate(Object key) {
+        return template;
+    }
+    
+    protected void forceParentLookUp(Object key, InternalComposer<?> query) {
+        if (query instanceof AdaptedTemplate<?,?>.AdaptingComposer) {
+            super.forceParentLookUp(key);
         }
-        AdaptingComposer ac = ic.node(composerKey);
-        template.addTo(key, ac);
     }
 
     @Override
     public String toString() {
-        return "{" + template;
+        return "{" + template.toString().substring(3);
     }
     
-    /**
-     * Converts a template that builds on `Adapted` into a template that builds on `Builder`. 
-     * @param <Builder>
-     * @param <Adapted>
-     * @param template
-     * @param adapter
-     * @return adapted template
-     */
-    public static <Builder, Adapted> Template<Builder> adapt(Template<Adapted> template, Function<? super Builder, ? extends Adapted> adapter) {
-        return new AdaptedTemplate<>(template, adapter);
-    }
+//    /**
+//     * Converts a template that builds on `Adapted` into a template that builds on `Builder`. 
+//     * @param <Builder>
+//     * @param <Adapted>
+//     * @param template
+//     * @param adapter
+//     * @return adapted template
+//     */
+//    public static <Builder, Adapted> Template<Builder> adapt(Template<Adapted> template, Function<? super Builder, ? extends Adapted> adapter) {
+//        return new AdaptedTemplate<>(template, adapter);
+//    }
     
 //    /**
 //     * Converts a composer that builds on `Builder` into a composer that builds on `Adapted`.
@@ -103,7 +146,8 @@ public class AdaptedTemplate<Builder, Adapted> implements Template<Builder> {
         public <A extends Builder> Template<A> build(Template<? super A> parent) {
             ParentAdapter<A, Adapted> pAdapter = new ParentAdapter<>(parent);
             Template<Adapted> template = layer.build(pAdapter);
-            return AdaptedTemplate.adapt(template, adapter);
+            return new AdaptedTemplate<>(template, pAdapter, adapter);
+//            return AdaptedTemplate.adapt(template, adapter);
         }
 
         @Override
@@ -176,10 +220,8 @@ public class AdaptedTemplate<Builder, Adapted> implements Template<Builder> {
             AdaptingComposer ac2 = adapt(ic);
             if (parts != null) {
                 ac2.initializeParts();
-                parts.forEach(p -> {
-                    StatementPart<? super Adapted> c = Copyable.tryCopy(p, this);
-                    if (c != null) ac2.parts.add(c);
-                });
+                CopyManager cm = ic.get(CopyManager.key);
+                ac2.parts.addAll(cm.copyAll(parts));
             }
             return ac2;
         }
@@ -198,6 +240,7 @@ public class AdaptedTemplate<Builder, Adapted> implements Template<Builder> {
      */
     public static class ParentAdapter<Builder, Adapted> implements Template<Adapted> {
         private final Template<? super Builder> actual;
+        private AdaptedTemplate<Builder, Adapted> adaptedTemplate = null;
 
         public ParentAdapter(Template<? super Builder> actual) {
             this.actual = actual;
@@ -207,6 +250,7 @@ public class AdaptedTemplate<Builder, Adapted> implements Template<Builder> {
         public void addTo(Object key, InternalComposer<? extends Adapted> query) {
             ComposerWrapper adapter = (ComposerWrapper) query;
             actual.addTo(key, (InternalComposer) adapter.getActual());
+            adaptedTemplate.forceParentLookUp(key, query);
         }
 
         @Override

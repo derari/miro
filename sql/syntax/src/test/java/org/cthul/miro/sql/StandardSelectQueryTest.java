@@ -40,6 +40,48 @@ public class StandardSelectQueryTest {
     }
     
     @Test
+    public void test_join2() {
+        sql.select().ql("foo")
+                .from().ql("Foo")
+                .join().id("Bar").sql(" b")
+                .leftJoin().ql("Baz").on().ql("f = b");
+        assertThat(sql.toString(), is("SELECT foo FROM Foo JOIN \"Bar\" b LEFT JOIN Baz ON f = b"));
+    }
+    
+    @Test
+    public void test_join_left() {
+        sql.select().ql("foo")
+                .from().ql("Foo")
+                .leftJoin().sql("Baz ON f = b");
+        assertThat(sql.toString(), is("SELECT foo FROM Foo LEFT JOIN Baz ON f = b"));
+    }
+    
+    @Test
+    public void test_where() {
+        sql.select().ql("foo")
+                .from().ql("Foo")
+                .where().ql("f = ?", 1);
+        assertThat(sql.toString(), is("SELECT foo FROM Foo WHERE f = ?"));
+    }
+    
+    @Test
+    public void test_where2() {
+        sql.select().ql("foo")
+                .from().ql("Foo")
+                .where().id("f").sql(" = ?", 1);
+        assertThat(sql.toString(), is("SELECT foo FROM Foo WHERE \"f\" = ?"));
+    }
+    
+    @Test
+    public void test_where3() {
+        sql.select().ql("foo")
+                .from().ql("Foo")
+                .where().sql("`f` = ?", 1)
+                .where().sql("`o` = ?", 1);
+        assertThat(sql.toString(), is("SELECT foo FROM Foo WHERE \"f\" = ? AND \"o\" = ?"));
+    }
+    
+    @Test
     public void test_doubled_multi() {
         sql.select().select().ql("foo").and().and().ql("bar")
                 .from().ql("Foo")

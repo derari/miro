@@ -13,6 +13,8 @@ public interface ColumnMapping<Cnn> {
     List<String> getColumns();
     
     Object[] toColumns(Object value, Object[] result);
+    
+    boolean accept(MiResultSet rs, Cnn cnn) throws MiException;
 
-    EntityFactory<?> newValueReader(MiResultSet rs, Cnn cnn) throws MiException;    
+    EntityFactory<?> newValueReader(MiResultSet rs, Cnn cnn) throws MiException;
 }

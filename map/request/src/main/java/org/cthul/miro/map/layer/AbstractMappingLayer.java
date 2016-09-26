@@ -1,17 +1,12 @@
 package org.cthul.miro.map.layer;
 
-import org.cthul.miro.request.part.Copyable;
-import org.cthul.miro.request.template.InternalComposer;
-import org.cthul.miro.request.part.ListNode;
 import org.cthul.miro.map.MappedType;
-import org.cthul.miro.request.template.Template;
 import org.cthul.miro.request.impl.AbstractTemplateLayer;
-import org.cthul.miro.map.Mapping;
-import org.cthul.miro.map.MappingKey;
 
 /**
  *
  * @param <Entity>
+ * @param <Builder>
  */
 public abstract class AbstractMappingLayer<Entity, Builder> extends AbstractTemplateLayer<Builder> {
 
@@ -23,10 +18,5 @@ public abstract class AbstractMappingLayer<Entity, Builder> extends AbstractTemp
 
     protected MappedType<Entity,?> getOwner() {
         return owner;
-    }
-
-    @Override
-    protected Template<? super Builder> createPartTemplate(Parent<Builder> parent, Object key) {
-        return null;
     }
 }

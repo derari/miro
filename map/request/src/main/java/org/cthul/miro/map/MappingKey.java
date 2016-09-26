@@ -1,10 +1,7 @@
 package org.cthul.miro.map;
 
-import java.util.Arrays;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import org.cthul.miro.request.part.ListNode;
-import org.cthul.miro.request.impl.ValueKey;
 import org.cthul.miro.entity.EntityConfiguration;
 import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.entity.EntityType;
@@ -54,9 +51,6 @@ public interface MappingKey<V> extends Key<V> {
         
         SET,
         
-        @Deprecated
-        LOAD_ALL,
-        
         PROPERTY_FILTER,
         
         NIL;
@@ -68,24 +62,7 @@ public interface MappingKey<V> extends Key<V> {
         }
         void set(String key, Supplier<?> value);
     }
-    
-    interface PropertyFilter {
         
-        ListNode<Object[]> forProperties(String... propertyKeys);
-    }
-    
-    class PropertyFilterKey extends ValueKey<ListNode<Object[]>> {
-        private final String[] propertyKeys;
-        public PropertyFilterKey(String... attributeKeys) {
-            super(Arrays.stream(attributeKeys).collect(Collectors.joining(",")));
-            this.propertyKeys = attributeKeys;
-        }
-
-        public String[] getAttributeKeys() {
-            return propertyKeys;
-        }
-    }
-    
     static interface Type {
         
         void setGraph(Graph graph);

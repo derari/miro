@@ -40,20 +40,46 @@
     <dependencies>
         <dependency>
             <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-map-request</artifactId>
+            <artifactId>miro-at-model</artifactId>
         </dependency>
         <dependency>
             <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-sql-request</artifactId>
+            <artifactId>miro-map-graph</artifactId>
         </dependency>
-        <!--dependency>
+        <dependency>
             <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-view-dsl</artifactId>
-        </dependency-->
+            <artifactId>miro-sql-syntax</artifactId>
+        </dependency>
         
+        <dependency>
+            <groupId>org.cthul</groupId>
+            <artifactId>cthul-strings</artifactId>
+            <version>1.0</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.cthul.miro</groupId>
+            <artifactId>miro-util-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.cthul.miro</groupId>
+            <artifactId>miro-ext-jdbc</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hsqldb</groupId>
+            <artifactId>hsqldb</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.cthul.matchers.fluent</groupId>
             <artifactId>cthul-fluent-matchers-lib8</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-core</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

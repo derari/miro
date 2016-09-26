@@ -22,13 +22,29 @@ public class PeopleImpl extends SqlEntitySet<Person, PeopleImpl> implements Peop
     @Override
     protected void initialize() {
         super.initialize();
-        setUp(MappingKey.FETCH, "firstName", "lastName");
+        setUp(MappingKey.FETCH, "id", "firstName", "lastName");
     }
 
     @Override
     public People withFirstName(String name) {
-        return sql(sql -> {
-           sql.where().ql("first_name").eq(name);
-        });
+        return setUp(MappingKey.PROPERTY_FILTER, "firstName", name);
+//        return setUp(MappingKey.PROPERTY_FILTER, f -> f.forProperties("firstName").add(new Object[]{name}));
+//        return sql(sql -> {
+//           sql.where().ql("first_name").eq(name);
+//        });
+    }
+
+    @Override
+    public People withLastName(String name) {
+        return setUp(MappingKey.PROPERTY_FILTER, "lastName", name);
+//        return setUp(MappingKey.PROPERTY_FILTER, f -> f.forProperties("firstName").add(new Object[]{name}));
+//        return sql(sql -> {
+//           sql.where().ql("first_name").eq(name);
+//        });
+    }
+
+    @Override
+    public People withName(String first, String last) {
+        return setUp(MappingKey.PROPERTY_FILTER, "firstName", first, "lastName", last);
     }
 }

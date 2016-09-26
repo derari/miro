@@ -6,7 +6,8 @@ import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.function.MiConsumer;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
-import org.cthul.miro.util.Closables;
+import org.cthul.miro.entity.InitializationBuilder;
+import org.cthul.miro.util.Closeables;
 
 /**
  * A stateless entity initializer that does not require input from the
@@ -28,6 +29,11 @@ public abstract class EntityPostProcessing<Entity> implements EntityConfiguratio
     @Override
     public EntityInitializer<Entity> newInitializer(MiResultSet rs) {
         return asInitializer();
+    }
+
+    @Override
+    public void newInitializer(MiResultSet resultSet, InitializationBuilder<? extends Entity> builder) throws MiException {
+        builder.add(newInitializer(resultSet));
     }
     
     public EntityInitializer<Entity> asInitializer() {
@@ -61,7 +67,7 @@ public abstract class EntityPostProcessing<Entity> implements EntityConfiguratio
                 try {
                     processingStep.accept(entity);
                 } catch (Exception e) {
-                    throw Closables.exceptionAs(e, MiException.class);
+                    throw Closeables.exceptionAs(e, MiException.class);
                 }
             }
             @Override

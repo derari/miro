@@ -11,6 +11,9 @@ import org.cthul.miro.entity.map.EntityAttribute;
 import org.cthul.miro.graph.GraphApi;
 import org.cthul.miro.map.MappedType;
 import org.cthul.miro.map.MappingKey;
+import org.cthul.miro.map.PropertyFilter;
+import org.cthul.miro.map.PropertyFilter.PropertyFilterKey;
+import org.cthul.miro.request.template.Templates;
 import org.cthul.miro.util.Key;
 
 /**
@@ -25,25 +28,33 @@ public class FilterLayer<Entity> extends AbstractMappingLayer<Entity, Object> {
 
     @Override
     protected Template<? super Object> createPartTemplate(Parent<Object> parent, Object key) {
-        return super.createPartTemplate(parent, key);
+        switch (MappingKey.key(key)) {
+            case PROPERTY_FILTER:
+                return Templates.newNode(PropertyFilterHub::new);
+        }
+        if (key instanceof PropertyFilterKey) {
+            PropertyFilterKey pfk = (PropertyFilterKey) key;
+            return Templates.newNode(ic -> new PropertiesIn(ic, pfk.getAttributeKeys()));
+        }
+        return null;
     }
     
-    protected class PropertyFilter implements MappingKey.PropertyFilter, Copyable<Object> {
+    protected class PropertyFilterHub implements PropertyFilter, Copyable<Object> {
         
         final InternalComposer<?> ic;
 
-        public PropertyFilter(InternalComposer<?> ic) {
+        public PropertyFilterHub(InternalComposer<?> ic) {
             this.ic = ic;
         }
 
         @Override
         public ListNode<Object[]> forProperties(String... propertyKeys) {
-            return ic.node(new MappingKey.PropertyFilterKey(propertyKeys));
+            return ic.node(new PropertyFilterKey(propertyKeys));
         }
 
         @Override
         public Object copyFor(InternalComposer<Object> ic) {
-            return new PropertyFilter(ic);
+            return new PropertyFilterHub(ic);
         }
 
         @Override
@@ -52,7 +63,7 @@ public class FilterLayer<Entity> extends AbstractMappingLayer<Entity, Object> {
         }
     }
     
-    protected class PropertiesIn implements ListNode<Object>, Copyable<Object> {
+    protected class PropertiesIn implements ListNode<Object[]>, Copyable<Object> {
         
         final List<EntityAttribute<Entity, GraphApi>> properties;
         final Key<ListNode<Object[]>> valueFilterKey;
@@ -76,13 +87,12 @@ public class FilterLayer<Entity> extends AbstractMappingLayer<Entity, Object> {
         }
 
         @Override
-        public void add(Object entry) {
-            Entity e = (Entity) entry;
+        public void add(Object[] values) {
             if (bags == null) bags = new Object[properties.size()][];
             int total = 0;
             for (int i = 0; i < bags.length; i++) {
                 EntityAttribute<Entity, GraphApi> at = properties.get(i);
-                Object v = at.get(e);
+                Object v = values[i];
                 bags[i] = at.toColumns(v, bags[i]);
                 total += bags[i].length;
             }
@@ -104,7 +114,7 @@ public class FilterLayer<Entity> extends AbstractMappingLayer<Entity, Object> {
 
         @Override
         public boolean allowReadOnly(Predicate<Object> isLatest) {
-            return true;
+            return true; // write-only node
         }
     }
 }

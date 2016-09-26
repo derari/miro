@@ -17,6 +17,7 @@ public interface CopyManager {
     default <V> List<V> copyAll(List<V> values) {
         return values.stream()
                 .map(this::tryCopy)
+                .filter(v -> v != null)
                 .collect(Collectors.toList());
     }
 }

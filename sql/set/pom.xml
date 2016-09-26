@@ -67,7 +67,7 @@
         </dependency>
         <dependency>
             <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-sql-map</artifactId>
+            <artifactId>miro-sql-request</artifactId>
         </dependency>
         
         <dependency>

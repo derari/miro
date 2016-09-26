@@ -4,8 +4,8 @@ import java.util.List;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.entity.EntityFactory;
-import org.cthul.miro.entity.EntityInitializer;
-import org.cthul.miro.entity.EntityTypes;
+import org.cthul.miro.entity.InitializationBuilder;
+import org.cthul.miro.util.XConsumer;
 
 /**
  *
@@ -29,24 +29,21 @@ public interface EntityAttribute<Entity, Cnn> extends ColumnMapping<Cnn> {
     
     void set(Entity e, Object value) throws MiException;
 
-    public default EntityInitializer<Entity> newInitializer(MiResultSet resultSet, Cnn cnn) throws MiException {
+    public default void newInitializer(MiResultSet resultSet, Cnn cnn, InitializationBuilder<? extends Entity> builder) throws MiException {
         EntityFactory<?> reader = newValueReader(resultSet, cnn);
-        if (reader == null) return EntityTypes.noInitialization();
-        return new EntityInitializer<Entity>() {
+        if (reader == null) return;
+        builder.addCompleteAndClose(reader);
+        builder.addNamedInitializer(new XConsumer<Entity, MiException>() {
             @Override
-            public void apply(Entity entity) throws MiException {
+            public void accept(Entity entity) throws MiException {
                 Object value = reader.newEntity();
                 set(entity, value);
             }
             @Override
-            public void complete() throws MiException {
-                reader.complete();
+            public String toString() {
+                return EntityAttribute.this + " := " + reader;
             }
-            @Override
-            public void close() throws MiException {
-                reader.close();
-            }
-        };
+        });
     }
     
     static <E, Cnn> SimpleAttribute.Builder<E, Cnn> build() {

@@ -6,7 +6,7 @@ import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.entity.EntityConfiguration;
-import org.cthul.miro.util.Closables;
+import org.cthul.miro.util.Closeables;
 import org.cthul.miro.util.Completable;
 
 /**
@@ -69,7 +69,7 @@ public class MultiInitializer<Entity> implements EntityInitializer<Entity> {
     @Override
     public void complete() throws MiException {
         if (listeners != null) {
-            Closables.completeAll(MiException.class, listeners);
+            Closeables.completeAll(MiException.class, listeners);
         }
     }
 
@@ -77,7 +77,7 @@ public class MultiInitializer<Entity> implements EntityInitializer<Entity> {
     public void close() throws MiException {
         MultiInitializer.this.complete();
         if (resources != null) {
-            Closables.closeAll(MiException.class, resources);
+            Closeables.closeAll(MiException.class, resources);
         }
     }
 

@@ -54,6 +54,21 @@ public interface SqlClause {
             return list(argument);
         }
         
+        default In list(Object arguments) {
+            if (arguments instanceof Collection) {
+                return list((Collection) arguments);
+            } else if (arguments instanceof Iterable) {
+                return list((Iterable) arguments);
+            } else if (arguments instanceof Object[]) {
+                return list((Object[]) arguments);
+            } else if (arguments instanceof Stream) {
+                return list((Stream) arguments);
+            } else if (arguments instanceof Iterator) {
+                return list((Iterator) arguments);
+            }
+            throw new IllegalArgumentException(String.valueOf(arguments));
+        }
+        
         default In list(Stream<?> arguments) {
             return list(arguments.iterator());
         }

@@ -12,9 +12,9 @@ import org.cthul.miro.entity.EntityType;
  */
 public interface Graph extends AutoCloseable {
     
-    <Node> NodeSet<Node> getNodeSet(Object typeKey);
+    <Node> GraphNodes<Node> getNodeSet(Object typeKey);
     
-    default <Node> NodeSet<Node> getNodeSet(Class<Node> typeKey) {
+    default <Node> GraphNodes<Node> getNodeSet(Class<Node> typeKey) {
         return getNodeSet((Object) typeKey);
     }
     

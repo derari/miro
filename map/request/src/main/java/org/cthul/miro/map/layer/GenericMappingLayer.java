@@ -92,6 +92,7 @@ public class GenericMappingLayer<Entity> extends AbstractTemplateLayer<Mapping<?
                 return graph.getEntityType(typeKey);
             } else {
                 if (entityType == null && defaultType != null) {
+                    // entityType was explicitly set to null
                     throw new IllegalStateException("Graph or entity type required");
                 }
                 return entityType;

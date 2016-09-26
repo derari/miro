@@ -16,7 +16,7 @@ import java.util.function.Supplier;
 
 import org.cthul.miro.result.cursor.ResultCursor;
 import org.cthul.miro.result.cursor.ResultCursorBase;
-import org.cthul.miro.util.Closables;
+import org.cthul.miro.util.Closeables;
 
 /**
  * Default implementations of {@link EntityResultBuilder}.
@@ -68,8 +68,8 @@ public class ResultBuilders {
                 } else {
                     return hasMore = false;
                 }
-            } catch (MiException ex) {
-                this.ex = ex;
+            } catch (MiException e) {
+                this.ex = e;
                 return hasMore = false;
             }
         }
@@ -83,19 +83,19 @@ public class ResultBuilders {
                 Entity e = factory.newEntity();
                 factory.complete();
                 return e;
-            } catch (MiException ex) {
-                this.ex = ex;
+            } catch (MiException e) {
+                this.ex = e;
                 hasMore = false;
-                throw new IllegalStateException(ex);
+                throw new IllegalStateException(e);
             }
         }
         
         @Override
         public void close() throws MiException {
             if (ex != null) {
-                throw Closables.closeAll(ex, factory, rs);
+                throw Closeables.closeAll(ex, factory, rs);
             } else {
-                Closables.closeAll(MiException.class, factory, rs);
+                Closeables.closeAll(MiException.class, factory, rs);
             }
         }
         
@@ -214,7 +214,7 @@ public class ResultBuilders {
         public void close() throws MiException {
             if (rs != null) {
                 try {
-                    Closables.closeAll(MiException.class, factory, rs);
+                    Closeables.closeAll(MiException.class, factory, rs);
                 } finally {
                     rs = null;
                     factory = null;
@@ -255,7 +255,7 @@ public class ResultBuilders {
         return new ArrayResult<>(ary);
     }
     
-    public static <Entity> ArrayResult<Entity> getArrayResult(Class<Entity> clazz) {
+    public static <Entity> ArrayResult<Entity> getArrayResult(Class<? super Entity> clazz) {
         return getArrayResult((Entity[]) Array.newInstance(clazz, 0));
     }
 

@@ -22,10 +22,10 @@ public abstract class AbstractTemplate<Builder> extends AbstractCache<Object, Te
 //
     public AbstractTemplate(Template<? super Builder> parent) {
         this.parent = parent;
-        this.parentLookUp = getParentLookUp();
+        this.parentLookUp = getParentLookUp(parent);
     }
     
-    private AbstractTemplate<? super Builder> getParentLookUp() {
+    protected static <Builder> AbstractTemplate<? super Builder> getParentLookUp(Template<? super Builder> parent) {
         if (parent instanceof AbstractTemplate) {
             try {
                 Class<?> decl = parent.getClass()
@@ -54,6 +54,14 @@ public abstract class AbstractTemplate<Builder> extends AbstractCache<Object, Te
             return parentLookUp.getValue(key);
         }
         return parent;
+    }
+    
+    protected void forceParentLookUp(Object key) {
+        if (parentLookUp != null) {
+            forcePut(key, parentLookUp.getValue(key));
+        } else {
+            forcePut(key, parent);
+        }
     }
     
     protected abstract Template<? super Builder> createPartTemplate(Object key);

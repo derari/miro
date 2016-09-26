@@ -1,5 +1,6 @@
 package org.cthul.miro.entity.map;
 
+import java.util.ArrayList;
 import org.cthul.miro.util.XBiFunction;
 import org.cthul.miro.util.XFunction;
 import java.util.Arrays;
@@ -10,9 +11,12 @@ import java.util.function.Function;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.entity.EntityFactory;
+import org.cthul.miro.entity.EntityType;
+import org.cthul.miro.entity.EntityTypes;
 import org.cthul.miro.entity.base.ResultColumns;
+import org.cthul.miro.entity.base.ResultColumns.ColumnMatcher;
 import org.cthul.miro.entity.base.ResultColumns.ColumnRule;
-import org.cthul.miro.util.Closables.FunctionalHelper;
+import org.cthul.miro.util.Closeables.FunctionalHelper;
 
 /**
  *
@@ -24,6 +28,8 @@ import org.cthul.miro.util.Closables.FunctionalHelper;
 public interface ColumnMappingBuilder<Entity, Cnn, S extends ColumnMappingBuilder.Single<Entity, Cnn, S>, G extends ColumnMappingBuilder.Group<Entity, Cnn, G>> {
     
     S column(ColumnRule rule, String column);
+    
+    S column(ColumnMatcher column);
     
     G columns(ColumnRule allRule, ColumnRule eachRule, String... columns);
     
@@ -105,17 +111,25 @@ public interface ColumnMappingBuilder<Entity, Cnn, S extends ColumnMappingBuilde
     
     public abstract class Single<Entity, Cnn, S extends Single<Entity, Cnn, S>> {
         
-        protected final String column;
-        protected final ColumnRule rule;
+        protected final ColumnMatcher column;
+        protected final List<String> columns = new ArrayList<>();
         protected MultiValue multi = null;
         protected Function<Object, Object> toColumn = null;
         protected XFunction<Object, Object, MiException> toValue = null;
         protected XBiFunction<MiResultSet, Integer, ?, MiException> reader = null;
         protected XBiFunction<MiResultSet, Cnn, ? extends EntityFactory<?>, MiException> newReader = null;
 
-        public Single(String column, ColumnRule rule) {
+        public Single(ColumnMatcher column) {
             this.column = column;
-            this.rule = rule;
+        }
+        
+        public S addColumns(String... columns) {
+            return addColumns(Arrays.asList(columns));
+        }
+        
+        public S addColumns(List<String> columns) {
+            this.columns.addAll(columns);
+            return (S) this;
         }
         
         public S mapToValue(XFunction<Object, Object, MiException> toValue) {
@@ -162,19 +176,19 @@ public interface ColumnMappingBuilder<Entity, Cnn, S extends ColumnMappingBuilde
             }
             if (newReader != null) {
                 fNewReader = (rs, cnn) -> {
-                    if (ResultColumns.findColumn(rule, rs, column) == null) return null;
+                    if (column.find(rs) == null) return null;
                     return newReader.apply(rs, cnn);
                 };
             } else if (reader != null) {
                 fNewReader = (rs, cnn) -> {
-                    Integer i = ResultColumns.findColumn(rule, rs, column);
+                    Integer i = column.find(rs);
                     if (i == null) return null;
                     return () -> reader.apply(rs, i);
                 };
             } else if (toValue != null) {
-                fNewReader = (rs, cnn) -> ResultColumns.readColumn(rs, rule, column, multi).andThen(toValue);
+                fNewReader = (rs, cnn) -> ResultColumns.readColumn(rs, column, multi).andThen(toValue);
             } else {
-                fNewReader = (rs, cnn) -> ResultColumns.readColumn(rs, rule, column, multi);
+                fNewReader = (rs, cnn) -> ResultColumns.readColumn(rs, column, multi);
             }
             if (toColumn != null) {
                 fToCol = (v,r) -> {
@@ -185,9 +199,14 @@ public interface ColumnMappingBuilder<Entity, Cnn, S extends ColumnMappingBuilde
             } else if (multi != null) {
                 fToCol = multi::split;
             } else {
-                fToCol = (v,r) -> { throw new UnsupportedOperationException("Materialization only"); };
+                fToCol = (v,r) -> { 
+                    if (r == null || r.length != 1) r = new Object[1];
+                    r[0] = v; 
+                    return r;
+                };
             }
-            return new SimpleColumnValue(Arrays.asList(column), fToCol, fNewReader);
+            XFunction<MiResultSet, Boolean, MiException> matcher = rs -> column.test(rs) != null;
+            return new SimpleColumnValue<>(matcher, columns, fToCol, fNewReader);
         }
     }
     
@@ -280,16 +299,25 @@ public interface ColumnMappingBuilder<Entity, Cnn, S extends ColumnMappingBuilde
             } else {
                 fToCol = (v,r) -> { throw new UnsupportedOperationException("Materialization only"); };
             }
-            return new SimpleColumnValue(Arrays.asList(columns), fToCol, fNewReader);
+            XFunction<MiResultSet, Boolean, MiException> matcher = rs -> {
+                try {
+                    return ResultColumns.findColumns(allRule, eachRule, rs, columns) != null;
+                } catch (MiException e) {
+                    return false;
+                }
+            };
+            return new SimpleColumnValue(matcher, Arrays.asList(columns), fToCol, fNewReader);
         }
     }
     
     static class SimpleColumnValue<Cnn> implements ColumnMapping<Cnn> {
+        final XFunction<MiResultSet, Boolean, MiException> matcher;
         final List<String> columns;
         final BiFunction<Object, Object[], Object[]> toColumn;
         final XBiFunction<MiResultSet, Cnn, ? extends EntityFactory<?>, MiException> newReader;
 
-        public SimpleColumnValue(List<String> columns, BiFunction<Object, Object[], Object[]> toColumn, XBiFunction<MiResultSet, Cnn, ? extends EntityFactory<?>, MiException> newReader) {
+        public SimpleColumnValue(XFunction<MiResultSet, Boolean, MiException> matcher, List<String> columns, BiFunction<Object, Object[], Object[]> toColumn, XBiFunction<MiResultSet, Cnn, ? extends EntityFactory<?>, MiException> newReader) {
+            this.matcher = matcher;
             this.columns = columns;
             this.toColumn = toColumn;
             this.newReader = newReader;
@@ -306,8 +334,18 @@ public interface ColumnMappingBuilder<Entity, Cnn, S extends ColumnMappingBuilde
         }
 
         @Override
+        public boolean accept(MiResultSet rs, Cnn cnn) throws MiException {
+            return matcher.apply(rs);
+        }
+
+        @Override
         public EntityFactory<?> newValueReader(MiResultSet rs, Cnn cnn) throws MiException {
             return newReader.apply(rs, cnn);
+        }
+
+        @Override
+        public String toString() {
+            return String.valueOf(columns);
         }
     }
     
@@ -326,4 +364,31 @@ public interface ColumnMappingBuilder<Entity, Cnn, S extends ColumnMappingBuilde
     
     public static final XFunction<Object, Object, MiException> TO_BOOLEAN = o ->
             o == null ? null : TO_BOOL.apply(o);
+    
+    public static <E> XFunction<MiResultSet, EntityFactory<List<E>>, MiException> listReader(String parent, String subresult, EntityType<E> type) {
+        return rs -> {
+            MiResultSet r = subresult != null ? rs.subResult(subresult) : rs;
+            int parentIndex = rs.findColumn(parent);
+            return listReader(parentIndex, r, type);
+        };
+    }
+    
+    public static <E> EntityFactory<List<E>> listReader(int parentIndex, MiResultSet resultSet, EntityType<E> type) throws MiException {
+        return listReader(parentIndex, resultSet, type.newFactory(resultSet));
+    }
+    
+    public static <E> EntityFactory<List<E>> listReader(int parentIndex, MiResultSet resultSet, EntityFactory<E> factory) {
+        return EntityTypes.buildFactory(b -> b
+                .setFactory(ArrayList::new)
+                .addInitializer(list -> {
+                    Object parentId = resultSet.get(parentIndex);
+                    while (resultSet.get(parentIndex).equals(parentId)) {
+                        list.add(factory.newEntity());
+                        if (!resultSet.next()) break;
+                    }
+                    resultSet.previous();
+                })
+                .addCompleteAndClose(factory)
+                .addName("List<"+factory+">"));
+    }
 }

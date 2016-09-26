@@ -1,16 +1,44 @@
 package org.cthul.miro.sql.syntax;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import org.cthul.miro.db.impl.AbstractNestedBuilder;
 import org.cthul.miro.sql.SqlClause;
 import org.cthul.miro.db.stmt.MiDBString;
 import org.cthul.miro.db.syntax.QlBuilder;
+import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.db.syntax.Syntax;
 
 /**
  *
  */
 public class AnsiSqlSyntax implements SqlSyntax {
+    
+    private final Map<String, QlCode> constants = new HashMap<>();
+    private final Map<String, String> tableSchemas = new HashMap<>();
+    
+    public AnsiSqlSyntax putConst(Object key, QlCode value) {
+        constants.put(String.valueOf(key), value);
+        return this;
+    }
+    
+    public AnsiSqlSyntax schema(String schema, String... tables) {
+        return schema(schema, Arrays.asList(tables));
+    }
+    
+    public AnsiSqlSyntax schema(String schema, Iterable<String> tables) {
+        tables.forEach(t -> tableSchemas.put(schema, t));
+        return this;
+    }
+
+    @Override
+    public void appendConstanct(Object key, QlBuilder<?> query) {
+        QlCode c = constants.get(String.valueOf(key));
+        if (c == null) throw new IllegalArgumentException(String.valueOf(key));
+        c.appendTo(query);
+    }
 
     @Override
     public QlBuilder<?> newQlBuilder(MiDBString dbString) {
@@ -87,7 +115,7 @@ public class AnsiSqlSyntax implements SqlSyntax {
 
         @Override
         public void close() {
-            ql(" IS NOT NULL)");
+            ql(" IS NULL)");
             super.close();
         }
     }

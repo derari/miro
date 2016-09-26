@@ -368,6 +368,10 @@ public class Templates {
         return Special.NO_OP;
     }
     
+    public static ComposableTemplate<Object> end() {
+        return Special.END;
+    }
+    
     public static <N extends ComposableNode<N>> N allNodes(Iterable<N> nodes) {
         Iterator<N> it = nodes.iterator();
         if (!it.hasNext()) return null;
@@ -619,6 +623,13 @@ public class Templates {
         NO_OP {
             @Override
             public void addTo(Object key, InternalComposer<? extends Object> query) { }
+        },
+        
+        END {
+            @Override
+            public void addTo(Object key, InternalComposer<? extends Object> composer) {
+                throw new IllegalArgumentException(String.valueOf(key));
+            }
         };
     }
     

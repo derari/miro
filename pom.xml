@@ -29,8 +29,8 @@
         
         <module>sql/syntax</module>
         <module>sql/migrate</module>
-        <module>sql/request</module>
         <module>sql/map</module>
+        <module>sql/request</module>
         <module>sql/set</module>
         
         <module>ext/jdbc</module>

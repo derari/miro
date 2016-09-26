@@ -20,11 +20,11 @@ public class JoinedLayer<Builder extends SqlTableClause & SqlJoinableClause & Sq
     private final QlCode aliasPrefix;
     private final QlCode onCondition;
     
-    public JoinedLayer(SqlTemplates owner, Key<ViewComposer> key, String prefix, String condition) {
+    public JoinedLayer(SqlTemplates owner, Key<ViewComposer> key, String prefix, QlCode onCondition) {
         super(owner);
         this.key = key;
         this.aliasPrefix = QlCode.ql(prefix + ".");
-        this.onCondition = MiSqlParser.parseCode(condition);
+        this.onCondition = onCondition;
     }
 
     @Override

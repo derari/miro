@@ -61,7 +61,7 @@ public class SqlTemplatesTest {
         
         qryString.close();
         assertThat(qryString).hasToString(
-                "SELECT a.id, COUNT (i.id) AS inhabitantCount " +
+                "SELECT a.id, COUNT(i.id) AS inhabitantCount " +
                 "FROM Addresses a " +
                 "LEFT JOIN People i ON a.id = i.address_id " + 
                 "GROUP BY a.id, a.street, a.city");
@@ -96,11 +96,12 @@ public class SqlTemplatesTest {
                 .forAttributes("people.firstName").add(new Object[]{"John"});
         c.build(qryString.as(syntax, SqlDQML.select()));
         
+        
         qryString.close();
         assertThat(qryString).hasToString(
                 "SELECT a.id, a.street " + 
                 "FROM Addresses a " + 
                 "JOIN People p ON a.id = p.address_id " + 
-                "WHERE p.first_name IN (?)");
+                "WHERE p.first_name = ?");
     }
 }

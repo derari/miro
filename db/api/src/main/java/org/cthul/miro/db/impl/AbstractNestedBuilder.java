@@ -7,6 +7,8 @@ import org.cthul.miro.db.syntax.Syntax;
 
 /**
  *
+ * @param <Owner> type of parent clause
+ * @param <This> type of actual implementation
  */
 public class AbstractNestedBuilder<Owner, This extends QlBuilder<This>> 
                 extends QlBuilderDelegator<This>
@@ -38,6 +40,11 @@ public class AbstractNestedBuilder<Owner, This extends QlBuilder<This>>
     @Override
     protected QlBuilder<?> getDelegatee() {
         makeInitialized();
+        return builder;
+    }
+
+    @Override
+    protected QlBuilder<?> getStringDelegatee() {
         return builder;
     }
     

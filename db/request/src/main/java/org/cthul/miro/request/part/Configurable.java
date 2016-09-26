@@ -1,17 +1,24 @@
 package org.cthul.miro.request.part;
 
+import java.util.Collection;
 import org.cthul.miro.request.impl.ValueKey;
 
 /**
  * A query element that requires some arguments.
  */
-public interface Configurable {
+public interface Configurable extends BatchNode<Object> {
 
     default void enable() {
         set(Key.NO_VALUES);
     }
 
+    @Override
     void set(Object... values);
+
+    @Override
+    public default void set(Collection<? extends Object> values) {
+        set(values.toArray());
+    }
     
     static Key key(Object value) {
         return new Key(value);

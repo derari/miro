@@ -56,6 +56,8 @@ public interface QlBuilder<This extends QlBuilder<This>> extends MiDBString, Sta
     
     This stringLiteral(String string);
     
+    This constant(Object key);
+    
     @Override
     default <Clause> This clause(ClauseType<Clause> type, Consumer<? super Clause> code) {
         code.accept(begin(type));

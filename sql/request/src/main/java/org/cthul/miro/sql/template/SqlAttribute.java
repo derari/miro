@@ -13,10 +13,10 @@ import org.cthul.miro.db.syntax.QlCode;
  */
 public class SqlAttribute {
     
-    private final String key;
+    private final String key, alias;
     private final Set<Object> dependencies = new HashSet<>();
     private final QlCode expression;
-    private final QlCode alias;
+    private final QlCode aliasCode;
 
     public SqlAttribute(MiSqlParser.Attribute at) {
         this(at.getKey(), at.getExpression(), at.getAlias());
@@ -26,14 +26,20 @@ public class SqlAttribute {
         });
     }
 
-    public SqlAttribute(String key, QlCode expression, QlCode alias) {
+    public SqlAttribute(String key, QlCode expression, QlCode aliasCode) {
         this.key = key;
         this.expression = expression;
-        this.alias = alias;
+        this.aliasCode = aliasCode;
+        this.alias = aliasCode != null ? new AliasBuilder().append(aliasCode).toString() : key;
     }
 
     public String getKey() {
         return key;
+    }
+
+    @Deprecated // remove?
+    public String getAlias() {
+        return alias;
     }
 
     public Set<Object> getDependencies() {
@@ -42,8 +48,8 @@ public class SqlAttribute {
     
     public void writeSelectClause(QlBuilder<?> ql) {
         ql.ql(expression());
-        if (alias != null) {
-            ql.ql(" AS ").ql(alias);
+        if (aliasCode != null) {
+            ql.ql(" AS ").ql(aliasCode);
         }
     }
     
@@ -79,8 +85,8 @@ public class SqlAttribute {
     public SqlAttribute getWithPredix(String aliasPrefix) {
         AliasBuilder prefixedAlias = new AliasBuilder();
         prefixedAlias.append(aliasPrefix);
-        if (alias != null) {
-            prefixedAlias.append(alias);
+        if (aliasCode != null) {
+            prefixedAlias.append(aliasCode);
         } else {
             prefixedAlias.append(key);
         }
@@ -101,6 +107,10 @@ public class SqlAttribute {
         }
         @Override
         public AliasBuilder stringLiteral(String string) {
+            throw new UnsupportedOperationException();
+        }
+        @Override
+        public AliasBuilder constant(Object key) {
             throw new UnsupportedOperationException();
         }
         @Override

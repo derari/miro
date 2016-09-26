@@ -53,7 +53,7 @@ public class GraphSchemaBuilder implements GraphSchema, Graph {
     }
 
     @Override
-    public <Node> NodeSet<Node> getNodeSet(Object typeKey) {
+    public <Node> GraphNodes<Node> getNodeSet(Object typeKey) {
         return nullGraph().getNodeSet(typeKey);
     }
 

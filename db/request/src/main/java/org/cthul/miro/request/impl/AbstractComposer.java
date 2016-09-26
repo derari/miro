@@ -116,7 +116,6 @@ public abstract class AbstractComposer<Builder> implements Composer {
         private List<StatementPart<? super Builder>> myParts = null;
         private Collection<StatementPart<? super Builder>> readOnlyParts = null;
         private Map<Object, Object> copyMap = null;
-        private long accessCount = 0;
         private boolean initialized;
 
         protected PartList() {
@@ -160,14 +159,12 @@ public abstract class AbstractComposer<Builder> implements Composer {
             }
             readOnlyParts = null;
             myParts.add(part);
-            accessCount++;
         }
         
         public <V> void addNode(Key<V> key, V node) {
             checkActive();
             readOnlyParts = null;
             tryPut(key, node);
-            accessCount++;
         }
         
         /**
@@ -215,15 +212,12 @@ public abstract class AbstractComposer<Builder> implements Composer {
         @SuppressWarnings("Convert2Lambda")
         protected Object create(Object key) {
             checkActive();
-            if (key == CopyManager.key) return this;
-            Object v = parent.hierarchyPeek(key);
+            if (key == CopyManager.key) return this; 
+           Object v = parent.hierarchyPeek(key);
             if (v != null) return tryCopy(v);
-            long before = accessCount;
             owner.create(key);
             v = peekValue(key);
-            if (v == null && before < accessCount) {
-                v = NO_NODE;
-            }
+            if (v == null) return NO_NODE;
             return v;
         }
         
@@ -291,7 +285,6 @@ public abstract class AbstractComposer<Builder> implements Composer {
                 initialized = true;
                 owner.initialize();
             }
-            accessCount++;
             return super.getValue(key);
         }
     }

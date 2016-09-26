@@ -1,5 +1,6 @@
-package org.cthul.miro.sql.map;
+package org.cthul.miro.sql.set;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.cthul.miro.request.RequestComposer;
 import org.cthul.miro.request.StatementHolder;
@@ -10,6 +11,7 @@ import org.cthul.miro.sql.template.SqlTemplates;
 import org.cthul.miro.request.template.TemplateLayer;
 import org.cthul.miro.request.template.TemplateLayerStack;
 import org.cthul.miro.db.MiException;
+import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.sql.SelectQuery;
 import org.cthul.miro.sql.SqlDQML;
 import org.cthul.miro.entity.EntityType;
@@ -19,6 +21,9 @@ import org.cthul.miro.map.MappingHolder;
 import org.cthul.miro.map.MappingKey;
 import org.cthul.miro.map.layer.MappedQuery;
 import org.cthul.miro.request.part.ListNode;
+import org.cthul.miro.sql.template.AttributeFilter;
+import org.cthul.miro.sql.template.JoinedView;
+import org.cthul.miro.sql.template.SqlAttribute;
 import org.cthul.miro.util.Key;
 
 /**
@@ -43,6 +48,44 @@ public class MappedSqlType<Entity>
         sqlTemplates = new SqlTemplates(String.valueOf(shortString));
     }
     
+    public MappedSqlType<Entity> join(String tableAlias, String prefix, MappedSqlType<?> other) {
+        JoinedView jv = other.sqlTemplates.joinedAs(prefix, (keys) -> getForeignKeyExpressions(tableAlias, prefix, keys));
+        join(jv);
+        return this;
+    }
+    
+    private List<Object> getForeignKeyExpressions(String tableAlias, String prefix, List<SqlAttribute> targetKeys) {
+        List<Object> result = new ArrayList<>();
+        targetKeys.forEach(k -> {
+            String atKey = prefix + "_" + k.getKey();
+            SqlAttribute at = sqlTemplates.getAttributes().get(atKey);
+            if (at == null) {
+                QlCode e = QlCode.ql(tableAlias).ql(".").ql(atKey);
+                at = new SqlAttribute(atKey, e, null);
+                at.getDependencies().add(tableAlias);
+                attribute(at);
+            }
+            result.add(at);
+        });
+        return result;
+    }
+    
+//    private List<Object> getForeignKeyExpressions(List<String> foreignKeys) {
+//        List<Object> result = new ArrayList<>();
+//        for (int i = 0; i < foreignKeys.size(); i++) {
+//            String key = foreignKeys.get(i);
+//            SqlAttribute at = sqlTemplates.getAttributes().get(key);
+//            if (at != null) result.add(at.expression());
+//            else result.add(MiSqlParser.parseCode(key));
+//        }
+//        return result;
+//    }
+    
+//    @Override
+//    public MappedSqlType<Entity> attribute(SqlAttribute attribute) {
+//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+//    }
+    
     @Override
     public SqlTemplatesBuilder<?> internalSqlTemplatesBuilder() {
         return sqlTemplates;
@@ -57,7 +100,7 @@ public class MappedSqlType<Entity>
     @Override
     protected Key<ListNode<Object[]>> getColumnFilterKey(List<String> columns) {
         String[] ary = columns.toArray(new String[columns.size()]);
-        return new SqlComposerKey.AttributeFilterKey(ary);
+        return AttributeFilter.key(ary);
     }
 
     @Override
@@ -72,12 +115,13 @@ public class MappedSqlType<Entity>
         }
         // TODO: most of this can be moved up to MappedType
         String[] keyArray = getKeys().toArray(new String[0]);
-        return new AbstractBatchLoader() {
+        return new AbstractBatchLoader(graph) {
             RequestComposer<MappedQuery<Entity, SelectQuery>> batch = null;
             @Override
             protected void fillAttributes(EntityType<Entity> type, List<Object[]> keys) throws MiException {
                 if (batch == null) {
                     batch = batchComposer.copy();
+                    batch.node(MappingKey.TYPE).setGraph(graph);
                     batch.node(MappingKey.TYPE).setType(type);
                     batch.node(MappingKey.INCLUDE).addAll(getKeys());
                     batch.node(MappingKey.FETCH).addAll(flattenStr(attributes));

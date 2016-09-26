@@ -90,7 +90,6 @@ public interface SqlSyntax extends Syntax {
     
     abstract class SimpleComposite<Owner, This extends QlBuilder<This>> extends AbstractNestedBuilder<Owner, This> {
         
-        private boolean first = true;
         private boolean writeOP = true;
 
         public SimpleComposite(Owner owner, MiDBString dbString, SqlSyntax syntax) {
@@ -102,19 +101,22 @@ public interface SqlSyntax extends Syntax {
         }
 
         @Override
-        protected QlBuilder<?> getDelegatee() {
+        protected void open() {
+            writeOP = false;
+            ql("((");
+            super.open();
+        }
+
+        @Override
+        protected QlBuilder<?> getWriteDelegatee() {
+            QlBuilder<?> sup = super.getWriteDelegatee();
             if (writeOP) {
                 writeOP = false;
-                if (first) {
-                    first = false;
-                    ql("((");
-                } else {
-                    ql(") ");
-                    writeOP();
-                    ql("( ");
-                }
+                ql(") ");
+                writeOP();
+                ql(" (");
             }
-            return super.getDelegatee();
+            return sup;
         }
         
         protected abstract void writeOP();
@@ -125,12 +127,10 @@ public interface SqlSyntax extends Syntax {
         }
 
         @Override
-        public Owner end() {
+        public void close() {
             writeOP = false;
-            if (!first) {
-                ql("))");
-            }
-            return super.end();
+            super.close();
+            ql("))");
         }
     }
     

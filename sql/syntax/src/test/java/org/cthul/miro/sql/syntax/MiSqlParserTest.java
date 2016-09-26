@@ -1,7 +1,10 @@
 package org.cthul.miro.sql.syntax;
 
+import java.util.Arrays;
 import java.util.List;
 import static org.cthul.matchers.fluent8.FluentAssert.assertThat;
+import org.cthul.miro.db.impl.MiDBStringBuilder;
+import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.sql.syntax.MiSqlParser.Attribute;
 import org.cthul.miro.sql.syntax.MiSqlParser.SelectStmt;
 import org.junit.Test;
@@ -51,6 +54,13 @@ public class MiSqlParserTest {
     }
     
     @Test
+    public void function() {
+        String sql = "MAX(foo)";
+        String parsed = MiSqlParser.parseCode(sql).toString();
+        assertThat(parsed).is("[MAX(foo)]");
+    }
+    
+    @Test
     public void partialSelect() {
         String sql = "SELECT a, `b`.`c` AS d, z.x "
                 + "FROM `Foo` f "
@@ -61,5 +71,24 @@ public class MiSqlParserTest {
                 + "ORDER BY c, d ASC ";
         SelectStmt stmt = MiSqlParser.parsePartialSelect(sql);
         assertThat(stmt).isNot().nullValue();
+    }
+    
+    @Test
+    public void macro_is_null() {
+        QlCode c = MiSqlParser.parseCode("@IS_NULL{`foo`}");
+        MiDBStringBuilder string = new MiDBStringBuilder();
+        string.asQlBuilder(new AnsiSqlSyntax()).append(c);
+        string.close();
+        assertThat(string.toString()).is("(\"foo\" IS NULL)");
+    }
+    
+    @Test
+    public void macro_in() {
+        QlCode c = MiSqlParser.parseCode("`foo` @IN{?}", Arrays.asList(1, 2));
+        MiDBStringBuilder string = new MiDBStringBuilder();
+        string.asQlBuilder(new AnsiSqlSyntax()).append(c);
+        string.close();
+        assertThat(string.toString()).is("\"foo\" IN (?,?)");
+        assertThat(string.getArguments()).contains(1, 2);
     }
 }

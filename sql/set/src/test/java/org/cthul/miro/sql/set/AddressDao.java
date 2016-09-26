@@ -5,6 +5,7 @@ import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.sql.SelectQuery;
 import org.cthul.miro.map.MappingKey;
 import org.cthul.miro.map.layer.MappedQuery;
+import static org.cthul.miro.sql.template.AttributeFilter.like;
 
 /**
  *
@@ -30,6 +31,6 @@ public class AddressDao extends SqlEntitySet<Address, AddressDao> {
     }
     
     public AddressDao cityLike(String pattern) {
-        return sql(sql -> sql.where().sql("city LIKE ?", pattern));
+        return setUp(MappingKey.PROPERTY_FILTER, "city", like(pattern));
     }
 }
