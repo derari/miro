@@ -71,8 +71,8 @@ public class GeneralSqlLayer<Builder extends SqlFilterableClause> extends Abstra
         }
 
         @Override
-        public Object copyFor(InternalComposer<Object> ic) {
-            return new AttributeFilterHub(ic);
+        public Object copyFor(CopyComposer<Object> cc) {
+            return new AttributeFilterHub(ic.node(cc));
         }
 
         @Override
@@ -134,8 +134,8 @@ public class GeneralSqlLayer<Builder extends SqlFilterableClause> extends Abstra
         }
 
         @Override
-        public Object copyFor(InternalComposer<Object> ic) {
-            return new AttributesIn(ic, this);
+        public Object copyFor(CopyComposer<Object> cc) {
+            return new AttributesIn(cc, this);
         }
 
         @Override

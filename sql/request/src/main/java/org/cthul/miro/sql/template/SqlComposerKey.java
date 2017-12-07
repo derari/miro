@@ -1,11 +1,8 @@
 package org.cthul.miro.sql.template;
 
-import java.util.Arrays;
-import java.util.stream.Collectors;
 import org.cthul.miro.request.part.Configurable;
 import org.cthul.miro.request.part.ListNode;
 import org.cthul.miro.request.part.MapNode;
-import org.cthul.miro.request.impl.ValueKey;
 import org.cthul.miro.util.Key;
 
 /**

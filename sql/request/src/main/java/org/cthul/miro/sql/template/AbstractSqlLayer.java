@@ -110,8 +110,9 @@ public abstract class AbstractSqlLayer<Builder extends SqlFilterableClause> exte
         protected void createSnippetPart(SnippetKey key) {
             SqlSnippet<? super Builder> snippet = getSnippet(key.getName());
             if (snippet == null) return;
+            snippet.addAsNode(key, ic);
             snippet.requireDependencies(dependencyComposer);
-            snippet.addTo(key, ic);
+            snippet.addNodeAsPart(key, ic);
         }
 
         @Override

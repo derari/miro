@@ -1,8 +1,10 @@
 package org.cthul.miro.request.part;
 
 import java.util.function.Predicate;
+import org.cthul.miro.request.Composer;
 import org.cthul.miro.request.StatementPart;
 import org.cthul.miro.request.template.InternalComposer;
+import org.cthul.miro.util.Key;
 
 /**
  * Interface for {@link StatementPart}s and nodes that have state 
@@ -16,10 +18,10 @@ public interface Copyable<Builder> {
      * Returns itself if stateless.
      * Non-node {@link StatementPart}s can return null if they are already 
      * added to the composer.
-     * @param ic
+     * @param cc
      * @return the copy
      */
-    Object copyFor(InternalComposer<Builder> ic);
+    Object copyFor(CopyComposer<Builder> cc);
 
     /**
      * Indicate whether this object can be used for read-only access.
@@ -32,9 +34,16 @@ public interface Copyable<Builder> {
         return false;
     }
     
-    static <T> T tryCopy(T original, InternalComposer<?> ic) {
+    /**
+     * Provides access to the copied composer.
+     * To get internal access, resolve as node from the previous internal composer.
+     * @param <Builder> 
+     */
+    interface CopyComposer<Builder> extends Composer, Key<InternalComposer<Builder>> { }
+    
+    static <T> T tryCopy(T original, CopyComposer<?> cc) {
         if (original instanceof Copyable) {
-            return (T) ((Copyable) original).copyFor(ic);
+            return (T) ((Copyable) original).copyFor(cc);
         }
         return original;
     }

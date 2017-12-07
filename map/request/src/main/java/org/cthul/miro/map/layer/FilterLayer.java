@@ -13,6 +13,7 @@ import org.cthul.miro.map.MappedType;
 import org.cthul.miro.map.MappingKey;
 import org.cthul.miro.map.PropertyFilter;
 import org.cthul.miro.map.PropertyFilter.PropertyFilterKey;
+import org.cthul.miro.request.Composer;
 import org.cthul.miro.request.template.Templates;
 import org.cthul.miro.util.Key;
 
@@ -53,8 +54,8 @@ public class FilterLayer<Entity> extends AbstractMappingLayer<Entity, Object> {
         }
 
         @Override
-        public Object copyFor(InternalComposer<Object> ic) {
-            return new PropertyFilterHub(ic);
+        public Object copyFor(CopyComposer<Object> cc) {
+            return new PropertyFilterHub(ic.node(cc));
         }
 
         @Override
@@ -71,7 +72,7 @@ public class FilterLayer<Entity> extends AbstractMappingLayer<Entity, Object> {
         Object[][] bags = null;
         Object[] totalBag = null;
 
-        public PropertiesIn(InternalComposer<?> ic, String[] properties) {
+        public PropertiesIn(Composer ic, String[] properties) {
             this.properties = new ArrayList<>();
             for (String p: properties) {
                 this.properties.add(getOwner().getAttributes().getAttributeMap().get(p));
@@ -80,7 +81,7 @@ public class FilterLayer<Entity> extends AbstractMappingLayer<Entity, Object> {
             this.valueFilter = ic.node(valueFilterKey);
         }
         
-        public PropertiesIn(InternalComposer<?> ic, PropertiesIn source) {
+        public PropertiesIn(Composer ic, PropertiesIn source) {
             this.properties = source.properties;
             this.valueFilterKey = source.valueFilterKey;
             this.valueFilter = ic.node(valueFilterKey);
@@ -106,10 +107,10 @@ public class FilterLayer<Entity> extends AbstractMappingLayer<Entity, Object> {
         }
 
         @Override
-        public Object copyFor(InternalComposer<Object> ic) {
+        public Object copyFor(CopyComposer<Object> cc) {
             bags = null;
             totalBag = null;
-            return new PropertiesIn(ic, this);
+            return new PropertiesIn(cc, this);
         }
 
         @Override

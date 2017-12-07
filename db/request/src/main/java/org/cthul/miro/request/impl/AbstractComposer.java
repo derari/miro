@@ -14,6 +14,7 @@ import org.cthul.miro.request.Composer;
 import org.cthul.miro.request.ComposerKey;
 import org.cthul.miro.request.part.Copyable;
 import org.cthul.miro.request.StatementPart;
+import org.cthul.miro.request.part.Copyable.CopyComposer;
 import org.cthul.miro.request.template.InternalComposer;
 import org.cthul.miro.request.template.Template;
 import org.cthul.miro.util.Key;
@@ -24,7 +25,7 @@ import org.cthul.miro.util.Key;
  */
 public abstract class AbstractComposer<Builder> implements Composer {
     
-    private final InternalComposer<Builder> internal = new Internal();
+    private final Internal internal = new Internal();
     private final Template<? super Builder> template;
     private PartList<Builder> frozenParts;
     private PartList<Builder> parts = null;
@@ -75,6 +76,9 @@ public abstract class AbstractComposer<Builder> implements Composer {
 
     @Override
     public <V> V get(Key<V> key) {
+        if (key instanceof CopyComposer) {
+            return key.cast(key);
+        }
         Object v = parts().getValue(key);
         if (v == NO_NODE) return null;
         return key.cast(v);
@@ -85,7 +89,7 @@ public abstract class AbstractComposer<Builder> implements Composer {
         parts().getValue(ComposerKey.ALWAYS);
     }
     
-    private class Internal implements InternalComposer<Builder> {
+    private class Internal implements InternalComposer<Builder>, CopyComposer<Builder> {
         @Override
         public void addPart(StatementPart<? super Builder> part) {
             parts().addPart(part);
@@ -213,7 +217,7 @@ public abstract class AbstractComposer<Builder> implements Composer {
         protected Object create(Object key) {
             checkActive();
             if (key == CopyManager.key) return this; 
-           Object v = parent.hierarchyPeek(key);
+            Object v = parent.hierarchyPeek(key);
             if (v != null) return tryCopy(v);
             owner.create(key);
             v = peekValue(key);
@@ -284,6 +288,9 @@ public abstract class AbstractComposer<Builder> implements Composer {
             if (!initialized) {
                 initialized = true;
                 owner.initialize();
+            }
+            if (key instanceof Copyable.CopyComposer) {
+                return owner.internal;
             }
             return super.getValue(key);
         }

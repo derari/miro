@@ -17,6 +17,7 @@ import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.set.base.AbstractQuerySet;
 import org.cthul.miro.map.Mapping;
 import org.cthul.miro.map.layer.MappedQuery;
+import org.cthul.miro.sql.template.SqlComposerKey;
 
 /**
  *
@@ -51,10 +52,14 @@ public abstract class SqlEntitySet<Entity, This extends SqlEntitySet<Entity, Thi
     }
     
     protected This snippet(String key, Object... args) {
+        return compose(c -> c.node(SqlComposerKey.SNIPPETS).get(key).set(args));
+    }
+    
+    protected This build(String key, Object... args) {
         return compose(c -> c.node(snippetKey()).set(key, args));
     }
     
-    protected This snippet(Consumer<? super MappedQuery<Entity, SelectQuery>> snippet) {
+    protected This build(Consumer<? super MappedQuery<Entity, SelectQuery>> snippet) {
         return compose(c -> c.node(snippetKey()).add(snippet));
     }
     
@@ -63,15 +68,15 @@ public abstract class SqlEntitySet<Entity, This extends SqlEntitySet<Entity, Thi
 //    }
 
     protected This sql(Consumer<? super SelectBuilder> action) {
-        return snippet(snp -> action.accept(snp.getStatement()));
+        return build(snp -> action.accept(snp.getStatement()));
     }
     
     protected This sql(String sql, Object... args) {
-        return snippet(snp -> snp.getStatement().sql(sql, args));
+        return build(stmt -> stmt.getStatement().sql(sql, args));
     }
     
     protected This map(Consumer<? super Mapping<Entity>> action) {
-        return snippet(snp -> action.accept(snp.getMapping()));
+        return build(stmt -> action.accept(stmt.getMapping()));
     }
     
     protected This configureWith(EntityConfiguration<? super Entity> cfg) {

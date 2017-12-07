@@ -108,6 +108,14 @@ public abstract class SqlSnippet<Builder> implements Template<Builder> {
         composer.addPart((Key) key, new Part());
     }
     
+    public void addAsNode(Object key, InternalComposer<? extends Builder> composer) {
+        composer.addNode((Key) key, new Part());
+    }
+    
+    public void addNodeAsPart(Object key, InternalComposer<? extends Builder> composer) {
+        composer.addPart((Part) composer.node((Key) key));
+    }
+    
     protected abstract void writePart(Builder builder, Object[] args);
 
     @Override
@@ -137,7 +145,7 @@ public abstract class SqlSnippet<Builder> implements Template<Builder> {
         }
 
         @Override
-        public Object copyFor(InternalComposer<Builder> ic) {
+        public Object copyFor(CopyComposer<Builder> cc) {
             return new Part(args);
         }
 

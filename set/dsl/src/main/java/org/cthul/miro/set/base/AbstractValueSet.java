@@ -4,6 +4,7 @@ import java.lang.reflect.Constructor;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;
+import org.cthul.miro.result.Results;
 import org.cthul.miro.set.ValueSet;
 
 /**
@@ -13,32 +14,36 @@ import org.cthul.miro.set.ValueSet;
  */
 public abstract class AbstractValueSet<Value, This extends AbstractValueSet<Value, This>> implements ValueSet<Value> {
     
+    private static final int NEW = 0, INITIALIZING = 1, READY = 2, FROZEN = 3;
+    
     private Set<Object> onceGuard = null;
     private Constructor<This> copyConstructor = null;
-    private boolean initialized;
+    private int status;
     private int actionStack = 0;
-    private boolean frozen = false;
 
     public AbstractValueSet() {
-        this.initialized = false;
+        this.status = NEW;
     }
     
     protected AbstractValueSet(AbstractValueSet<Value, This> source) {
         this.copyConstructor = source.copyConstructor;
-        this.initialized = source.initialized;
+        this.status = Math.min(source.status, READY);
         if (source.onceGuard != null) {
             this.onceGuard = new HashSet<>(source.onceGuard);
         }
     }
     
     protected This freeze() {
+        if (status < READY) {
+            throw new IllegalStateException("not initialized");
+        }
         actionStack = 0;
-        frozen = true;
+        status = FROZEN;
         return (This) this;
     }
     
     protected boolean isFrozen() {
-        return frozen;
+        return status == FROZEN;
     }
     
     protected void checkUnfrozen() {
@@ -83,14 +88,16 @@ public abstract class AbstractValueSet<Value, This extends AbstractValueSet<Valu
     }
     
     private void makeInitialized() {
-        if (!initialized && !frozen) {
-            initialized = true;
+        if (status >= READY) return;
+        synchronized (this) {
+            if (status >= INITIALIZING) return;
+            status = INITIALIZING;
             try {
                 actionStack++; 
                 initialize();
             } finally {
                 actionStack--;
-                frozen = actionStack == 0;
+                status = actionStack == 0 ? FROZEN : READY;
             }
         }
     }
@@ -102,7 +109,7 @@ public abstract class AbstractValueSet<Value, This extends AbstractValueSet<Valu
             action.accept((This) this);
         } finally {
             actionStack--;
-            frozen = actionStack == 0;
+            if (actionStack == 0) freeze();
         }
         return (This) this;
     }
@@ -144,4 +151,16 @@ public abstract class AbstractValueSet<Value, This extends AbstractValueSet<Valu
             action.accept(me);
         });
     }
+    
+    @Override
+    public Results.Action<Value> result() {
+        makeInitialized();
+        return finish().buildResult();
+    }
+    
+    protected This finish() {
+        return (This) this;
+    }
+
+    protected abstract Results.Action<Value> buildResult();
 }

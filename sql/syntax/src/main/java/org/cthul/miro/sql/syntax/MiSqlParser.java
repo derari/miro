@@ -1,11 +1,9 @@
 package org.cthul.miro.sql.syntax;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -71,25 +69,32 @@ public class MiSqlParser {
     }
 
     private final String input;
-    private final Deque<Object> args;
     private int cIndex, nIndex, index = 0;
+    private boolean isSpaced = false;
     private Token current = null;
     private Token next = null;
+    
+    private final Object[] args;
+    private final int[] argIndizes;
+    private int argCounter = 0;
+    
     private int expectIndex = 0;
     private final Set<String> expected = new LinkedHashSet<>();
 
     public MiSqlParser(String input) {
         this.input = input;
-        this.args = new ArrayDeque<>();
+        this.args = null;
+        this.argIndizes = null;
     }
     
     public MiSqlParser(String input, Object[] args) {
-        this(input, args != null ? Arrays.asList(args) : Collections.emptyList());
+        this.input = input;
+        this.args = args;
+        this.argIndizes = args != null ? new int[args.length] : null;
     }
     
     public MiSqlParser(String input, Collection<?> args) {
-        this.input = input;
-        this.args = new ArrayDeque<>(args);
+        this(input, args.toArray());
     }
     
     protected boolean expected(String e) {
@@ -126,8 +131,21 @@ public class MiSqlParser {
         return current().isEnd();
     }
     
+    protected boolean hasArgs() {
+        return args != null && argCounter < args.length;
+    }
+    
+    protected Object popArg() {
+        if (!hasArgs()) return null;
+        argIndizes[argCounter] = cIndex;
+        return args[argCounter++];
+    }
+    
     protected void setIndex(int i) {
         if (this.index != i) {
+            while (argCounter > 0 && i <= argIndizes[argCounter-1]) {
+                argCounter--;
+            }
             this.index = i;
             current = next = null;
         }
@@ -139,6 +157,7 @@ public class MiSqlParser {
     }
     
     protected Token next() {
+        isSpaced = peekSpace();
         current = peek();
         cIndex = nIndex;
         next = null;
@@ -150,6 +169,10 @@ public class MiSqlParser {
         whitespace();
         nIndex = index;
         return next = readNextToken();
+    }
+
+    public boolean isSpaced() {
+        return isSpaced;
     }
     
     protected boolean peekSpace() {
@@ -427,8 +450,8 @@ public class MiSqlParser {
             case MACRO:
                 return expression_macro_value(columns, code);
             case ARGUMENT:
-                if (!args.isEmpty()) {
-                    Object v = args.removeFirst();
+                if (hasArgs()) {
+                    Object v = popArg();
                     code.pushArgument(v);
                 }
                 // next;
@@ -489,7 +512,7 @@ public class MiSqlParser {
     }
     
     protected boolean expression_macro_in(List<ObjectRef> columns, QlCode.Builder code) {
-        if (args.isEmpty()) return expected("arguments");
+        if (!hasArgs()) return expected("arguments");
         int start = cIndex;
         boolean success = true;
         if (!next().isSpecial("{")) {
@@ -504,7 +527,7 @@ public class MiSqlParser {
             return false;
         }
         next();
-        Object o = args.removeFirst();
+        Object o = popArg();
         code.clause(SqlClause.in(), in -> in.list(o));
         return true;
     }
@@ -621,6 +644,9 @@ public class MiSqlParser {
                 code.append(t.code);
                 next();
             }
+        }
+        if (isSpaced()) {
+            code.append(" ");
         }
         return code;
     }

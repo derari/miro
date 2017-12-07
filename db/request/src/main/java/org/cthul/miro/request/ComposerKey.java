@@ -69,8 +69,8 @@ public interface ComposerKey<Value> extends Key<Value> {
                     action.accept(ic, entry);
                 }
                 @Override
-                public Object copyFor(InternalComposer<B> ic) {
-                    return new PL(ic);
+                public Object copyFor(CopyComposer<B> cc) {
+                    return new PL(ic.node(cc));
                 }
                 @Override
                 public boolean allowReadOnly(Predicate<Object> isLatest) {

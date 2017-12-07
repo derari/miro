@@ -4,7 +4,6 @@ import java.util.LinkedHashSet;
 import java.util.function.Predicate;
 import org.cthul.miro.request.ComposerKey;
 import org.cthul.miro.request.part.Copyable;
-import org.cthul.miro.request.template.InternalComposer;
 import org.cthul.miro.request.StatementPart;
 import org.cthul.miro.request.impl.AbstractTemplateLayer;
 import org.cthul.miro.request.template.Template;
@@ -106,7 +105,7 @@ public class GenericMappingLayer<Entity> extends AbstractTemplateLayer<Mapping<?
         }
 
         @Override
-        public Object copyFor(InternalComposer<Object> ic) {
+        public Object copyFor(CopyComposer<Object> cc) {
             return new TypePart(this);
         }
 
@@ -140,7 +139,7 @@ public class GenericMappingLayer<Entity> extends AbstractTemplateLayer<Mapping<?
         }
 
         @Override
-        public Object copyFor(InternalComposer<Object> iqc) {
+        public Object copyFor(CopyComposer<Object> cc) {
             return new ConfigurationPart(this);
         }
 

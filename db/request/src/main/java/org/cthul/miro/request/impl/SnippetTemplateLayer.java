@@ -134,7 +134,7 @@ public class SnippetTemplateLayer<Builder> extends AbstractTemplateLayer<Builder
         }
 
         @Override
-        public Object copyFor(InternalComposer<Builder> iqc) {
+        public Object copyFor(CopyComposer<Builder> cc) {
             return new SnippetsPart(this);
         }
 
@@ -159,8 +159,8 @@ public class SnippetTemplateLayer<Builder> extends AbstractTemplateLayer<Builder
         }
 
         @Override
-        public Object copyFor(InternalComposer<Object> iqc) {
-            return new SnippetCfg(key, iqc);
+        public Object copyFor(CopyComposer<Object> cc) {
+            return new SnippetCfg(key, ic.node(cc));
         }
 
         @Override

@@ -81,8 +81,8 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
         }
 
         @Override
-        public Object copyFor(InternalComposer<Object> ic) {
-            LoadField copy = new LoadField(ic);
+        public Object copyFor(CopyComposer<Object> cc) {
+            LoadField copy = new LoadField(cc);
             copy.attributes.addAll(attributes);
             return copy;
         }
@@ -115,8 +115,8 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
         }
 
         @Override
-        public Object copyFor(InternalComposer<Object> ic) {
-            return new IncludeProperty(ic);
+        public Object copyFor(CopyComposer<Object> cc) {
+            return new IncludeProperty(cc);
         }
 
         @Override
@@ -134,8 +134,8 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
         @Override
         public void set(String key, Supplier<?> value) {
             EntityAttribute<Entity, GraphApi> at = getOwner().getAttributes().getAttributeMap().get(key);
+            if (at == null) throw new IllegalArgumentException(key);
             XBiConsumer<Entity, Object, MiException> setter = at::set;
-            if (setter == null) throw new IllegalArgumentException("Unknown setter: " + key);
             setUps.add(new XConsumer<Entity, MiException>() {
                 @Override
                 public void accept(Entity t) throws MiException {
@@ -167,7 +167,7 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
         public void complete() throws MiException { }
 
         @Override
-        public Object copyFor(InternalComposer<Object> iqc) {
+        public Object copyFor(CopyComposer<Object> cc) {
             SetField copy = new SetField();
             copy.setUps.addAll(setUps);
             return copy;

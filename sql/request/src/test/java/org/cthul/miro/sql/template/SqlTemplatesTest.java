@@ -104,4 +104,43 @@ public class SqlTemplatesTest {
                 "JOIN People p ON a.id = p.address_id " + 
                 "WHERE p.first_name = ?");
     }
+    
+    @Test
+    public void test_snippets() {
+        SqlTemplates instance = new SqlTemplates("Test");
+        instance.selectSnippet("f", "SELECT f FROM Foo");
+        instance.using("f").selectSnippet("b", (s, a) -> s.where("b = ?", a));
+                
+        TemplateLayer<SelectBuilder> tmpl = instance.getSelectLayer();
+        RequestComposer<SelectBuilder> c = new SimpleRequestComposer<>(tmpl.build());
+        
+        c.node(SqlComposerKey.SNIPPETS).get("b").set(1);
+        
+        MiDBStringBuilder qryString = new MiDBStringBuilder();
+        c.build(qryString.as(syntax, SqlDQML.select()));
+        qryString.close();
+        
+        assertThat(qryString).hasToString(
+                "SELECT f FROM Foo WHERE b = ?");
+        assertThat(qryString.getArguments()).hasSize(1);
+        assertThat(qryString.getArguments()).contains(1);
+    }
+    
+    @Test
+    public void sql_join() {
+        SqlTemplates instance = new SqlTemplates("Test");
+        instance.sql("SELECT b.x FROM Foo f JOIN Bar b ON f.b = b.id");
+                
+        TemplateLayer<SelectBuilder> tmpl = instance.getSelectLayer();
+        RequestComposer<SelectBuilder> c = new SimpleRequestComposer<>(tmpl.build());
+        
+        c.node(SqlComposerKey.ATTRIBUTES).add("x");
+        
+        MiDBStringBuilder qryString = new MiDBStringBuilder();
+        c.build(qryString.as(syntax, SqlDQML.select()));
+        qryString.close();
+        
+        assertThat(qryString).hasToString(
+                "SELECT b.x FROM Foo f JOIN Bar b ON f.b = b.id");
+    }
 }

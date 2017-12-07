@@ -834,8 +834,8 @@ public class Templates {
         }
 
         @Override
-        public Object copyFor(InternalComposer<Object> ic) {
-            CopyManager cpy = ic.node(CopyManager.key);
+        public Object copyFor(CopyComposer<Object> cc) {
+            CopyManager cpy = cc.node(CopyManager.key);
             List<N> newNodes = cpy.copyAll(nodes);
             return allNodes((List) newNodes);
         }

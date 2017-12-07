@@ -5,7 +5,6 @@ import org.cthul.miro.request.template.Templates;
 import org.cthul.miro.sql.SqlFilterableClause;
 import org.cthul.miro.sql.SqlJoinableClause;
 import org.cthul.miro.sql.SqlTableClause;
-import org.cthul.miro.sql.syntax.MiSqlParser;
 import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.request.template.InternalComposer;
 import org.cthul.miro.util.Key;
@@ -46,8 +45,8 @@ public class JoinedLayer<Builder extends SqlTableClause & SqlJoinableClause & Sq
         }
 
         @Override
-        public Object copyFor(InternalComposer<Builder> ic) {
-            return new JoinedView(ic, this);
+        public Object copyFor(CopyComposer<Builder> cc) {
+            return new JoinedView(ic.node(cc), this);
         }
 
         @Override

@@ -22,7 +22,11 @@ public interface KeyValueNode<K, V> extends BatchNode<Object> {
 
     @Override
     public default void set(Object... values) {
-        put(map(values));
+        if (values.length == 2) {
+            put((K) values[0], (V) values[1]);
+        } else {
+            put(map(values));
+        }
     }
     
     static <K, V> Map<K, V> map(Object... values) {

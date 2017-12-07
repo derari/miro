@@ -61,6 +61,30 @@ public class MiSqlParserTest {
     }
     
     @Test
+    public void code_leading_space() {
+        String sql = " foo";
+        String parsed = MiSqlParser.parseCode(sql).toString();
+        assertThat(parsed).is("[ foo]");
+    }
+    
+    @Test
+    public void code_trailing_space() {
+        String sql = "foo ";
+        String parsed = MiSqlParser.parseCode(sql).toString();
+        assertThat(parsed).is("[foo ]");
+    }
+    
+    @Test
+    public void partialOrCode_code_with_args() {
+        String sql = "(?";
+        Object[] args = {1};
+        TestBuilder ql = new TestBuilder();
+        MiSqlParser.parsePartialSelectOrCode(sql, args, "", null, ql);
+        assertThat(ql).hasToString("[(?]");
+        assertThat(ql.getArgs()).hasSize(1);
+    }
+    
+    @Test
     public void partialSelect() {
         String sql = "SELECT a, `b`.`c` AS d, z.x "
                 + "FROM `Foo` f "
@@ -90,5 +114,12 @@ public class MiSqlParserTest {
         string.close();
         assertThat(string.toString()).is("\"foo\" IN (?,?)");
         assertThat(string.getArguments()).contains(1, 2);
+    }
+    
+    static class TestBuilder extends QlCode.Builder {
+
+        public List<Object> getArgs() {
+            return super.args();
+        }
     }
 }

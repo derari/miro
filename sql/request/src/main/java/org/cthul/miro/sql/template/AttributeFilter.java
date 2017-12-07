@@ -1,22 +1,23 @@
 package org.cthul.miro.sql.template;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.request.impl.ValueKey;
+import org.cthul.miro.request.part.KeyValueNode;
 import org.cthul.miro.request.part.ListNode;
 
 /**
  *
  */
-public interface AttributeFilter {
+public interface AttributeFilter extends KeyValueNode<String, Object> {
 
     ListNode<Object[]> forAttributes(String... attributeKeys);
     
-    default void add(Map<String, Object> filters) {
+    @Override
+    default void put(Map<? extends String, ? extends Object> filters) {
         String[] keys = filters.keySet().toArray(new String[filters.size()]);
         Arrays.sort(keys);
         Object[] values = new Object[keys.length];
@@ -25,9 +26,10 @@ public interface AttributeFilter {
         }
         forAttributes(keys).add(values);
     }
-    
-    default void add(Object... filters) {
-        add(map(filters));
+
+    @Override
+    public default void put(String key, Object value) {
+        forAttributes(key).add(new Object[]{value});
     }
     
     static AttributeFilterKey key(String[] attributeKeys) {
@@ -44,17 +46,6 @@ public interface AttributeFilter {
         public String[] getAttributeKeys() {
             return attributeKeys;
         }
-    }
-    
-    static Map<String, Object> map(Object... values) {
-        if (values.length % 2 != 0) throw new IllegalArgumentException("Expected key-value pairs");
-        Map<String, Object> map = new HashMap<>();
-        for (int i = 0; i < values.length; i += 2) {
-            String k = (String) values[i];
-            Object v = values[i+1];
-            map.put(k, v);
-        }
-        return map;
     }
     
     static Comparative eq(Object val) {

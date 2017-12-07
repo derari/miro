@@ -6,6 +6,7 @@ import org.cthul.miro.sql.SqlJoinableClause;
 import org.cthul.miro.sql.SqlTableClause;
 import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.request.Composer;
+import org.cthul.miro.sql.syntax.MiSqlParser;
 
 /**
  *
@@ -45,6 +46,14 @@ public abstract class SqlTable {
             super(key);
             this.definition = definition;
         }
+        
+        public From(MiSqlParser.Table t) {
+            this(t.getKey(), t);
+            t.getColumnRefs().forEach(cf -> {
+                String parent = cf.getParentKey();
+                if (parent != null) getDependencies().add(parent);
+            });
+        }
 
         @Override
         public void writeDefinition(SqlTableClause sb) {
@@ -70,6 +79,18 @@ public abstract class SqlTable {
             this.jt = jt;
             this.joinExpression = joinExpression;
             this.onCondition = onCondition;
+        }
+        
+        public Join(MiSqlParser.JoinPart jp) {
+            this(jp.getTable().getKey(), jp.getType(), jp.getTable(), jp.getCondition());
+            jp.getTable().getColumnRefs().forEach(cf -> {
+                String parent = cf.getParentKey();
+                if (parent != null) getDependencies().add(parent);
+            });
+            jp.getCondition().getColumnRefs().forEach(cf -> {
+                String parent = cf.getParentKey();
+                if (parent != null && !parent.equals(getKey())) getDependencies().add(parent);
+            });
         }
 
         @Override

@@ -9,6 +9,10 @@ import org.cthul.miro.sql.syntax.MiSqlParser;
 public interface SelectBuilder extends SqlTableClause, SqlJoinableClause, SqlFilterableClause {
     
     Select select();
+    
+    default Select select(String sql, Object... args) {
+        return select().sql(sql, args);
+    }
 
     @Override
     default From table() {
@@ -16,6 +20,10 @@ public interface SelectBuilder extends SqlTableClause, SqlJoinableClause, SqlFil
     }
     
     From from();
+    
+    default From from(String sql, Object... args) {
+        return from().sql(sql, args);
+    }
     
     @Override
     Join join();
@@ -32,17 +40,49 @@ public interface SelectBuilder extends SqlTableClause, SqlJoinableClause, SqlFil
     
     @Override
     default Join outerJoin() {
-        return join().right();
+        return join().outer();
+    }
+    
+    default Join join(String sql, Object... args) {
+        return join().sql(sql, args);
+    }
+    
+    default Join leftJoin(String sql, Object... args) {
+        return join().left().sql(sql, args);
+    }
+    
+    default Join rightJoin(String sql, Object... args) {
+        return join().right().sql(sql, args);
+    }
+    
+    default Join outerJoin(String sql, Object... args) {
+        return join().outer().sql(sql, args);
     }
     
     @Override
     Where where();
     
+    default Where where(String sql, Object... args) {
+        return where().sql(sql, args);
+    }
+    
     GroupBy groupBy();
+    
+    default GroupBy groupBy(String sql, Object... args) {
+        return groupBy().sql(sql, args);
+    }
     
     Having having();
     
+    default Having having(String sql, Object... args) {
+        return having().sql(sql, args);
+    }
+    
     OrderBy orderBy();
+    
+    default OrderBy orderBy(String sql, Object... args) {
+        return orderBy().sql(sql, args);
+    }
     
     default SelectBuilder include(Code<? super SelectBuilder> code) {
         code.appendTo(this);

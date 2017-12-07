@@ -32,8 +32,10 @@ public interface MapNode<Key, Value> { //extends Templates.ComposableNode<MapNod
     
     static <B,K,V> Template<B> template(Function<? super InternalComposer<? extends B>, ? extends Function<? super K,? extends V>> factory) {
         class MN implements MapNode<K,V>, Copyable<B> {
+            final InternalComposer<? extends B> ic;
             final Function<? super K,? extends V> function;
             public MN(InternalComposer<? extends B> ic) {
+                this.ic = ic;
                 function = factory.apply(ic);
             }
             @Override
@@ -41,8 +43,8 @@ public interface MapNode<Key, Value> { //extends Templates.ComposableNode<MapNod
                 return function.apply(key);
             }
             @Override
-            public Object copyFor(InternalComposer<B> ic) {
-                return new MN(ic);
+            public Object copyFor(CopyComposer<B> cc) {
+                return new MN(ic.node(cc));
             }
         }
         return Templates.newNode(ic -> new MN(ic));
@@ -59,8 +61,8 @@ public interface MapNode<Key, Value> { //extends Templates.ComposableNode<MapNod
                 return action.apply(ic, key);
             }
             @Override
-            public Object copyFor(InternalComposer<B> ic) {
-                return new MN(ic);
+            public Object copyFor(CopyComposer<B> cc) {
+                return new MN(ic.node(cc));
             }
         }
         return Templates.newNode(ic -> new MN(ic));

@@ -57,17 +57,17 @@ public class MappedSqlSchema extends GraphSchemaBuilder {
     }
     
     public <N> MappedSqlBuilder<N, ?> getMappingBuilder(Class<N> entityClass) {
-        AnnotatedType<N> t = (AnnotatedType<N>) nodeType(entityClass);
+        MappedSqlBuilder<N,?> t = (MappedSqlBuilder<N,?>) nodeType(entityClass);
         return t;
     }
     
     public <N> TemplateLayer<MappedQuery<N, SelectQuery>> getSelectLayer(Class<N> entityClass) {
-        AnnotatedType<N> t = (AnnotatedType<N>) nodeType(entityClass);
+        MappedSqlType<N> t = (MappedSqlType<N>) nodeType(entityClass);
         return t.getSelectLayer();
     }
     
     public <N> TemplateLayer<MappedQuery<N, SelectQuery>> getSelectLayer(Object entityClass) {
-        AnnotatedType<N> t = (AnnotatedType<N>) nodeType(entityClass);
+        MappedSqlType<N> t = (MappedSqlType<N>) nodeType(entityClass);
         return t.getSelectLayer();
     }
     

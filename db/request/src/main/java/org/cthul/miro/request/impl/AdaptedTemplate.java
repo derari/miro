@@ -190,8 +190,8 @@ public class AdaptedTemplate<Builder, Adapted> extends AbstractTemplate<Builder>
                     parts.forEach(p -> p.addTo(adaptedBuilder));
                 }
                 @Override
-                public Object copyFor(InternalComposer<Builder> ic2) {
-                    ic2.node(composerKey); // initializes the copy of this part
+                public Object copyFor(CopyComposer<Builder> cc) {
+                    cc.node(composerKey); // initializes the copy of this part
                     return null;
                 }
                 @Override
@@ -216,11 +216,20 @@ public class AdaptedTemplate<Builder, Adapted> extends AbstractTemplate<Builder>
         }
 
         @Override
-        public Object copyFor(InternalComposer<Builder> ic) {
-            AdaptingComposer ac2 = adapt(ic);
+        public <V> V get(Key<V> key) {
+            if (key instanceof CopyComposer) {
+                return key.cast(((CopyComposer<?>) key).node(composerKey));
+            }
+            return super.get(key);
+        }
+
+        @Override
+        public Object copyFor(CopyComposer<Builder> cc) {
+            InternalComposer<Builder> ic2 = composer.node(cc);
+            AdaptingComposer ac2 = adapt(ic2);
             if (parts != null) {
                 ac2.initializeParts();
-                CopyManager cm = ic.get(CopyManager.key);
+                CopyManager cm = ic2.get(CopyManager.key);
                 ac2.parts.addAll(cm.copyAll(parts));
             }
             return ac2;

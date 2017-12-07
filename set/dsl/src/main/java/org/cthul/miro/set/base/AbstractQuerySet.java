@@ -77,7 +77,7 @@ public abstract class AbstractQuerySet<Entity, Stmt extends MiQuery, This extend
     }
 
     @Override
-    public Results.Action<Entity> result() {
+    protected Results.Action<Entity> buildResult() {
         MappedQuery<Entity, Stmt> qry = new MappedQuery<>(cnn, requestType);
         return qry.query(getComposer());
     }

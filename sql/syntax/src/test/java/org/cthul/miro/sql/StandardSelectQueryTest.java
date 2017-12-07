@@ -98,6 +98,4 @@ public class StandardSelectQueryTest {
         qry.execute();
         assertThat(TestConnection.lastQuery, is("SELECT foo"));
     }
-    
-    
 }

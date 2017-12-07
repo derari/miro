@@ -2,6 +2,7 @@ package org.cthul.miro.sql.template;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.cthul.miro.request.template.Template;
@@ -10,7 +11,6 @@ import org.cthul.miro.sql.SqlJoinableClause.JoinType;
 import org.cthul.miro.sql.syntax.MiSqlParser;
 import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.sql.SelectBuilder;
-import org.cthul.miro.sql.SqlBuilder;
 import org.cthul.miro.util.Key;
 
 public interface SqlTemplatesBuilder<This extends SqlTemplatesBuilder<This>> {
@@ -23,11 +23,10 @@ public interface SqlTemplatesBuilder<This extends SqlTemplatesBuilder<This>> {
             });
         });
         stmt.getTableParts().forEach(tp -> {
-            MiSqlParser.Table t = tp.getTable();
-            from(t, t.getKey());
+            table(new SqlTable.From(tp.getTable()));
         });
         stmt.getJoinParts().forEach(jp -> {
-            join(jp.getTable().getKey(), jp.getType(), jp.getTable(), jp.getTable());
+            table(new SqlTable.Join(jp));
         });
         return (This) this;
     }
@@ -102,9 +101,26 @@ public interface SqlTemplatesBuilder<This extends SqlTemplatesBuilder<This>> {
         return SqlTemplatesBuilder.this.selectSnippet(new SqlSnippet<SelectBuilder>(key) {
             @Override
             protected void writePart(SelectBuilder builder, Object[] args) {
+                if (args != null && args.length > 0) {
+                    throw new IllegalArgumentException("Arguments not supported");
+                }
                 snippet.accept(builder);
             }
         });
+    }
+    
+    default This selectSnippet(String key, BiConsumer<? super SelectBuilder, ? super Object[]> snippet) {
+        return SqlTemplatesBuilder.this.selectSnippet(new SqlSnippet<SelectBuilder>(key) {
+            @Override
+            protected void writePart(SelectBuilder builder, Object[] args) {
+                snippet.accept(builder, args);
+            }
+        });
+    }
+    
+    default This selectSnippet(String key, String sql) {
+        MiSqlParser.SelectStmt stmt = MiSqlParser.parsePartialSelect(sql);
+        return selectSnippet(key, stmt);
     }
     
     default Using<This> using(Object... dependencies) {
