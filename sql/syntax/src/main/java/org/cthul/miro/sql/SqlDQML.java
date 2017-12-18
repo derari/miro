@@ -8,7 +8,8 @@ import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.util.Key;
 
 /**
- *
+ * Defines the four request types of the SQL data query and manipulation language:
+ * SELECT, INSERT, UPDATE, and DELETE.
  * @param <Stmt>
  */
 public interface SqlDQML<Stmt> extends RequestType<Stmt>, ClauseType<Stmt> {

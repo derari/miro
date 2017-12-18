@@ -216,7 +216,7 @@ public abstract class AbstractComposer<Builder> implements Composer {
         @SuppressWarnings("Convert2Lambda")
         protected Object create(Object key) {
             checkActive();
-            if (key == CopyManager.key) return this; 
+            if (key == CopyManager.KEY) return this; 
             Object v = parent.hierarchyPeek(key);
             if (v != null) return tryCopy(v);
             owner.create(key);
@@ -251,6 +251,21 @@ public abstract class AbstractComposer<Builder> implements Composer {
             return copyValue(value, true);
         }
 
+        private boolean allowReadOnly(Object o) {
+            if (o instanceof Copyable) {
+                return ((Copyable) o).allowReadOnly(this::isLatestReadOnly);
+            }
+            return true;
+        }
+        
+        private <V> V tryCopy(V original, CopyComposer<?> cc) {
+            if (original instanceof Copyable) {
+                return (V) ((Copyable) original).copyFor(cc);
+            }
+            return original;
+        }
+
+        
         protected <V> V copyValue(V value, boolean readOnly) {
             if (copyMap == null) {
                 copyMap = new HashMap<>();
@@ -260,16 +275,21 @@ public abstract class AbstractComposer<Builder> implements Composer {
             if (copy != null) {
                 return copy;
             }
-            if (readOnly && Copyable.allowReadOnly(value, this::isLatest)) {
+            if (readOnly && allowReadOnly(value)) {
                 return value;
             }
-            copy = Copyable.tryCopy(value, owner.internal);
+            copy = tryCopy(value, owner.internal);
             if (copy != null) copyMap.putIfAbsent(value, copy);
             return (V) copyMap.get(value);
         }
         
-        protected boolean isLatest(Object o) {
-            return o == tryCopyReadOnly(o);
+        protected boolean isLatestReadOnly(Object o) {
+            Object value = parent.hierarchyCopyPeek(o);
+            if (copyMap != null) {
+                value = copyMap.get(value);
+                if (value != null) return o == value;
+            }
+            return o == value && allowReadOnly(o);
         }
         
         @Override

@@ -45,7 +45,7 @@ public class TemplateLayerStack<Builder> implements TemplateLayer<Builder> {
     }
     
     public static <B> TemplateLayerStack<B> join(TemplateLayer<? super B>... templates) {
-        return join(Arrays.asList(templates));
+        return TemplateLayerStack.<B>join(Arrays.asList(templates));
     }
     
     public static <B> TemplateLayerStack<B> join(Collection<? extends TemplateLayer<? super B>> templates) {

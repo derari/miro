@@ -10,7 +10,7 @@ import org.cthul.miro.util.Key;
  */
 public interface CopyManager {
     
-    static final Key<CopyManager> key = new ValueKey<>("CopyManager", true);
+    static final Key<CopyManager> KEY = new ValueKey<>("CopyManager", true);
 
     <V> V tryCopy(V value);
     

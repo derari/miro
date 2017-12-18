@@ -20,7 +20,7 @@ import org.cthul.miro.map.layer.MappedQuery;
 import org.cthul.miro.sql.template.SqlComposerKey;
 
 /**
- *
+ * A query set backed by an SQL SELECT statement.
  * @param <Entity>
  * @param <This>
  */

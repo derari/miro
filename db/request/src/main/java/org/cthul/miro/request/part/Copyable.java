@@ -36,22 +36,18 @@ public interface Copyable<Builder> {
     
     /**
      * Provides access to the copied composer.
-     * To get internal access, resolve as node from the previous internal composer.
      * @param <Builder> 
      */
-    interface CopyComposer<Builder> extends Composer, Key<InternalComposer<Builder>> { }
+    interface CopyComposer<Builder> extends Composer, Key<InternalComposer<Builder>> {
     
-    static <T> T tryCopy(T original, CopyComposer<?> cc) {
-        if (original instanceof Copyable) {
-            return (T) ((Copyable) original).copyFor(cc);
+        /**
+         * Returns the internal composer to which the copy will be added.
+         * Do not invoke modifying operations during copying.
+         * @param original
+         * @return internal composer
+         */
+        default InternalComposer<Builder> toInternal(InternalComposer<Builder> original) {
+            return original.node(this);
         }
-        return original;
-    }
-    
-    static boolean allowReadOnly(Object o, Predicate<Object> isLatest) {
-        if (o instanceof Copyable) {
-            return ((Copyable) o).allowReadOnly(isLatest);
-        }
-        return true;
-    }
+    }    
 }

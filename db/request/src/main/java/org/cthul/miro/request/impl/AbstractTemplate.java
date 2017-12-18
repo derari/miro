@@ -2,10 +2,8 @@ package org.cthul.miro.request.impl;
 
 import org.cthul.miro.util.AbstractCache;
 import org.cthul.miro.request.template.Templates;
-import org.cthul.miro.request.template.Templates.KeyTemplate;
 import org.cthul.miro.request.template.InternalComposer;
 import org.cthul.miro.request.template.Template;
-import org.cthul.miro.util.Key;
 
 /**
  *
@@ -81,9 +79,9 @@ public abstract class AbstractTemplate<Builder> extends AbstractCache<Object, Te
         return NO_PARENT;
     }
     
-    protected <V> KeyTemplate<? super Builder, V> parentPart(Key<V> key) {
-        return Templates.redirect(key, parent);
-    }
+//    protected <V> KeyTemplate<? super Builder, V> parentPart(Key<V> key) {
+//        return Templates.redirect(key, parent);
+//    }
     
     protected Templates.ComposableTemplate<? super Builder> parentPart() {
         return Templates.compose(parent);

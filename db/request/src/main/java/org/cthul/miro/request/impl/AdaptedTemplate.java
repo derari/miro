@@ -2,6 +2,7 @@ package org.cthul.miro.request.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.WeakHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -42,6 +43,7 @@ public class AdaptedTemplate<Builder, Adapted> extends AbstractTemplate<Builder>
         return new Template<Builder>() {
             @Override
             public void addTo(Object key, InternalComposer<? extends Builder> composer) {
+                assert key == composerKey : "Should only be called for composer key";
                 composer.addNode(composerKey, adapt(composer));
             }
             @Override
@@ -55,12 +57,12 @@ public class AdaptedTemplate<Builder, Adapted> extends AbstractTemplate<Builder>
         return new Template<Builder>() {
             @Override
             public void addTo(Object key, InternalComposer<? extends Builder> composer) {
-                AdaptingComposer ac = composer.node(composerKey);
+                AdaptingComposer ac = composer.node(composerKey).get(composer);
                 template.addTo(key, ac);
             }
             @Override
             public String toString() {
-                return "{>>" + template;
+                return "{!" + template;
             }
         };
     }
@@ -168,8 +170,19 @@ public class AdaptedTemplate<Builder, Adapted> extends AbstractTemplate<Builder>
         private List<StatementPart<? super Adapted>> parts = null;
 
         public AdaptingComposer(InternalComposer<? extends Builder> composer) {
+            this(composer, null);
+        }
+
+        public AdaptingComposer(InternalComposer<? extends Builder> composer, List<StatementPart<? super Adapted>> parts) {
             super(composer, null);
             this.composer = composer;
+            this.parts = parts;
+        }
+        
+        public AdaptingComposer get(InternalComposer<? extends Builder> ic) {
+            if (composer == ic) return this;
+            initializeParts();
+            return new AdaptingComposer(ic, parts);
         }
 
         @Override
@@ -191,7 +204,11 @@ public class AdaptedTemplate<Builder, Adapted> extends AbstractTemplate<Builder>
                 }
                 @Override
                 public Object copyFor(CopyComposer<Builder> cc) {
-                    cc.node(composerKey); // initializes the copy of this part
+                    AdaptingComposer ac2 = cc.node(composerKey);
+                    CopyManager cm = cc.get(CopyManager.KEY);
+                    List<StatementPart<? super Adapted>> copyParts = cm.copyAll(parts);
+                    ac2.initializeParts();
+                    ac2.parts.addAll(0, copyParts);
                     return null;
                 }
                 @Override
@@ -227,11 +244,12 @@ public class AdaptedTemplate<Builder, Adapted> extends AbstractTemplate<Builder>
         public Object copyFor(CopyComposer<Builder> cc) {
             InternalComposer<Builder> ic2 = composer.node(cc);
             AdaptingComposer ac2 = adapt(ic2);
-            if (parts != null) {
-                ac2.initializeParts();
-                CopyManager cm = ic2.get(CopyManager.key);
-                ac2.parts.addAll(cm.copyAll(parts));
-            }
+//            if (parts != null) {
+//                ic2.addNode(composerKey, ac2);
+//                ac2.initializeParts();
+//                CopyManager cm = ic2.get(CopyManager.KEY);
+//                ac2.parts.addAll(cm.copyAll(parts));
+//            }
             return ac2;
         }
 

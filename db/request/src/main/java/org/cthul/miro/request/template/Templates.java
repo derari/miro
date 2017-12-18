@@ -275,17 +275,17 @@ public class Templates {
         };
     }
     
-    /**
-     * Creates a template that will call {@code template} with the specified {@code key}.
-     * @param <B>
-     * @param <V>
-     * @param key
-     * @param template
-     * @return template
-     */
-    public static <B, V> KeyTemplate<B, V> redirect(Key<V> key, Template<? super B> template) {
-        return new KeyRedirect<>(template, key);
-    }
+//    /**
+//     * Creates a template that will call {@code template} with the specified {@code key}.
+//     * @param <B>
+//     * @param <V>
+//     * @param key
+//     * @param template
+//     * @return template
+//     */
+//    public static <B, V> KeyTemplate<B, V> redirect(Key<V> key, Template<? super B> template) {
+//        return new KeyRedirect<>(template, key);
+//    }
     
     public static <B> ComposableTemplate<B> action(Consumer<InternalComposer<? extends B>> action) {
         return new ComposableTemplate<B>() {
@@ -325,7 +325,7 @@ public class Templates {
     public static <B> ComposableTemplate<B> all(Template<? super B>... templates) {
         if (templates == null || templates.length == 0) return (ComposableTemplate) noOp();
         if (templates.length == 1) return compose(templates[0]);
-        return new MultiTemplate<>(templates);
+        return new MultiTemplate<B>(templates);
     }
     
     public static <B> ComposableTemplate<B> all(Collection<? extends Template<? super B>> templates) {
@@ -835,7 +835,7 @@ public class Templates {
 
         @Override
         public Object copyFor(CopyComposer<Object> cc) {
-            CopyManager cpy = cc.node(CopyManager.key);
+            CopyManager cpy = cc.node(CopyManager.KEY);
             List<N> newNodes = cpy.copyAll(nodes);
             return allNodes((List) newNodes);
         }
@@ -893,9 +893,12 @@ public class Templates {
                 public <V> void addNode(Key<V> key2, V node) {
                     if (key == key2 && (node instanceof ComposableNode)) {
                         collector.add((ComposableNode<?>) node);
+                        // ensure this key is completed before addNode returns
                         collector.resume(this);
                     } else if (node instanceof ComposableNode) {
-                        addAllExcept(key2, this, collector.getCurrent(), (ComposableNode) node);
+                        //addAllExcept(key2, this, collector.getCurrent(), (ComposableNode) node);
+                        // multi-nodes only supported
+                        super.addNode(key2, node);
                     } else {
                         super.addNode(key2, node);
                     }
@@ -991,36 +994,36 @@ public class Templates {
         }
     }
     
-    /**
-     * Calls a template with another key.
-     * @param <Builder>
-     * @param <Value> 
-     */
-    public static class KeyRedirect<Builder, Value> implements KeyTemplate<Builder, Value> {
-
-        private final Template<? super Builder> template;
-        private final Key<Value> actualKey;
-
-        public KeyRedirect(Template<? super Builder> parent, Key<Value> actualKey) {
-            this.template = parent;
-            this.actualKey = actualKey;
-        }
-
-        @Override
-        public Key<Value> getKey() {
-            return actualKey;
-        }
-
-        @Override
-        public void addTo(Object key, InternalComposer<? extends Builder> query) {
-            template.addTo(actualKey, query);
-        }
-
-        @Override
-        public String toString() {
-            return template + "(" + actualKey + ")";
-        }
-    }
+//    /**
+//     * Calls a template with another key.
+//     * @param <Builder>
+//     * @param <Value> 
+//     */
+//    public static class KeyRedirect<Builder, Value> implements KeyTemplate<Builder, Value> {
+//
+//        private final Template<? super Builder> template;
+//        private final Key<Value> actualKey;
+//
+//        public KeyRedirect(Template<? super Builder> parent, Key<Value> actualKey) {
+//            this.template = parent;
+//            this.actualKey = actualKey;
+//        }
+//
+//        @Override
+//        public Key<Value> getKey() {
+//            return actualKey;
+//        }
+//
+//        @Override
+//        public void addTo(Object key, InternalComposer<? extends Builder> query) {
+//            template.addTo(actualKey, query);
+//        }
+//
+//        @Override
+//        public String toString() {
+//            return template + "(" + actualKey + ")";
+//        }
+//    }
     
     private static String nestedString(Object o) {
         String s = String.valueOf(o);

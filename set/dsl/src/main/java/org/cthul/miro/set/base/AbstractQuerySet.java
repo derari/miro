@@ -13,17 +13,18 @@ import org.cthul.miro.util.Key;
 import org.cthul.miro.map.MappingKey;
 import org.cthul.miro.map.layer.MappedQuery;
 import org.cthul.miro.request.part.BatchNode;
+import org.cthul.miro.set.ValueSet;
 
 /**
- *
+ * A {@link ValueSet} with a {@link RequestComposer}.
  * @param <Entity>
  * @param <Stmt>
  * @param <This>
  */
 public abstract class AbstractQuerySet<Entity, Stmt extends MiQuery, This extends AbstractQuerySet<Entity, Stmt, This>> extends AbstractValueSet<Entity, This> {
 
-    MiConnection cnn;
-    RequestType<Stmt> requestType;
+    /*private*/ MiConnection cnn;
+    /*private*/ RequestType<Stmt> requestType;
     private RequestComposer<MappedQuery<Entity, Stmt>> composer = null;
 
     public AbstractQuerySet(MiConnection cnn, RequestType<Stmt> requestType) {
@@ -40,6 +41,10 @@ public abstract class AbstractQuerySet<Entity, Stmt extends MiQuery, This extend
         }
     }
     
+    /**
+     * Creates a new composer
+     * @return composer
+     */
     protected abstract RequestComposer<MappedQuery<Entity, Stmt>> newComposer();
     
     /*private*/ RequestComposer<MappedQuery<Entity, Stmt>> getComposer() {
@@ -49,10 +54,21 @@ public abstract class AbstractQuerySet<Entity, Stmt extends MiQuery, This extend
         return composer;
     }
     
+    /**
+     * Sets the connection for this value set.
+     * @param cnn
+     * @return this or copy
+     */
     protected This withConnection(MiConnection cnn) {
         return doSafe(me -> me.cnn = cnn);
     }
 
+    /**
+     * Sets the graph of the composer.
+     * @param graph
+     * @return this or copy
+     * @see MappingKey.TYPE
+     */
     protected This withGraph(Graph graph) {
         return doSafe(me -> {
             me.getComposer().node(MappingKey.TYPE).setGraph(graph);
@@ -60,18 +76,43 @@ public abstract class AbstractQuerySet<Entity, Stmt extends MiQuery, This extend
         });
     }
 
+    /**
+     * Sets the entity type for the composer.
+     * @param entityType
+     * @return this or copy
+     * @see MappingKey.TYPE
+     */
     protected This withEntityType(EntityType<Entity> entityType) {
         return doSafe(me -> me.getComposer().node(MappingKey.TYPE).setType(entityType));
     }
     
+    /**
+     * Calls action with the composer.
+     * @param action
+     * @return this or copy
+     */
     protected This compose(Consumer<? super Composer> action) {
         return doSafe(me -> action.accept(me.getComposer()));
     }
     
+    /**
+     * Calls action with the value of a composer key.
+     * @param <V>
+     * @param key
+     * @param action
+     * @return this or copy
+     */
     protected <V> This setUp(Key<V> key, Consumer<V> action) {
         return compose(ic -> action.accept(ic.node(key)));
     }
 
+    /**
+     * Adds all values to the batch node of the given key.
+     * @param <V>
+     * @param key
+     * @param values
+     * @return this or copy.
+     */
     protected <V> This setUp(Key<? extends BatchNode<V>> key, V... values) {
         return compose(ic -> ic.node(key).set(values));
     }
