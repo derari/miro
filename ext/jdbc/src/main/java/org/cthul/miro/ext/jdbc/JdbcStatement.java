@@ -32,7 +32,7 @@ public abstract class JdbcStatement<This extends MiDBString> extends MiDBStringD
     }
 
     @Override
-    protected MiDBStringBuilder getDelegatee() {
+    protected MiDBStringBuilder getDelegate() {
         return coreBuilder;
     }
 

@@ -48,7 +48,7 @@ public class GenericMappingLayer<Entity> extends AbstractTemplateLayer<Mapping<?
         return null;
     }
     
-    protected class TypePart implements MappingKey.Type, StatementPart<Mapping<? extends Entity>>, Copyable<Object> {
+    protected class TypePart implements MappingKey.Type, StatementPart<Mapping<? extends Entity>>, Copyable {
 
         private Graph graph = null;
         private EntityType<?> entityType = defaultType;
@@ -105,7 +105,7 @@ public class GenericMappingLayer<Entity> extends AbstractTemplateLayer<Mapping<?
         }
 
         @Override
-        public Object copyFor(CopyComposer<Object> cc) {
+        public Object copyFor(CopyComposer cc) {
             return new TypePart(this);
         }
 
@@ -115,7 +115,7 @@ public class GenericMappingLayer<Entity> extends AbstractTemplateLayer<Mapping<?
         }
     }
     
-    protected class ConfigurationPart implements MappingKey.Configuration, StatementPart<Mapping<? extends Entity>>, Copyable<Object> {
+    protected class ConfigurationPart implements MappingKey.Configuration, StatementPart<Mapping<? extends Entity>>, Copyable {
         
         private final LinkedHashSet<EntityConfiguration<?>> list;
 
@@ -139,7 +139,7 @@ public class GenericMappingLayer<Entity> extends AbstractTemplateLayer<Mapping<?
         }
 
         @Override
-        public Object copyFor(CopyComposer<Object> cc) {
+        public Object copyFor(CopyComposer cc) {
             return new ConfigurationPart(this);
         }
 

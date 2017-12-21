@@ -8,7 +8,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.cthul.miro.request.Composer;
 import org.cthul.miro.request.part.Copyable;
-import org.cthul.miro.request.template.InternalComposer;
 import org.cthul.miro.request.part.ListNode;
 import static org.cthul.miro.request.template.Templates.*;
 import org.cthul.miro.request.StatementPart;
@@ -59,7 +58,7 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
     }
 
     protected class LoadField 
-                    implements ListNode<String>, Copyable<Object>,
+                    implements ListNode<String>, Copyable,
                                 StatementPart<Mapping<Entity>> {
 
         private final LinkedHashSet<String> attributes = new LinkedHashSet<>();
@@ -81,7 +80,7 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
         }
 
         @Override
-        public Object copyFor(CopyComposer<Object> cc) {
+        public Object copyFor(CopyComposer cc) {
             LoadField copy = new LoadField(cc);
             copy.attributes.addAll(attributes);
             return copy;
@@ -98,7 +97,7 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
         }
     }
     
-    protected class IncludeProperty implements ListNode<String>, Copyable<Object> {
+    protected class IncludeProperty implements ListNode<String>, Copyable {
 
         final ListNode<String> resultColumns;
         
@@ -115,7 +114,7 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
         }
 
         @Override
-        public Object copyFor(CopyComposer<Object> cc) {
+        public Object copyFor(CopyComposer cc) {
             return new IncludeProperty(cc);
         }
 
@@ -126,7 +125,7 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
     }
     
     protected class SetField implements MappingKey.SetProperty, 
-                        EntityInitializer<Entity>, Copyable<Object>,
+                        EntityInitializer<Entity>, Copyable,
                         StatementPart<Mapping<Entity>> {
 
         final List<XConsumer<Entity, MiException>> setUps = new ArrayList<>();
@@ -167,7 +166,7 @@ public class MaterializationLayer<Entity> extends AbstractMappingLayer<Entity, M
         public void complete() throws MiException { }
 
         @Override
-        public Object copyFor(CopyComposer<Object> cc) {
+        public Object copyFor(CopyComposer cc) {
             SetField copy = new SetField();
             copy.setUps.addAll(setUps);
             return copy;

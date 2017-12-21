@@ -45,13 +45,13 @@ public class MiSubmittableAction<V> extends AbstractMiSubmittable<V> implements 
                 super.await();
             }
             @Override
-            protected MiResettableFuture<V> getDelegatee() {
+            protected MiResettableFuture<V> getDelegate() {
                 MiSubmittableAction.this.submit();
-                return super.getDelegatee();
+                return super.getDelegate();
             }
             @Override
-            protected MiResettableFuture<V> getCancelDelegatee() {
-                return super.getDelegatee();
+            protected MiResettableFuture<V> getCancelDelegate() {
+                return super.getDelegate();
             }
         }
         if (trigger == null) {

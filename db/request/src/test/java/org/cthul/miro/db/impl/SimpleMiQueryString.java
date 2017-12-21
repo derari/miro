@@ -30,7 +30,7 @@ public class SimpleMiQueryString extends QlBuilderDelegator<SimpleMiQueryString>
     }
 
     @Override
-    protected QlBuilder<?> getDelegatee() {
+    protected QlBuilder<?> getDelegate() {
         return qlBuilder;
     }
 

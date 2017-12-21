@@ -88,8 +88,8 @@ public class SimpleMiActionTest {
     
     static class StringFuture extends MiFutureDelegator<String> {
 
-        public StringFuture(MiFuture<? extends String> delegatee) {
-            super(delegatee);
+        public StringFuture(MiFuture<? extends String> delegate) {
+            super(delegate);
         }
         
         public String getQuoted() throws InterruptedException, ExecutionException {

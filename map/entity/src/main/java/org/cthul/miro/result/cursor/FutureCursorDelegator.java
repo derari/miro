@@ -9,7 +9,7 @@ import org.cthul.miro.futures.impl.MiFutureDelegator;
  */
 public class FutureCursorDelegator<V> extends MiFutureDelegator<ResultCursor<V>> implements FutureCursor<V> {
 
-    public FutureCursorDelegator(MiFuture<ResultCursor<V>> delegatee) {
-        super(delegatee);
+    public FutureCursorDelegator(MiFuture<ResultCursor<V>> delegate) {
+        super(delegate);
     }
 }

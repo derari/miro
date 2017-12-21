@@ -23,14 +23,14 @@ public abstract class AbstractQlBuilder<This extends QlBuilder<This>> extends Ab
         return dbString;
     }
     
-    protected MiDBString getWriteDelegatee() {
+    protected MiDBString getWriteDelegate() {
         closeNestedClause();
         return dbString;
     }
 
     @Override
     public This append(CharSequence query) {
-        getWriteDelegatee().append(query);
+        getWriteDelegate().append(query);
         return (This) this;
     }
 
@@ -42,7 +42,7 @@ public abstract class AbstractQlBuilder<This extends QlBuilder<This>> extends Ab
 
     @Override
     public This pushArgument(Object arg) {
-        getWriteDelegatee().pushArgument(arg);
+        getWriteDelegate().pushArgument(arg);
         return (This) this;
     }
 }

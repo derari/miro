@@ -151,7 +151,7 @@ public class StandardInsertStatement
         }
         
         @Override
-        protected QlBuilder<?> getDelegatee() {
+        protected QlBuilder<?> getDelegate() {
             return builder;
         }
 
@@ -222,18 +222,18 @@ public class StandardInsertStatement
         }
         
         @Override
-        protected QlBuilder<?> getDelegatee() {
+        protected QlBuilder<?> getDelegate() {
             return builder;
         }
 
         @Override
-        protected QlBuilder<?> getWriteDelegatee() {
+        protected QlBuilder<?> getWriteDelegate() {
             if (nextColumn) {
                 nextColumn = false;
                 if (empty) empty = false;
                 else append(",");
             }
-            return super.getWriteDelegatee();
+            return super.getWriteDelegate();
         }
 
         @Override

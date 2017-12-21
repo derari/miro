@@ -49,7 +49,7 @@ public abstract class AbstractMiSubmittable<R> extends AbstractMiFuture<R> {
         synchronized (lock()) {
             if ((isStarted() && submittedAttempt < 0) || isCancelled()) return this;
             if (submittedAttempt < 0) submittedAttempt = start(runner);
-            runner.cancelDelegatee = runner;
+            runner.cancelDelegate = runner;
             runner.attempt = submittedAttempt;
         }
         runner.run();
@@ -68,16 +68,16 @@ public abstract class AbstractMiSubmittable<R> extends AbstractMiFuture<R> {
         Executor exec = getExecutor();
         synchronized (lock()) {
             if (isStarted() || isCancelled()) return this;
-            Future<?> cancelDelegatee;
+            Future<?> cancelDelegate;
             if (exec instanceof ExecutorService) {
                 ExecutorService es = (ExecutorService) exec;
-                cancelDelegatee = es.submit(runner);
+                cancelDelegate = es.submit(runner);
             } else {
                 exec.execute(runner);
-                cancelDelegatee = runner;
+                cancelDelegate = runner;
             }
-            runner.cancelDelegatee = cancelDelegatee;
-            runner.attempt = submittedAttempt = start(cancelDelegatee);
+            runner.cancelDelegate = cancelDelegate;
+            runner.attempt = submittedAttempt = start(cancelDelegate);
         }
         return this;
     }
@@ -85,7 +85,7 @@ public abstract class AbstractMiSubmittable<R> extends AbstractMiFuture<R> {
     protected abstract class Runner implements Runnable, Future<R> {
         private Thread thread = null;
         private long attempt;
-        private Future<?> cancelDelegatee;
+        private Future<?> cancelDelegate;
 
         @Override
         public void run() {
@@ -93,7 +93,7 @@ public abstract class AbstractMiSubmittable<R> extends AbstractMiFuture<R> {
             synchronized (lock()) {
                 if (submittedAttempt != attempt) return;
                 submittedAttempt = -1;
-                replaceCancelDelegate(cancelDelegatee);
+                replaceCancelDelegate(cancelDelegate);
                 thread = Thread.currentThread();
                 if (!progress()) return;
             }

@@ -74,7 +74,7 @@ public abstract class AbstractSqlLayer<Builder extends SqlFilterableClause> exte
 //        return null;
 //    }
 //    
-    protected abstract class ViewComposerBase implements ViewComposer, Copyable<Builder> {
+    protected abstract class ViewComposerBase implements ViewComposer, Copyable {
 
         final Map<String, SnippetKey> snippetKeys;
         final InternalComposer<? extends Builder> ic;

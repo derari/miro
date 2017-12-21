@@ -45,8 +45,8 @@ public class JoinedLayer<Builder extends SqlTableClause & SqlJoinableClause & Sq
         }
 
         @Override
-        public Object copyFor(CopyComposer<Builder> cc) {
-            return new JoinedView(ic.node(cc), this);
+        public Object copyFor(CopyComposer cc) {
+            return new JoinedView(cc.getInternal(ic), this);
         }
 
         @Override

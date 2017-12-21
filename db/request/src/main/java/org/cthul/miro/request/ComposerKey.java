@@ -59,7 +59,7 @@ public interface ComposerKey<Value> extends Key<Value> {
         }
         
         static <B> ComposableTemplate<B> handle(BiConsumer<? super InternalComposer<? extends B>, ? super Phase> action) {
-            class PL implements PhaseListener, Copyable<B> {
+            class PL implements PhaseListener, Copyable {
                 final InternalComposer<? extends B> ic;
                 public PL(InternalComposer<? extends B> ic) {
                     this.ic = ic;
@@ -69,8 +69,8 @@ public interface ComposerKey<Value> extends Key<Value> {
                     action.accept(ic, entry);
                 }
                 @Override
-                public Object copyFor(CopyComposer<B> cc) {
-                    return new PL(ic.node(cc));
+                public Object copyFor(CopyComposer cc) {
+                    return new PL(cc.getInternal(ic));
                 }
                 @Override
                 public boolean allowReadOnly(Predicate<Object> isLatest) {

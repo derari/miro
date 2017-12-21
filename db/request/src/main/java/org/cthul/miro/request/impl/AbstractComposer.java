@@ -89,7 +89,7 @@ public abstract class AbstractComposer<Builder> implements Composer {
         parts().getValue(ComposerKey.ALWAYS);
     }
     
-    private class Internal implements InternalComposer<Builder>, CopyComposer<Builder> {
+    private class Internal implements InternalComposer<Builder>, CopyComposer {
         @Override
         public void addPart(StatementPart<? super Builder> part) {
             parts().addPart(part);
@@ -258,7 +258,7 @@ public abstract class AbstractComposer<Builder> implements Composer {
             return true;
         }
         
-        private <V> V tryCopy(V original, CopyComposer<?> cc) {
+        private <V> V tryCopy(V original, CopyComposer cc) {
             if (original instanceof Copyable) {
                 return (V) ((Copyable) original).copyFor(cc);
             }

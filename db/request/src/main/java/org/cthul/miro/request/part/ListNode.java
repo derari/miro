@@ -56,7 +56,7 @@ public interface ListNode<Entry> extends Templates.ComposableNode<ListNode<Entry
     }
     
     static <B,E> Template<B> template(Function<? super InternalComposer<? extends B>, ? extends Consumer<? super E>> factory) {
-        class LN implements ListNode<E>, Copyable<B> {
+        class LN implements ListNode<E>, Copyable {
             final InternalComposer<? extends B> ic;
             final Consumer<? super E> consumer;
             public LN(InternalComposer<? extends B> ic) {
@@ -68,8 +68,8 @@ public interface ListNode<Entry> extends Templates.ComposableNode<ListNode<Entry
                 consumer.accept(entry);
             }
             @Override
-            public Object copyFor(CopyComposer<B> cc) {
-                return new LN(ic.node(cc));
+            public Object copyFor(CopyComposer cc) {
+                return new LN(cc.getInternal(ic));
             }
             @Override
             public boolean allowReadOnly(Predicate<Object> isLatest) {
@@ -80,7 +80,7 @@ public interface ListNode<Entry> extends Templates.ComposableNode<ListNode<Entry
     }
     
     static <B,E> Template<B> handle(BiConsumer<? super InternalComposer<? extends B>, ? super E> action) {
-        class LN implements ListNode<E>, Copyable<B> {
+        class LN implements ListNode<E>, Copyable {
             final InternalComposer<? extends B> ic;
             public LN(InternalComposer<? extends B> ic) {
                 this.ic = ic;
@@ -90,8 +90,8 @@ public interface ListNode<Entry> extends Templates.ComposableNode<ListNode<Entry
                 action.accept(ic, entry);
             }
             @Override
-            public Object copyFor(CopyComposer<B> cc) {
-                return new LN(ic.node(cc));
+            public Object copyFor(CopyComposer cc) {
+                return new LN(cc.getInternal(ic));
             }
             @Override
             public boolean allowReadOnly(Predicate<Object> isLatest) {

@@ -10,39 +10,39 @@ public abstract class MiDBStringDelegator<This extends MiDBString> extends Abstr
     public MiDBStringDelegator() {
     }
 
-    protected abstract MiDBString getDelegatee();
+    protected abstract MiDBString getDelegate();
 
     @Override
     protected MiDBString getBuilderForNestedClause() {
-        return getDelegatee();
+        return getDelegate();
     }
     
-    protected MiDBString getWriteDelegatee() {
-        return getDelegatee();
+    protected MiDBString getWriteDelegate() {
+        return getDelegate();
     }
     
-    protected MiDBString getArgumentsDelegatee() {
-        return getDelegatee();
+    protected MiDBString getArgumentsDelegate() {
+        return getDelegate();
     }
     
-    protected MiDBString getStringDelegatee() {
-        return getDelegatee();
+    protected MiDBString getStringDelegate() {
+        return getDelegate();
     }
 
     @Override
     public This append(CharSequence chars) {
-        getWriteDelegatee().append(chars);
+        getWriteDelegate().append(chars);
         return (This) this;
     }
 
     @Override
     public This pushArgument(Object argument) {
-        getArgumentsDelegatee().pushArgument(argument);
+        getArgumentsDelegate().pushArgument(argument);
         return (This) this;
     }
 
     @Override
     public String toString() {
-        return getStringDelegatee().toString();
+        return getStringDelegate().toString();
     }
 }

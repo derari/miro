@@ -51,8 +51,8 @@ public class SelectLayer<Builder extends SelectBuilder> extends AbstractSqlLayer
         }
 
         @Override
-        public Object copyFor(CopyComposer<Builder> cc) {
-            return new SelectView(ic.node(cc), this);
+        public Object copyFor(CopyComposer cc) {
+            return new SelectView(cc.getInternal(ic), this);
         }
 
         @Override

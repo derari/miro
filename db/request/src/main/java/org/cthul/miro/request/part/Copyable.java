@@ -9,9 +9,8 @@ import org.cthul.miro.util.Key;
 /**
  * Interface for {@link StatementPart}s and nodes that have state 
  * and should be copied for new composers.
- * @param <Builder>
  */
-public interface Copyable<Builder> {
+public interface Copyable {
 
     /**
      * Creates a copy.
@@ -21,7 +20,7 @@ public interface Copyable<Builder> {
      * @param cc
      * @return the copy
      */
-    Object copyFor(CopyComposer<Builder> cc);
+    Object copyFor(CopyComposer cc);
 
     /**
      * Indicate whether this object can be used for read-only access.
@@ -36,18 +35,22 @@ public interface Copyable<Builder> {
     
     /**
      * Provides access to the copied composer.
-     * @param <Builder> 
      */
-    interface CopyComposer<Builder> extends Composer, Key<InternalComposer<Builder>> {
+    interface CopyComposer extends Composer, Key<InternalComposer<?>> {
     
         /**
          * Returns the internal composer to which the copy will be added.
          * Do not invoke modifying operations during copying.
+         * @param <Builder>
          * @param original
          * @return internal composer
          */
-        default InternalComposer<Builder> toInternal(InternalComposer<Builder> original) {
-            return original.node(this);
+        default <Builder> InternalComposer<Builder> getInternal(InternalComposer<Builder> original) {
+            return (InternalComposer) original.node(this);
+        }
+        
+        default CopyManager getCopyManager() {
+            return node(CopyManager.KEY);
         }
     }    
 }

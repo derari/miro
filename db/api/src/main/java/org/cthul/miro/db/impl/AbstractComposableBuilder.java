@@ -82,13 +82,13 @@ public abstract class AbstractComposableBuilder implements AutocloseableBuilder 
         }
         
         @Override
-        protected MiDBString getDelegatee() {
+        protected MiDBString getDelegate() {
             AbstractComposableBuilder.this.checkActive(owner);
             return getInternalDbString();
         }
 
         @Override
-        protected MiDBString getStringDelegatee() {
+        protected MiDBString getStringDelegate() {
             return getInternalDbString();
         }
     }

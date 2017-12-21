@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import org.cthul.miro.request.part.Copyable;
-import org.cthul.miro.request.template.InternalComposer;
 import org.cthul.miro.request.part.ListNode;
 import org.cthul.miro.request.template.Template;
 import org.cthul.miro.entity.map.EntityAttribute;
@@ -40,22 +39,22 @@ public class FilterLayer<Entity> extends AbstractMappingLayer<Entity, Object> {
         return null;
     }
     
-    protected class PropertyFilterHub implements PropertyFilter, Copyable<Object> {
+    protected class PropertyFilterHub implements PropertyFilter, Copyable {
         
-        final InternalComposer<?> ic;
+        final Composer composer;
 
-        public PropertyFilterHub(InternalComposer<?> ic) {
-            this.ic = ic;
+        public PropertyFilterHub(Composer ic) {
+            this.composer = ic;
         }
 
         @Override
         public ListNode<Object[]> forProperties(String... propertyKeys) {
-            return ic.node(new PropertyFilterKey(propertyKeys));
+            return composer.node(new PropertyFilterKey(propertyKeys));
         }
 
         @Override
-        public Object copyFor(CopyComposer<Object> cc) {
-            return new PropertyFilterHub(ic.node(cc));
+        public Object copyFor(CopyComposer cc) {
+            return new PropertyFilterHub(cc);
         }
 
         @Override
@@ -64,7 +63,7 @@ public class FilterLayer<Entity> extends AbstractMappingLayer<Entity, Object> {
         }
     }
     
-    protected class PropertiesIn implements ListNode<Object[]>, Copyable<Object> {
+    protected class PropertiesIn implements ListNode<Object[]>, Copyable {
         
         final List<EntityAttribute<Entity, GraphApi>> properties;
         final Key<ListNode<Object[]>> valueFilterKey;
@@ -107,7 +106,7 @@ public class FilterLayer<Entity> extends AbstractMappingLayer<Entity, Object> {
         }
 
         @Override
-        public Object copyFor(CopyComposer<Object> cc) {
+        public Object copyFor(CopyComposer cc) {
             bags = null;
             totalBag = null;
             return new PropertiesIn(cc, this);

@@ -55,7 +55,7 @@ class TestConnection implements MiConnection {
     class Stmt<R, This extends Stmt<R, This>> extends MiDBStringDelegator<This> implements MiStatement<R>, StatementBuilder {
         MiDBStringBuilder string = new MiDBStringBuilder();
         @Override
-        protected MiDBString getDelegatee() {
+        protected MiDBString getDelegate() {
             return string;
         }
 

@@ -729,54 +729,54 @@ public class Templates {
     }
     
     public static class InternalQueryComposerDelegator<Builder> implements InternalComposer<Builder>, AdaptedTemplate.ComposerWrapper {
-        private final InternalComposer<?> delegatee;
-        private final InternalComposer<? extends Builder> partDelegatee;
+        private final InternalComposer<?> delegate;
+        private final InternalComposer<? extends Builder> partDelegate;
 
-        public InternalQueryComposerDelegator(InternalComposer<? extends Builder> delegatee) {
-            this(delegatee, delegatee);
+        public InternalQueryComposerDelegator(InternalComposer<? extends Builder> delegate) {
+            this(delegate, delegate);
         }
 
-        public InternalQueryComposerDelegator(InternalComposer<?> delegatee, InternalComposer<? extends Builder> partDelegatee) {
-            this.delegatee = delegatee;
-            this.partDelegatee = partDelegatee;
+        public InternalQueryComposerDelegator(InternalComposer<?> delegate, InternalComposer<? extends Builder> partDelegate) {
+            this.delegate = delegate;
+            this.partDelegate = partDelegate;
         }
 
         /* this is to be compatible with adapted composers */
         @Override
         public InternalComposer<?> getActual() {
-            InternalComposer actualParts = ((AdaptedTemplate.ComposerWrapper) getPartDelegatee()).getActual();
+            InternalComposer actualParts = ((AdaptedTemplate.ComposerWrapper) getPartDelegate()).getActual();
             return new InternalQueryComposerDelegator<>(this, actualParts);
         }
         
-        public InternalComposer<?> getDelegatee() {
-            return delegatee;
+        public InternalComposer<?> getDelegate() {
+            return delegate;
         }
         
-        public InternalComposer<? extends Builder> getPartDelegatee() {
-            if (partDelegatee == null) {
+        public InternalComposer<? extends Builder> getPartDelegate() {
+            if (partDelegate == null) {
                 throw new UnsupportedOperationException();
             }
-            return partDelegatee;
+            return partDelegate;
         }
         @Override
         public void addPart(StatementPart<? super Builder> part) {
-            getPartDelegatee().addPart(part);
+            getPartDelegate().addPart(part);
         }
         @Override
         public <V> void addNode(Key<V> key, V node) {
-            getDelegatee().addNode(key, node);
+            getDelegate().addNode(key, node);
         }
         @Override
         public boolean include(Object key) {
-            return getDelegatee().include(key);
+            return getDelegate().include(key);
         }
         @Override
         public <V> V get(Key<V> key) {
-            return getDelegatee().get(key);
+            return getDelegate().get(key);
         }
         @Override
         public String toString() {
-            return "<" + getDelegatee() + ">";
+            return "<" + getDelegate() + ">";
         }
     }
     
@@ -786,8 +786,8 @@ public class Templates {
 
         private final Key<Value> key;
 
-        public KeyQueryComposerImpl(Key<Value> key, InternalComposer<?> delegatee) {
-            super(delegatee, null);
+        public KeyQueryComposerImpl(Key<Value> key, InternalComposer<?> delegate) {
+            super(delegate, null);
             this.key = key;
         }
 
@@ -811,7 +811,7 @@ public class Templates {
         Object and(Other other);
     }
         
-    public static class MultiNode<N> implements Copyable<Object> {
+    public static class MultiNode<N> implements Copyable {
         
         private final List<N> nodes = new ArrayList<>();
 
@@ -834,8 +834,8 @@ public class Templates {
         }
 
         @Override
-        public Object copyFor(CopyComposer<Object> cc) {
-            CopyManager cpy = cc.node(CopyManager.KEY);
+        public Object copyFor(CopyComposer cc) {
+            CopyManager cpy = cc.getCopyManager();
             List<N> newNodes = cpy.copyAll(nodes);
             return allNodes((List) newNodes);
         }
@@ -882,33 +882,9 @@ public class Templates {
         }
 
         @Override
-        public void addTo(Object key, InternalComposer<? extends Builder> query) {
-            addAllExcept(key, query, null, null);
-        }
-
-        protected void addAllExcept(Object key, InternalComposer<? extends Builder> ic, Template<?> skip, ComposableNode<?> skippedValue) {
-            CollectTemplates<Builder> collector = new CollectTemplates<>(key, templates, skip, skippedValue);
-            InternalComposer<Builder> c2 = new InternalQueryComposerDelegator<Builder>(ic) {
-                @Override
-                public <V> void addNode(Key<V> key2, V node) {
-                    if (key == key2 && (node instanceof ComposableNode)) {
-                        collector.add((ComposableNode<?>) node);
-                        // ensure this key is completed before addNode returns
-                        collector.resume(this);
-                    } else if (node instanceof ComposableNode) {
-                        //addAllExcept(key2, this, collector.getCurrent(), (ComposableNode) node);
-                        // multi-nodes only supported
-                        super.addNode(key2, node);
-                    } else {
-                        super.addNode(key2, node);
-                    }
-                }
-                @Override
-                public String toString() {
-                    return "Multi-" + key;
-                }
-            };
-            collector.resume(c2);
+        public void addTo(Object key, InternalComposer<? extends Builder> ic) {
+            CollectTemplates<Builder> collector = new CollectTemplates<>(key, templates, ic);
+            collector.resume();
             List<ComposableNode<?>> bag = collector.getBag();
             if (!bag.isEmpty()) {
                 Object n = allNodes((List) bag);
@@ -922,32 +898,24 @@ public class Templates {
         }
     }
     
-    protected static class CollectTemplates<Builder> {
+    protected static class CollectTemplates<Builder> extends InternalQueryComposerDelegator<Builder> {
+
         final Object key; 
-        final Template<?> skip;
-        final ComposableNode<?> skippedValue;
         final List<ComposableNode<?>> bag;
         final Iterator<Template<? super Builder>> iterator;
         Template<? super Builder> current;
 
-        public CollectTemplates(Object key, List<Template<? super Builder>> templates, Template<?> skip, ComposableNode<?> skippedValue) {
+        public CollectTemplates(Object key, List<Template<? super Builder>> templates, InternalComposer<? extends Builder> ic) {
+            super(ic);
             this.key = key;
-            this.skip = skip;
-            this.skippedValue = skippedValue;
             this.iterator = templates.iterator();
             this.bag = new ArrayList<>(templates.size());
         }
         
-        public void resume(InternalComposer<Builder> q2) {
+        public void resume() {
             while (iterator.hasNext()) {
                 current = iterator.next();
-                if (current == skip) {
-                    if (skippedValue != null) {
-                        bag.add(skippedValue);
-                    }
-                } else {
-                    current.addTo(key, q2);
-                }
+                current.addTo(key, this);
             }
         }
 
@@ -962,15 +930,32 @@ public class Templates {
         public List<ComposableNode<?>> getBag() {
             return bag;
         }
-    }
-
-    protected static class Container<T> {
-        T value;
-        public Container() { }
-        public Container(T value) {
-            this.value = value;
+        
+        @Override
+        public <V> void addNode(Key<V> key2, V node) {
+            if (key == key2 && (node instanceof ComposableNode)) {
+                add((ComposableNode<?>) node);
+                // ensure this key is completed before addNode returns
+                resume();
+            } else {
+                // multi nodes only supported for current key
+                super.addNode(key2, node);
+            }
+        }
+        
+        @Override
+        public String toString() {
+            return "Multi-" + key;
         }
     }
+
+//    protected static class Container<T> {
+//        T value;
+//        public Container() { }
+//        public Container(T value) {
+//            this.value = value;
+//        }
+//    }
     
     /**
      * When multiple templates add {@link ComposableNode}s for the same key,

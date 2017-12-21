@@ -13,6 +13,8 @@ import org.cthul.miro.util.Key;
  */
 public interface SqlDDL<Stmt> extends RequestType<Stmt>, ClauseType<Stmt> {
     
+    static SqlDDL<CreateStatement> create() { return Type.CREATE_TABLE; }
+    
     default Type type() {
         return (Type) this;
     }
@@ -21,7 +23,6 @@ public interface SqlDDL<Stmt> extends RequestType<Stmt>, ClauseType<Stmt> {
         return Key.castDefault(type, Type.NIL);
     }
 
-    @SuppressWarnings("LocalVariableHidesMemberVariable")
     public static enum Type implements SqlDDL {
 
         CREATE_TABLE,
@@ -38,6 +39,4 @@ public interface SqlDDL<Stmt> extends RequestType<Stmt>, ClauseType<Stmt> {
             return newStmt(cnn).begin(this);
         }
     }
-    
-    static SqlDDL<CreateStatement> create() { return Type.CREATE_TABLE; }
 }

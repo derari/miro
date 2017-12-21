@@ -31,7 +31,7 @@ public interface MapNode<Key, Value> { //extends Templates.ComposableNode<MapNod
 //    }
     
     static <B,K,V> Template<B> template(Function<? super InternalComposer<? extends B>, ? extends Function<? super K,? extends V>> factory) {
-        class MN implements MapNode<K,V>, Copyable<B> {
+        class MN implements MapNode<K,V>, Copyable {
             final InternalComposer<? extends B> ic;
             final Function<? super K,? extends V> function;
             public MN(InternalComposer<? extends B> ic) {
@@ -43,15 +43,15 @@ public interface MapNode<Key, Value> { //extends Templates.ComposableNode<MapNod
                 return function.apply(key);
             }
             @Override
-            public Object copyFor(CopyComposer<B> cc) {
-                return new MN(ic.node(cc));
+            public Object copyFor(CopyComposer cc) {
+                return new MN(cc.getInternal(ic));
             }
         }
         return Templates.newNode(ic -> new MN(ic));
     }
     
     static <B,K,V> Template<B> handle(BiFunction<? super InternalComposer<? extends B>, ? super K, ? extends V> action) {
-        class MN implements MapNode<K,V>, Copyable<B> {
+        class MN implements MapNode<K,V>, Copyable {
             final InternalComposer<? extends B> ic;
             public MN(InternalComposer<? extends B> ic) {
                 this.ic = ic;
@@ -61,8 +61,8 @@ public interface MapNode<Key, Value> { //extends Templates.ComposableNode<MapNod
                 return action.apply(ic, key);
             }
             @Override
-            public Object copyFor(CopyComposer<B> cc) {
-                return new MN(ic.node(cc));
+            public Object copyFor(CopyComposer cc) {
+                return new MN(cc.getInternal(ic));
             }
         }
         return Templates.newNode(ic -> new MN(ic));

@@ -12,25 +12,25 @@ import org.cthul.miro.futures.MiFuture;
  */
 public class MiFutureDelegator<V> implements MiFuture<V> {
     
-    private final MiFuture<V> delegatee;
+    private final MiFuture<V> delegate;
     private final Executor defaultExecutor;
 
-    public MiFutureDelegator(MiFuture<? extends V> delegatee) {
-        this(delegatee, null);
+    public MiFutureDelegator(MiFuture<? extends V> delegate) {
+        this(delegate, null);
     }
 
     @SuppressWarnings("unchecked")
-    public MiFutureDelegator(MiFuture<? extends V> delegatee, Executor defaultExecutor) {
-        this.delegatee = (MiFuture) delegatee;
+    public MiFutureDelegator(MiFuture<? extends V> delegate, Executor defaultExecutor) {
+        this.delegate = (MiFuture) delegate;
         this.defaultExecutor = defaultExecutor;
     }
 
-    protected MiFuture<V> getDelegatee() {
-        return delegatee;
+    protected MiFuture<V> getDelegate() {
+        return delegate;
     }
     
-    protected MiFuture<V> getCancelDelegatee() {
-        return getDelegatee();
+    protected MiFuture<V> getCancelDelegate() {
+        return getDelegate();
     }
     
     protected Executor replaceExecutor(Executor executor) {
@@ -40,58 +40,58 @@ public class MiFutureDelegator<V> implements MiFuture<V> {
 
     @Override
     public void await() throws InterruptedException {
-        getDelegatee().await();
+        getDelegate().await();
     }
 
     @Override
     public void await(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
-        getDelegatee().await(timeout, unit);
+        getDelegate().await(timeout, unit);
     }
     
     @Override
     public boolean isDone() {
-        return getDelegatee().isDone();
+        return getDelegate().isDone();
     }
 
     @Override
     public boolean hasResult() {
-        return getDelegatee().hasResult();
+        return getDelegate().hasResult();
     }
 
     @Override
     public V getResult() {
-        return getDelegatee().getResult();
+        return getDelegate().getResult();
     }
 
     @Override
     public Throwable getException() {
-        return getDelegatee().getException();
+        return getDelegate().getException();
     }
 
     @Override
     public <R> MiFuture<R> onComplete(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> action) {
         executor = replaceExecutor(executor);
-        return getDelegatee().onComplete(executor, action);
+        return getDelegate().onComplete(executor, action);
     }
 
     @Override
     public <R> MiFuture<R> onCompleteAlways(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> action) {
         executor = replaceExecutor(executor);
-        return getDelegatee().onCompleteAlways(executor, action);
+        return getDelegate().onCompleteAlways(executor, action);
     }
 
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
-        return getCancelDelegatee().cancel(mayInterruptIfRunning);
+        return getCancelDelegate().cancel(mayInterruptIfRunning);
     }
 
     @Override
     public boolean isCancelled() {
-        return getCancelDelegatee().isCancelled();
+        return getCancelDelegate().isCancelled();
     }
 
     @Override
     public boolean deepCancel(boolean mayInterruptIfRunning) {
-        return getCancelDelegatee().deepCancel(mayInterruptIfRunning);
+        return getCancelDelegate().deepCancel(mayInterruptIfRunning);
     }
 }

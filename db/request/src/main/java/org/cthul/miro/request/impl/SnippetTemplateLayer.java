@@ -9,10 +9,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import org.cthul.miro.request.Composer;
 import org.cthul.miro.request.template.Templates;
 import org.cthul.miro.request.part.Configurable;
 import org.cthul.miro.request.part.Copyable;
-import org.cthul.miro.request.template.InternalComposer;
 import org.cthul.miro.request.StatementPart;
 import org.cthul.miro.request.template.Snippets.Snippet;
 import org.cthul.miro.request.template.Template;
@@ -82,7 +82,7 @@ public class SnippetTemplateLayer<Builder> extends AbstractTemplateLayer<Builder
         return "Snippets";
     }
     
-    protected class SnippetsPart implements Snippets<Builder>, StatementPart<Builder>, Copyable<Builder> {
+    protected class SnippetsPart implements Snippets<Builder>, StatementPart<Builder>, Copyable {
 
         private final Set<Consumer<? super Builder>> actions = new LinkedHashSet<>();
         private final Map<Object, Consumer<? super Builder>> onceGuard = new HashMap<>();
@@ -134,7 +134,7 @@ public class SnippetTemplateLayer<Builder> extends AbstractTemplateLayer<Builder
         }
 
         @Override
-        public Object copyFor(CopyComposer<Builder> cc) {
+        public Object copyFor(CopyComposer cc) {
             return new SnippetsPart(this);
         }
 
@@ -144,23 +144,23 @@ public class SnippetTemplateLayer<Builder> extends AbstractTemplateLayer<Builder
         }
     }
     
-    protected static class SnippetCfg implements Configurable, Copyable<Object> {
+    protected static class SnippetCfg implements Configurable, Copyable {
         final Configurable.Key key;
-        final InternalComposer<?> ic;
+        final Composer composer;
 
-        public SnippetCfg(Configurable.Key key, InternalComposer<?> ic) {
+        public SnippetCfg(Configurable.Key key, Composer ic) {
             this.key = key;
-            this.ic = ic;
+            this.composer = ic;
         }
 
         @Override
         public void set(Object... values) {
-            ic.node(Snippets.key()).set(key, values);
+            composer.node(Snippets.key()).set(key, values);
         }
 
         @Override
-        public Object copyFor(CopyComposer<Object> cc) {
-            return new SnippetCfg(key, ic.node(cc));
+        public Object copyFor(CopyComposer cc) {
+            return new SnippetCfg(key, cc);
         }
 
         @Override

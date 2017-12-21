@@ -188,8 +188,8 @@ public class Results<Entity> implements AutoCloseable {
     
     public static class Action<Entity> extends MiActionDelegator<Results<Entity>> {
 
-        public Action(MiAction<? extends Results<Entity>> delegatee) {
-            super(delegatee);
+        public Action(MiAction<? extends Results<Entity>> delegate) {
+            super(delegate);
         }
         
         public MiAction<List<Entity>> list() {

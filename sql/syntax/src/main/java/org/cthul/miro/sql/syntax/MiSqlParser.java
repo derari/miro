@@ -514,13 +514,15 @@ public class MiSqlParser {
     protected boolean expression_macro_in(List<ObjectRef> columns, QlCode.Builder code) {
         if (!hasArgs()) return expected("arguments");
         int start = cIndex;
-        boolean success = true;
+        boolean success = false;
         if (!next().isSpecial("{")) {
-            success = expected("'{'");
+            expected("'{'");
         } else if (!next().isArgument()) {
-            success = expected("'?'");
+            expected("'?'");
         } else if (!next().isSpecial("}")) {
-            success = expected("'}'");
+            expected("'}'");
+        } else {
+            success = true;
         }
         if (!success) {
             setIndex(start);

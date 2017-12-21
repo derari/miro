@@ -58,21 +58,21 @@ public class GeneralSqlLayer<Builder extends SqlFilterableClause> extends Abstra
         return null;
     }
     
-    protected class AttributeFilterHub implements AttributeFilter, Copyable<Object> {
-        final InternalComposer<?> ic;
+    protected class AttributeFilterHub implements AttributeFilter, Copyable {
+        final Composer composer;
 
-        public AttributeFilterHub(InternalComposer<?> ic) {
-            this.ic = ic;
+        public AttributeFilterHub(Composer ic) {
+            this.composer = ic;
         }
 
         @Override
         public ListNode<Object[]> forAttributes(String... attributeKeys) {
-            return ic.node(new AttributeFilterKey(attributeKeys));
+            return composer.node(new AttributeFilterKey(attributeKeys));
         }
 
         @Override
-        public Object copyFor(CopyComposer<Object> cc) {
-            return new AttributeFilterHub(ic.node(cc));
+        public Object copyFor(CopyComposer cc) {
+            return new AttributeFilterHub(cc);
         }
 
         @Override
@@ -81,7 +81,7 @@ public class GeneralSqlLayer<Builder extends SqlFilterableClause> extends Abstra
         }
     }
     
-    protected class AttributesIn implements StatementPart<SqlFilterableClause>, ListNode<Object[]>, Copyable<Object> {
+    protected class AttributesIn implements StatementPart<SqlFilterableClause>, ListNode<Object[]>, Copyable {
 
         private final List<SqlAttribute> attributes;
         private final List<Object[]> values = new ArrayList<>();
@@ -134,7 +134,7 @@ public class GeneralSqlLayer<Builder extends SqlFilterableClause> extends Abstra
         }
 
         @Override
-        public Object copyFor(CopyComposer<Object> cc) {
+        public Object copyFor(CopyComposer cc) {
             return new AttributesIn(cc, this);
         }
 

@@ -108,8 +108,8 @@ public interface SqlSyntax extends Syntax {
         }
 
         @Override
-        protected QlBuilder<?> getWriteDelegatee() {
-            QlBuilder<?> sup = super.getWriteDelegatee();
+        protected QlBuilder<?> getWriteDelegate() {
+            QlBuilder<?> sup = super.getWriteDelegate();
             if (writeOP) {
                 writeOP = false;
                 ql(") ");

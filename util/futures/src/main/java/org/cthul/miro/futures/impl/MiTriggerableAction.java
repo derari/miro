@@ -47,13 +47,13 @@ public class MiTriggerableAction<V> extends AbstractMiSubmittable<V> implements 
                 super(MiTriggerableAction.this);
             }
             @Override
-            protected MiResettableFuture<V> getDelegatee() {
+            protected MiResettableFuture<V> getDelegate() {
                 MiTriggerableAction.this.submit();
-                return super.getDelegatee();
+                return super.getDelegate();
             }
             @Override
-            protected MiResettableFuture<V> getCancelDelegatee() {
-                return super.getDelegatee();
+            protected MiResettableFuture<V> getCancelDelegate() {
+                return super.getDelegate();
             }
         }
         if (trigger == null) {

@@ -1,8 +1,9 @@
 package org.cthul.miro.request.impl;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.WeakHashMap;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -164,7 +165,7 @@ public class AdaptedTemplate<Builder, Adapted> extends AbstractTemplate<Builder>
     
     protected class AdaptingComposer 
                     extends Templates.InternalQueryComposerDelegator<Adapted> 
-                    implements Copyable<Builder> {
+                    implements Copyable {
         
         private final InternalComposer<? extends Builder> composer;
         private List<StatementPart<? super Adapted>> parts = null;
@@ -196,19 +197,21 @@ public class AdaptedTemplate<Builder, Adapted> extends AbstractTemplate<Builder>
         }
 
         private void setParts(List<StatementPart<? super Adapted>> parts) {
-            class AdaptedParts implements StatementPart<Builder>, Copyable<Builder> {
+            class AdaptedParts implements StatementPart<Builder>, Copyable {
                 @Override
                 public void addTo(Builder builder) {
                     Adapted adaptedBuilder = adapter.apply(builder);
                     parts.forEach(p -> p.addTo(adaptedBuilder));
                 }
                 @Override
-                public Object copyFor(CopyComposer<Builder> cc) {
+                public Object copyFor(CopyComposer cc) {
                     AdaptingComposer ac2 = cc.node(composerKey);
-                    CopyManager cm = cc.get(CopyManager.KEY);
-                    List<StatementPart<? super Adapted>> copyParts = cm.copyAll(parts);
                     ac2.initializeParts();
-                    ac2.parts.addAll(0, copyParts);
+                    CopyManager cm = cc.getCopyManager();
+                    Set<StatementPart<? super Adapted>> copyParts = cm.copyAll(parts, new LinkedHashSet<>());
+                    copyParts.addAll(ac2.parts);
+                    ac2.parts.clear();
+                    ac2.parts.addAll(copyParts);
                     return null;
                 }
                 @Override
@@ -235,22 +238,14 @@ public class AdaptedTemplate<Builder, Adapted> extends AbstractTemplate<Builder>
         @Override
         public <V> V get(Key<V> key) {
             if (key instanceof CopyComposer) {
-                return key.cast(((CopyComposer<?>) key).node(composerKey));
+                return key.cast(((CopyComposer) key).node(composerKey));
             }
             return super.get(key);
         }
 
         @Override
-        public Object copyFor(CopyComposer<Builder> cc) {
-            InternalComposer<Builder> ic2 = composer.node(cc);
-            AdaptingComposer ac2 = adapt(ic2);
-//            if (parts != null) {
-//                ic2.addNode(composerKey, ac2);
-//                ac2.initializeParts();
-//                CopyManager cm = ic2.get(CopyManager.KEY);
-//                ac2.parts.addAll(cm.copyAll(parts));
-//            }
-            return ac2;
+        public Object copyFor(CopyComposer cc) {
+            return adapt(cc.getInternal(composer));
         }
 
         @Override

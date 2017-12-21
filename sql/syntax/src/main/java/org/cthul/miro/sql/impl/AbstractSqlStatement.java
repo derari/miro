@@ -68,12 +68,12 @@ public abstract class AbstractSqlStatement<Request extends MiDBString> extends A
         }
 
         @Override
-        protected QlBuilder<?> getDelegatee() {
+        protected QlBuilder<?> getDelegate() {
             return qlBuilder;
         }
 
         @Override
-        protected QlBuilder<?> getWriteDelegatee() {
+        protected QlBuilder<?> getWriteDelegate() {
             closeNestedClause();
             if (!open) {
                 open = true;
@@ -85,7 +85,7 @@ public abstract class AbstractSqlStatement<Request extends MiDBString> extends A
                     append(prefix);
                 }
             }
-            return getDelegatee();
+            return getDelegate();
         }
 
         public boolean isOpen() {

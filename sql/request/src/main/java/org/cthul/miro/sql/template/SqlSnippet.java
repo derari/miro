@@ -123,7 +123,7 @@ public abstract class SqlSnippet<Builder> implements Template<Builder> {
         return key;
     }
     
-    protected class Part implements StatementPart<Builder>, Copyable<Builder>, Configurable {
+    protected class Part implements StatementPart<Builder>, Copyable, Configurable {
         
         private Object[] args;
 
@@ -145,7 +145,7 @@ public abstract class SqlSnippet<Builder> implements Template<Builder> {
         }
 
         @Override
-        public Object copyFor(CopyComposer<Builder> cc) {
+        public Object copyFor(CopyComposer cc) {
             return new Part(args);
         }
 

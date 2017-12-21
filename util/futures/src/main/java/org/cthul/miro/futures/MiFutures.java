@@ -192,8 +192,8 @@ public class MiFutures {
         private final Runnable runAction;
         private MiFuture<V> trigger = null;
 
-        public FutureAsAction(Runnable submitAction, Runnable runAction, MiFuture<? extends V> delegatee, Executor defaultExecutor) {
-            super(delegatee, defaultExecutor);
+        public FutureAsAction(Runnable submitAction, Runnable runAction, MiFuture<? extends V> delegate, Executor defaultExecutor) {
+            super(delegate, defaultExecutor);
             Objects.requireNonNull(submitAction, "submit action");
             Objects.requireNonNull(runAction, "run action");
             this.submitAction = submitAction;
@@ -212,13 +212,13 @@ public class MiFutures {
                     super.await();
                 }
                 @Override
-                protected MiFuture<V> getDelegatee() {
+                protected MiFuture<V> getDelegate() {
                     FutureAsAction.this.submit();
-                    return super.getDelegatee();
+                    return super.getDelegate();
                 }
                 @Override
-                protected MiFuture<V> getCancelDelegatee() {
-                    return super.getDelegatee();
+                protected MiFuture<V> getCancelDelegate() {
+                    return super.getDelegate();
                 }
             }
             if (trigger == null) {
@@ -235,13 +235,13 @@ public class MiFutures {
 
         @Override
         public <R> MiAction<R> onComplete(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> function) {
-            MiFuture<R> f = getDelegatee().onComplete(executor, function);
+            MiFuture<R> f = getDelegate().onComplete(executor, function);
             return futureAsAction(f, executor, submitAction, runAction);
         }
 
         @Override
         public <R> MiAction<R> onCompleteAlways(Executor executor, MiFunction<? super MiFuture<V>, ? extends R> function) {
-            MiFuture<R> f = getDelegatee().onCompleteAlways(executor, function);
+            MiFuture<R> f = getDelegate().onCompleteAlways(executor, function);
             return futureAsAction(f, executor, submitAction, runAction);
         }
     }

@@ -18,23 +18,23 @@ public abstract class QlBuilderDelegator<This extends QlBuilder<This>>
 
     @Override
     protected MiDBString getBuilderForNestedClause() {
-        return getWriteDelegatee();
+        return getWriteDelegate();
     }
     
-    protected abstract QlBuilder<?> getDelegatee();
+    protected abstract QlBuilder<?> getDelegate();
 
-    protected QlBuilder<?> getWriteDelegatee() {
+    protected QlBuilder<?> getWriteDelegate() {
         closeNestedClause();
-        return getDelegatee();
+        return getDelegate();
     }
     
-    protected QlBuilder<?> getArgumentsDelegatee() {
+    protected QlBuilder<?> getArgumentsDelegate() {
         closeNestedClause();
-        return getDelegatee();
+        return getDelegate();
     }
     
-    protected QlBuilder<?> getStringDelegatee() {
-        return getDelegatee();
+    protected QlBuilder<?> getStringDelegate() {
+        return getDelegate();
     }
     
     protected This _this() {
@@ -43,72 +43,72 @@ public abstract class QlBuilderDelegator<This extends QlBuilder<This>>
     
     @Override
     public This append(CharSequence query) {
-        getWriteDelegatee().append(query);
+        getWriteDelegate().append(query);
         return _this();
     }
 
     @Override
     public This ql(String query) {
-        getWriteDelegatee().ql(query);
+        getWriteDelegate().ql(query);
         return _this();
     }
 
     @Override
     public This identifier(String id) {
-        getWriteDelegatee().identifier(id);
+        getWriteDelegate().identifier(id);
         return _this();
     }
 
     @Override
     public This id(String id) {
-        getWriteDelegatee().id(id);
+        getWriteDelegate().id(id);
         return _this();
     }
 
     @Override
     public This namedTable(String table, String name) {
-        getWriteDelegatee().namedTable(table, name);
+        getWriteDelegate().namedTable(table, name);
         return _this();
     }
 
     @Override
     public This attribute(String id, String attribute) {
-        getWriteDelegatee().attribute(id, attribute);
+        getWriteDelegate().attribute(id, attribute);
         return _this();
     }
 
     @Override
     public This stringLiteral(String string) {
-        getWriteDelegatee().stringLiteral(string);
+        getWriteDelegate().stringLiteral(string);
         return _this();
     }
 
     @Override
     public This constant(Object key) {
-        getWriteDelegatee().constant(key);
+        getWriteDelegate().constant(key);
         return _this();
     }
 
     @Override
     public This pushArgument(Object arg) {
-        getArgumentsDelegatee().pushArgument(arg);
+        getArgumentsDelegate().pushArgument(arg);
         return _this();
     }
 
     @Override
     public This pushArguments(Iterable<?> args) {
-        getArgumentsDelegatee().pushArguments(args);
+        getArgumentsDelegate().pushArguments(args);
         return _this();
     }
 
     @Override
     public This pushArguments(Object... args) {
-        getArgumentsDelegatee().pushArguments(args);
+        getArgumentsDelegate().pushArguments(args);
         return _this();
     }
     
     @Override
     public String toString() {
-        return getStringDelegatee().toString();
+        return getStringDelegate().toString();
     }
 }

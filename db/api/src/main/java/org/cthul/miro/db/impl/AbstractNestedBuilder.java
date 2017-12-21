@@ -38,13 +38,13 @@ public class AbstractNestedBuilder<Owner, This extends QlBuilder<This>>
     protected void open() { }
     
     @Override
-    protected QlBuilder<?> getDelegatee() {
+    protected QlBuilder<?> getDelegate() {
         makeInitialized();
         return builder;
     }
 
     @Override
-    protected QlBuilder<?> getStringDelegatee() {
+    protected QlBuilder<?> getStringDelegate() {
         return builder;
     }
     

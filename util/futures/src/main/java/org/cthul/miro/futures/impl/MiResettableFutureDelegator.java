@@ -8,27 +8,27 @@ import org.cthul.miro.futures.MiResettableFuture;
  */
 public class MiResettableFutureDelegator<V> extends MiFutureDelegator<V> implements MiResettableFuture<V> {
 
-    public MiResettableFutureDelegator(MiResettableFuture<? extends V> delegatee) {
-        super(delegatee);
+    public MiResettableFutureDelegator(MiResettableFuture<? extends V> delegate) {
+        super(delegate);
     }
 
-    public MiResettableFutureDelegator(MiResettableFuture<? extends V> delegatee, Executor defaultExecutor) {
-        super(delegatee, defaultExecutor);
-    }
-
-    @Override
-    protected MiResettableFuture<V> getDelegatee() {
-        return (MiResettableFuture<V>) super.getDelegatee();
+    public MiResettableFutureDelegator(MiResettableFuture<? extends V> delegate, Executor defaultExecutor) {
+        super(delegate, defaultExecutor);
     }
 
     @Override
-    protected MiResettableFuture<V> getCancelDelegatee() {
-        return (MiResettableFuture<V>) super.getCancelDelegatee();
+    protected MiResettableFuture<V> getDelegate() {
+        return (MiResettableFuture<V>) super.getDelegate();
+    }
+
+    @Override
+    protected MiResettableFuture<V> getCancelDelegate() {
+        return (MiResettableFuture<V>) super.getCancelDelegate();
     }
 
     @Override
     public MiResettableFuture<V> reset() {
-        getCancelDelegatee().reset();
+        getCancelDelegate().reset();
         return this;
     }
 }
