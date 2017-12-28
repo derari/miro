@@ -1,6 +1,5 @@
 package org.cthul.miro.sql;
 
-import javax.management.Query;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;

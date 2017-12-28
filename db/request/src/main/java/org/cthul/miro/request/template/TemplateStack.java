@@ -1,5 +1,7 @@
 package org.cthul.miro.request.template;
 
+import org.cthul.miro.util.Key;
+
 /**
  *
  * @param <Builder>
@@ -31,7 +33,7 @@ public class TemplateStack<Builder> implements Template<Builder> {
     }
     
     @Override
-    public void addTo(Object key, InternalComposer<? extends Builder> query) {
+    public void addTo(Key<?> key, InternalComposer<? extends Builder> query) {
         peek().addTo(key, query);
     }
 

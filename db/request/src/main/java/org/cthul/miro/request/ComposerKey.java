@@ -14,7 +14,7 @@ import org.cthul.miro.util.Key;
  */
 public interface ComposerKey<Value> extends Key<Value> {
     
-    /** This key is always required. */
+    /** This key is always included. */
     final ComposerKey<?> ALWAYS = CKey.ALWAYS;
     
     /** Phase listeners are notified about phases in the query building process. */

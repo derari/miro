@@ -2,13 +2,13 @@ package org.cthul.miro.sql.template;
 
 import java.util.Objects;
 import org.cthul.miro.request.impl.ValueKey;
-import org.cthul.miro.request.part.Configurable;
 import org.cthul.miro.util.Key;
+import org.cthul.miro.request.part.Parameterized;
 
 /**
  *
  */
-public class SnippetKey extends ValueKey<Configurable> {
+public class SnippetKey extends ValueKey<Parameterized> {
     
     private final String name;
     

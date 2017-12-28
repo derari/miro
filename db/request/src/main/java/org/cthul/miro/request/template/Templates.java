@@ -33,7 +33,7 @@ public class Templates {
     public static <B> ComposableTemplate<B> constNodePart(StatementPart<? super B> nodePart) {
         return new ComposableTemplate<B>() {
             @Override
-            public void addTo(Object key, InternalComposer<? extends B> composer) {
+            public void addTo(Key<?> key, InternalComposer<? extends B> composer) {
                 composer.addPart((Key) key, nodePart);
             }
             @Override
@@ -51,7 +51,7 @@ public class Templates {
     public static ComposableTemplate<?> constNode(Object node) {
         return new ComposableTemplate<Object>() {
             @Override
-            public void addTo(Object key, InternalComposer<? extends Object> composer) {
+            public void addTo(Key<?> key, InternalComposer<? extends Object> composer) {
                 composer.addNode((Key) key, node);
             }
             @Override
@@ -70,7 +70,7 @@ public class Templates {
     public static <B> ComposableTemplate<B> newNodePart(Function<? super InternalComposer<? extends B>, ? extends StatementPart<? super B>> factory) {
         return new ComposableTemplate<B>() {
             @Override
-            public void addTo(Object key, InternalComposer<? extends B> composer) {
+            public void addTo(Key<?> key, InternalComposer<? extends B> composer) {
                 StatementPart<? super B> qp = factory.apply(composer);
                 composer.addPart((Key) key, qp);
             }
@@ -90,7 +90,7 @@ public class Templates {
     public static <B> ComposableTemplate<B> newNodePart(Supplier<? extends StatementPart<? super B>> factory) {
         return new ComposableTemplate<B>() {
             @Override
-            public void addTo(Object key, InternalComposer<? extends B> composer) {
+            public void addTo(Key<?> key, InternalComposer<? extends B> composer) {
                 StatementPart<? super B> qp = factory.get();
                 composer.addPart((Key) key, qp);
             }
@@ -110,7 +110,7 @@ public class Templates {
     public static <B> ComposableTemplate<B> newPart(Function<? super InternalComposer<? extends B>, ? extends StatementPart<? super B>> factory) {
         return new ComposableTemplate<B>() {
             @Override
-            public void addTo(Object key, InternalComposer<? extends B> composer) {
+            public void addTo(Key<?> key, InternalComposer<? extends B> composer) {
                 StatementPart<? super B> qp = factory.apply(composer);
                 composer.addPart(qp);
             }
@@ -130,7 +130,7 @@ public class Templates {
     public static <B> ComposableTemplate<B> newPart(Supplier<? extends StatementPart<? super B>> factory) {
         return new ComposableTemplate<B>() {
             @Override
-            public void addTo(Object key, InternalComposer<? extends B> composer) {
+            public void addTo(Key<?> key, InternalComposer<? extends B> composer) {
                 StatementPart<? super B> qp = factory.get();
                 composer.addPart(qp);
             }
@@ -150,7 +150,7 @@ public class Templates {
     public static <B> ComposableTemplate<B> newNode(Function<? super InternalComposer<? extends B>, ?> factory) {
         return new ComposableTemplate<B>() {
             @Override
-            public void addTo(Object key, InternalComposer<? extends B> composer) {
+            public void addTo(Key<?> key, InternalComposer<? extends B> composer) {
                 Object qp = factory.apply(composer);
                 composer.addNode((Key) key, qp);
             }
@@ -170,7 +170,7 @@ public class Templates {
     public static <B> ComposableTemplate<B> newNode(Supplier<?> factory) {
         return new ComposableTemplate<B>() {
             @Override
-            public void addTo(Object key, InternalComposer<? extends B> composer) {
+            public void addTo(Key<?> key, InternalComposer<? extends B> composer) {
                 Object qp = factory.get();
                 composer.addNode((Key) key, qp);
             }
@@ -186,10 +186,10 @@ public class Templates {
      * @param key
      * @return template
      */
-    public static ComposableTemplate<Object> require(Object key) {
+    public static ComposableTemplate<Object> require(Key<?> key) {
         return new ComposableTemplate<Object>() {
             @Override
-            public void addTo(Object k, InternalComposer<? extends Object> composer) {
+            public void addTo(Key<?> k, InternalComposer<? extends Object> composer) {
                 composer.require(key); 
             }
             @Override
@@ -207,7 +207,7 @@ public class Templates {
     public static ComposableTemplate<Object> require(Object... keys) {
         return new ComposableTemplate<Object>() {
             @Override
-            public void addTo(Object k, InternalComposer<? extends Object> composer) {
+            public void addTo(Key<?> k, InternalComposer<? extends Object> composer) {
                 composer.requireAll(keys); 
             }
             @Override
@@ -225,7 +225,7 @@ public class Templates {
     public static ComposableTemplate<Object> require(Iterable<?> keys) {
         return new ComposableTemplate<Object>() {
             @Override
-            public void addTo(Object k, InternalComposer<? extends Object> composer) {
+            public void addTo(Key<?> k, InternalComposer<? extends Object> composer) {
                 composer.requireAll(keys); 
             }
             @Override
@@ -247,7 +247,7 @@ public class Templates {
             @Override
             public Key<V> getKey() { return key; }
             @Override
-            public void addTo(Object k, InternalComposer<? extends Object> query) {
+            public void addTo(Key<?> k, InternalComposer<? extends Object> query) {
                 query.addNode((Key) k, query.node(key));
             }
             @Override
@@ -260,7 +260,7 @@ public class Templates {
     public static ComposableTemplate<Object> link(Key<? extends ComposableNode>... keys) {
         return new ComposableTemplate<Object>() {
             @Override
-            public void addTo(Object key, InternalComposer<? extends Object> composer) {
+            public void addTo(Key<?> key, InternalComposer<? extends Object> composer) {
                 List<Object> nodes = new ArrayList<>(keys.length);
                 for (Key<?> k: keys) {
                     nodes.add(composer.node(k));
@@ -290,7 +290,7 @@ public class Templates {
     public static <B> ComposableTemplate<B> action(Consumer<InternalComposer<? extends B>> action) {
         return new ComposableTemplate<B>() {
             @Override
-            public void addTo(Object key, InternalComposer<? extends B> composer) {
+            public void addTo(Key<?> key, InternalComposer<? extends B> composer) {
                 action.accept(composer);
             }
             @Override
@@ -312,7 +312,7 @@ public class Templates {
         }
         return new ComposableTemplate<B>() {
             @Override
-            public void addTo(Object key, InternalComposer<? extends B> composer) {
+            public void addTo(Key<?> key, InternalComposer<? extends B> composer) {
                 template.addTo(key, composer);
             }
             @Override
@@ -350,7 +350,7 @@ public class Templates {
             @Override
             public Key<V> getKey() { return key; }
             @Override
-            public void addTo(Object k, InternalComposer<? extends Object> query) {
+            public void addTo(Key<?> k, InternalComposer<? extends Object> query) {
                 action.accept(query.node(key));
             }
             @Override
@@ -395,7 +395,7 @@ public class Templates {
                     return key;
                 }
                 @Override
-                public void addTo(Object key, InternalComposer<? extends B> query) {
+                public void addTo(Key<?> key, InternalComposer<? extends B> query) {
                     ComposableTemplate.this.addTo(key, query);
                 }
             };
@@ -622,12 +622,12 @@ public class Templates {
         
         NO_OP {
             @Override
-            public void addTo(Object key, InternalComposer<? extends Object> query) { }
+            public void addTo(Key<?> key, InternalComposer<? extends Object> query) { }
         },
         
         END {
             @Override
-            public void addTo(Object key, InternalComposer<? extends Object> composer) {
+            public void addTo(Key<?> key, InternalComposer<? extends Object> composer) {
                 throw new IllegalArgumentException(String.valueOf(key));
             }
         };
@@ -651,7 +651,7 @@ public class Templates {
         }
 
         @Override
-        public void addTo(Object key, InternalComposer<? extends Builder> query) {
+        public void addTo(Key<?> key, InternalComposer<? extends Builder> query) {
             templates.forEach(t -> t.addTo(key, query));
         }
         
@@ -676,7 +676,7 @@ public class Templates {
         }
 
         @Override
-        public void addTo(Object key, InternalComposer<? extends Builder> query) {
+        public void addTo(Key<?> key, InternalComposer<? extends Builder> query) {
             InternalComposer<? extends Builder> q2 = new InternalQueryComposerDelegator<Builder>(query, null) {
                 @Override
                 public <V> void addNode(Key<V> key, V node) {
@@ -767,7 +767,7 @@ public class Templates {
             getDelegate().addNode(key, node);
         }
         @Override
-        public boolean include(Object key) {
+        public boolean include(Key<?> key) {
             return getDelegate().include(key);
         }
         @Override
@@ -882,7 +882,7 @@ public class Templates {
         }
 
         @Override
-        public void addTo(Object key, InternalComposer<? extends Builder> ic) {
+        public void addTo(Key<?> key, InternalComposer<? extends Builder> ic) {
             CollectTemplates<Builder> collector = new CollectTemplates<>(key, templates, ic);
             collector.resume();
             List<ComposableNode<?>> bag = collector.getBag();
@@ -900,12 +900,12 @@ public class Templates {
     
     protected static class CollectTemplates<Builder> extends InternalQueryComposerDelegator<Builder> {
 
-        final Object key; 
+        final Key<?> key; 
         final List<ComposableNode<?>> bag;
         final Iterator<Template<? super Builder>> iterator;
         Template<? super Builder> current;
 
-        public CollectTemplates(Object key, List<Template<? super Builder>> templates, InternalComposer<? extends Builder> ic) {
+        public CollectTemplates(Key<?> key, List<Template<? super Builder>> templates, InternalComposer<? extends Builder> ic) {
             super(ic);
             this.key = key;
             this.iterator = templates.iterator();

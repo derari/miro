@@ -114,7 +114,7 @@ public abstract class AbstractQuerySet<Entity, Stmt extends MiQuery, This extend
      * @return this or copy.
      */
     protected <V> This setUp(Key<? extends BatchNode<V>> key, V... values) {
-        return compose(ic -> ic.node(key).set(values));
+        return compose(ic -> ic.node(key).batch(values));
     }
 
     @Override

@@ -5,6 +5,7 @@ import org.cthul.miro.request.impl.SnippetTemplateLayer;
 
 /**
  *
+ * @param <Builder>
  */
 public interface Snippets<Builder> {
 

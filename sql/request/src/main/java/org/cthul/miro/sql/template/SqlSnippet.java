@@ -9,13 +9,15 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.cthul.miro.request.Composer;
 import org.cthul.miro.request.StatementPart;
-import org.cthul.miro.request.part.Configurable;
+import org.cthul.miro.request.impl.ValueKey;
 import org.cthul.miro.request.part.Copyable;
+import org.cthul.miro.request.part.ListNode;
 import org.cthul.miro.request.template.InternalComposer;
 import org.cthul.miro.request.template.Template;
 import org.cthul.miro.sql.SelectBuilder;
 import org.cthul.miro.sql.syntax.MiSqlParser.SelectStmt;
 import org.cthul.miro.util.Key;
+import org.cthul.miro.request.part.Parameterized;
 
 /**
  *
@@ -78,6 +80,8 @@ public abstract class SqlSnippet<Builder> implements Template<Builder> {
         };
     }
     
+    public static final Key<ListNode<Object>> SNIPPET_DEPENDENCIES_KEY = new ValueKey<>("Snippet Dependencies", true);
+    
     private final String key;
     private final Set<Object> dependencies;
 
@@ -100,11 +104,11 @@ public abstract class SqlSnippet<Builder> implements Template<Builder> {
     }
 
     public void requireDependencies(Composer c) {
-        c.requireAll(getDependencies());
+        c.node(SNIPPET_DEPENDENCIES_KEY).addAll(getDependencies());
     }
 
     @Override
-    public void addTo(Object key, InternalComposer<? extends Builder> composer) {
+    public void addTo(Key<?> key, InternalComposer<? extends Builder> composer) {
         composer.addPart((Key) key, new Part());
     }
     
@@ -123,7 +127,7 @@ public abstract class SqlSnippet<Builder> implements Template<Builder> {
         return key;
     }
     
-    protected class Part implements StatementPart<Builder>, Copyable, Configurable {
+    protected class Part implements StatementPart<Builder>, Copyable, Parameterized {
         
         private Object[] args;
 

@@ -65,12 +65,12 @@ public abstract class AbstractComposer<Builder> implements Composer {
         parts().forEachPart(p -> p.addTo(builder));
     }
     
-    protected void create(Object key) {
+    protected void create(Key<?> key) {
         template.addTo(key, internal);
     }
 
     @Override
-    public boolean include(Object key) {
+    public boolean include(Key<?> key) {
         return parts().getValue(key) != null;
     }
 
@@ -99,7 +99,7 @@ public abstract class AbstractComposer<Builder> implements Composer {
             parts().addNode(key, node);
         }
         @Override
-        public boolean include(Object key) {
+        public boolean include(Key<?> key) {
             return AbstractComposer.this.include(key);
         }
         @Override
@@ -114,7 +114,7 @@ public abstract class AbstractComposer<Builder> implements Composer {
      * Once a part list becomes a parent, it should be immutable.
      * @param <Builder> 
      */
-    protected static class PartList<Builder> extends AbstractCache<Object, Object> implements CopyManager {
+    protected static class PartList<Builder> extends AbstractCache<Key<?>, Object> implements CopyManager {
         private final PartList<Builder> parent;
         private AbstractComposer<Builder> owner;
         private List<StatementPart<? super Builder>> myParts = null;
@@ -135,7 +135,7 @@ public abstract class AbstractComposer<Builder> implements Composer {
         }
         
         public boolean isModified() {
-            return !emptyCache() || myParts != null || copyMap != null;
+            return !isEmptyCache() || myParts != null || copyMap != null;
         }
         
         public PartList<Builder> freeze() {
@@ -213,8 +213,7 @@ public abstract class AbstractComposer<Builder> implements Composer {
         }
 
         @Override
-        @SuppressWarnings("Convert2Lambda")
-        protected Object create(Object key) {
+        protected Object create(Key<?> key) {
             checkActive();
             if (key == CopyManager.KEY) return this; 
             Object v = parent.hierarchyPeek(key);
@@ -225,7 +224,7 @@ public abstract class AbstractComposer<Builder> implements Composer {
             return v;
         }
         
-        protected Object hierarchyPeek(Object key) {
+        protected Object hierarchyPeek(Key<?> key) {
             Object v = peekValue(key);
             if (v != null) return v;
             return parent.hierarchyPeek(key);
@@ -251,9 +250,16 @@ public abstract class AbstractComposer<Builder> implements Composer {
             return copyValue(value, true);
         }
 
-        private boolean allowReadOnly(Object o) {
-            if (o instanceof Copyable) {
-                return ((Copyable) o).allowReadOnly(this::isLatestReadOnly);
+        private boolean allowReadOnly(Object node) {
+            if (node instanceof Copyable) {
+                return ((Copyable) node).allowReadOnly(o -> {
+                    if (o == node) {
+                        throw new IllegalArgumentException(
+                                "Infinite recursion: can't determine if " + 
+                                o + " allows read only");
+                    }
+                    return isLatestReadOnly(o);
+                });
             }
             return true;
         }
@@ -293,7 +299,7 @@ public abstract class AbstractComposer<Builder> implements Composer {
         }
         
         @Override
-        protected Object tryPut(Object key, Object value) {
+        protected Object tryPut(Key<?> key, Object value) {
             Object actual = super.tryPut(key, value);
             if (actual != null && actual != value) {
                 throw new IllegalStateException(
@@ -303,7 +309,7 @@ public abstract class AbstractComposer<Builder> implements Composer {
         }
         
         @Override
-        protected Object getValue(Object key) {
+        protected Object getValue(Key<?> key) {
             checkActive();
             if (!initialized) {
                 initialized = true;
@@ -318,9 +324,10 @@ public abstract class AbstractComposer<Builder> implements Composer {
     
     private static final Object NO_NODE = new Object();
     
+    @SuppressWarnings("rawtypes")
     private static final PartList NO_PARENT = new PartList() {
         @Override
-        protected Object hierarchyPeek(Object key) { return null; }
+        protected Object hierarchyPeek(Key key) { return null; }
         @Override
         protected Object hierarchyCopyPeek(Object value) { return value; }
         @Override
@@ -328,7 +335,7 @@ public abstract class AbstractComposer<Builder> implements Composer {
         @Override
         protected void collectParts(Consumer bag) { }
         @Override
-        protected Object tryPut(Object key, Object value) {
+        protected Object tryPut(Key key, Object value) {
             throw new UnsupportedOperationException();
         }
         @Override

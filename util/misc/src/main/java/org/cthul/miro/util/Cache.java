@@ -6,7 +6,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 /**
- *
+ * A cache that creates missing values with a function.
  */
 public class Cache<K, V> extends AbstractCache<K, V> {
     
@@ -21,6 +21,10 @@ public class Cache<K, V> extends AbstractCache<K, V> {
         return factory.apply(key);
     }
     
+    /**
+     * Returns this cache as a {@link Map}.
+     * @return map 
+     */
     public Map<K, V> asMap() {
         return new AbstractMap<K, V>() {
             @Override

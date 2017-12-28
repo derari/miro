@@ -5,11 +5,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import org.cthul.miro.request.impl.AbstractTemplateLayer;
 import org.cthul.miro.request.Composer;
-import org.cthul.miro.request.part.Configurable;
 import org.cthul.miro.request.part.Copyable;
+import org.cthul.miro.request.part.ListNode;
 import org.cthul.miro.request.template.InternalComposer;
 import org.cthul.miro.sql.SqlFilterableClause;
 import org.cthul.miro.util.Key;
+import org.cthul.miro.request.part.Parameterized;
 
 /**
  *
@@ -78,17 +79,27 @@ public abstract class AbstractSqlLayer<Builder extends SqlFilterableClause> exte
 
         final Map<String, SnippetKey> snippetKeys;
         final InternalComposer<? extends Builder> ic;
+        final ListNode<Object> add_dependency = new ListNode<Object>() {
+            @Override            
+            public void add(Object entry) {
+                if (entry instanceof String) {
+                    get((String) entry);
+                } else {
+                    ic.get((Key) entry);
+                }
+            }
+        };
+        
         final Composer dependencyComposer = new Composer() {
             @Override
-            public boolean include(Object key) {
-                if (key instanceof String) {
-                    return ViewComposerBase.this.get((String) key) != null;
-                } else {
-                    return ic.include(key);
-                }
+            public boolean include(Key<?> key) {
+                return ic.include(key);
             }
             @Override
             public <V> V get(Key<V> key) {
+                if (key == SqlSnippet.SNIPPET_DEPENDENCIES_KEY) {
+                    return key.cast(add_dependency);
+                }
                 return ic.get(key);
             }
         };
@@ -123,7 +134,7 @@ public abstract class AbstractSqlLayer<Builder extends SqlFilterableClause> exte
                 JoinedView jv = getOwner().getJoinedViews().get(name.substring(0, dot));
                 if (jv != null) {
                     name = name.substring(dot+1);
-                    Configurable c = ic.node(jv.getViewKey()).get(name);
+                    Parameterized c = ic.node(jv.getViewKey()).get(name);
                     ic.addNode(key, c);
                 }
             }
@@ -131,7 +142,7 @@ public abstract class AbstractSqlLayer<Builder extends SqlFilterableClause> exte
         }
 
         @Override
-        public Configurable get(String key) {
+        public Parameterized get(String key) {
             SnippetKey sk = snippetKeys.computeIfAbsent(key, k -> new SnippetKey(getKey(), k));
             return ic.node(sk);
         }

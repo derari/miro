@@ -24,7 +24,7 @@ public interface MappingKey<V> extends Key<V> {
     /** Allows to load field values from the result set. */
     static final MappingKey<ListNode<String>> LOAD = MKey.LOAD;
     
-    /** Adds the property's required columns to the result set. */
+    /** Adds each property's required columns to the result set. */
     static final MappingKey<ListNode<String>> INCLUDE = MKey.INCLUDE;
     
     /** {@link #INCLUDE} + {@link #LOAD} */

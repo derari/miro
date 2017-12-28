@@ -52,7 +52,7 @@ public abstract class SqlEntitySet<Entity, This extends SqlEntitySet<Entity, Thi
     }
     
     protected This snippet(String key, Object... args) {
-        return compose(c -> c.node(SqlComposerKey.SNIPPETS).get(key).set(args));
+        return compose(c -> c.node(SqlComposerKey.SNIPPETS).get(key).batch(args));
     }
     
     protected This build(String key, Object... args) {

@@ -85,7 +85,7 @@ public interface SqlSyntax extends Syntax {
             case CREATE_TABLE:
                 return type.cast(newCreateStatement(dbString, stmt));
         }
-        return onDefault.createDefaultClause(this, dbString, owner);
+        return Syntax.super.newClause(dbString, owner, type, onDefault);
     }
     
     abstract class SimpleComposite<Owner, This extends QlBuilder<This>> extends AbstractNestedBuilder<Owner, This> {

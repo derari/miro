@@ -91,7 +91,7 @@ public class SqlTest {
             .column("firstName").field("firstName");
         
         RequestComposer<MappedQuery<Person, SelectQuery>> c = new SimpleRequestComposer<>(type.getSelectLayer());
-        c.node(MappingKey.FETCH).set("firstName");
+        c.node(MappingKey.FETCH).add("firstName");
         c = c.copy();
         c.node(SqlComposerKey.SNIPPETS).get("q");
         

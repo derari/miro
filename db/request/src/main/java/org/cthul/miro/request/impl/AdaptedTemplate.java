@@ -43,7 +43,7 @@ public class AdaptedTemplate<Builder, Adapted> extends AbstractTemplate<Builder>
     private Template<Builder> composerKeyTemplate() {
         return new Template<Builder>() {
             @Override
-            public void addTo(Object key, InternalComposer<? extends Builder> composer) {
+            public void addTo(Key<?> key, InternalComposer<? extends Builder> composer) {
                 assert key == composerKey : "Should only be called for composer key";
                 composer.addNode(composerKey, adapt(composer));
             }
@@ -57,7 +57,7 @@ public class AdaptedTemplate<Builder, Adapted> extends AbstractTemplate<Builder>
     private Template<Builder> adapt(Template<Adapted> template) {
         return new Template<Builder>() {
             @Override
-            public void addTo(Object key, InternalComposer<? extends Builder> composer) {
+            public void addTo(Key<?> key, InternalComposer<? extends Builder> composer) {
                 AdaptingComposer ac = composer.node(composerKey).get(composer);
                 template.addTo(key, ac);
             }
@@ -269,7 +269,7 @@ public class AdaptedTemplate<Builder, Adapted> extends AbstractTemplate<Builder>
         }
 
         @Override
-        public void addTo(Object key, InternalComposer<? extends Adapted> query) {
+        public void addTo(Key<?> key, InternalComposer<? extends Adapted> query) {
             ComposerWrapper adapter = (ComposerWrapper) query;
             actual.addTo(key, (InternalComposer) adapter.getActual());
             adaptedTemplate.forceParentLookUp(key, query);

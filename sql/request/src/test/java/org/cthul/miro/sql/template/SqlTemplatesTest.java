@@ -114,7 +114,7 @@ public class SqlTemplatesTest {
         TemplateLayer<SelectBuilder> tmpl = instance.getSelectLayer();
         RequestComposer<SelectBuilder> c = new SimpleRequestComposer<>(tmpl.build());
         
-        c.node(SqlComposerKey.SNIPPETS).get("b").set(1);
+        c.node(SqlComposerKey.SNIPPETS).get("b").batch(1);
         
         MiDBStringBuilder qryString = new MiDBStringBuilder();
         c.build(qryString.as(syntax, SqlDQML.select()));

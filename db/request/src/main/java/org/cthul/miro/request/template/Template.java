@@ -1,5 +1,7 @@
 package org.cthul.miro.request.template;
 
+import org.cthul.miro.util.Key;
+
 /**
  * Adds parts to a composer.
  * 
@@ -7,5 +9,5 @@ package org.cthul.miro.request.template;
  */
 public interface Template<Builder> {
     
-    void addTo(Object key, InternalComposer<? extends Builder> composer);
+    void addTo(Key<?> key, InternalComposer<? extends Builder> composer);
 }

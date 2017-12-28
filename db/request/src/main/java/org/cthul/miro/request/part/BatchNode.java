@@ -8,7 +8,7 @@ import java.util.Collection;
  */
 public interface BatchNode<T> {
     
-    void set(T... values);
+    void batch(T... values);
     
-    void set(Collection<? extends T> values);
+    void batch(Collection<? extends T> values);
 }

@@ -4,6 +4,7 @@ import org.cthul.miro.util.AbstractCache;
 import org.cthul.miro.request.template.Templates;
 import org.cthul.miro.request.template.InternalComposer;
 import org.cthul.miro.request.template.Template;
+import org.cthul.miro.util.Key;
 
 /**
  *
@@ -27,20 +28,22 @@ public abstract class AbstractTemplate<Builder> extends AbstractCache<Object, Te
         if (parent instanceof AbstractTemplate) {
             try {
                 Class<?> decl = parent.getClass()
-                        .getMethod("addTo", Object.class, InternalComposer.class)
+                        .getMethod("addTo", Key.class, InternalComposer.class)
                         .getDeclaringClass();
                 if (decl == AbstractTemplate.class) {
                     return (AbstractTemplate<Builder>) parent;
                 }
+            } catch (SecurityException e) {
+                // unclear if addTo is overridden, return null to be safe
             } catch (NoSuchMethodException e) {
-                throw new AssertionError(null, e);
+                throw new AssertionError("Method AbstractTemplate#addTo(Key, InternalComposer> should exist", e);
             }
         }        
         return null;
     }
 
     @Override
-    public void addTo(Object key, InternalComposer<? extends Builder> query) {
+    public void addTo(Key<?> key, InternalComposer<? extends Builder> query) {
         getValue(key).addTo(key, query);
     }
 
@@ -66,7 +69,7 @@ public abstract class AbstractTemplate<Builder> extends AbstractCache<Object, Te
     
     protected static final Template<Object> NO_PARENT = new Template<Object>() {
         @Override
-        public void addTo(Object key, InternalComposer<? extends Object> composer) {
+        public void addTo(Key<?> key, InternalComposer<? extends Object> composer) {
             throw new IllegalArgumentException("Unknown key: " + key);
         }
         @Override

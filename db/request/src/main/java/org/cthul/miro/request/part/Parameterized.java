@@ -6,17 +6,25 @@ import org.cthul.miro.request.impl.ValueKey;
 /**
  * A query element that requires some arguments.
  */
-public interface Configurable extends BatchNode<Object> {
+public interface Parameterized extends BatchNode<Object> {
 
     default void enable() {
-        set(Key.NO_VALUES);
+        batch(Key.NO_VALUES);
     }
 
     @Override
-    void set(Object... values);
+    default void batch(Object... values) {
+        set(values);
+    }
 
     @Override
-    public default void set(Collection<? extends Object> values) {
+    default void batch(Collection<? extends Object> values) {
+        set(values);
+    }
+
+    void set(Object... values);
+
+    default void set(Collection<? extends Object> values) {
         set(values.toArray());
     }
     
@@ -28,7 +36,7 @@ public interface Configurable extends BatchNode<Object> {
         return new Key(name, true);
     }
     
-    class Key extends ValueKey<Configurable> {
+    class Key extends ValueKey<Parameterized> {
         
         private static final Object[] NO_VALUES = {};
 

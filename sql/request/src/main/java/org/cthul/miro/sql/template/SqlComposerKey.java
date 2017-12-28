@@ -1,9 +1,9 @@
 package org.cthul.miro.sql.template;
 
-import org.cthul.miro.request.part.Configurable;
 import org.cthul.miro.request.part.ListNode;
 import org.cthul.miro.request.part.MapNode;
 import org.cthul.miro.util.Key;
+import org.cthul.miro.request.part.Parameterized;
 
 /**
  *
@@ -11,10 +11,10 @@ import org.cthul.miro.util.Key;
  */
 public interface SqlComposerKey<Value> extends Key<Value> {
     
-    /** Adds attributes to the query. */
+    /** Adds attributes to the query result. */
     static final SqlComposerKey<ListNode<String>> ATTRIBUTES = SQKey.ATTRIBUTES;
     
-    static final SqlComposerKey<MapNode<String,Configurable>> SNIPPETS = SQKey.SNIPPETS;
+    static final SqlComposerKey<MapNode<String,Parameterized>> SNIPPETS = SQKey.SNIPPETS;
     
     static final SqlComposerKey<AttributeFilter> ATTRIBUTE_FILTER = SQKey.ATTRIBUTE_FILTER;
     

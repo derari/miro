@@ -2,13 +2,10 @@ package org.cthul.miro.graph;
 
 import java.util.List;
 import org.cthul.miro.db.MiException;
-import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.entity.EntityConfiguration;
-import org.cthul.miro.entity.EntityFactory;
 import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.entity.EntityType;
 import org.cthul.miro.entity.EntityTypes;
-import org.cthul.miro.entity.FactoryBuilder;
 import org.cthul.miro.entity.InitializationBuilder;
 import org.cthul.miro.graph.impl.CompositeSelector;
 

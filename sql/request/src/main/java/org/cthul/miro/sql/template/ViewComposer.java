@@ -1,12 +1,12 @@
 package org.cthul.miro.sql.template;
 
-import org.cthul.miro.request.part.Configurable;
 import org.cthul.miro.request.part.MapNode;
+import org.cthul.miro.request.part.Parameterized;
 
 /**
  *
  */
-public interface ViewComposer extends MapNode<String, Configurable> {
+public interface ViewComposer extends MapNode<String, Parameterized> {
     
     void addSnippet(SnippetKey key);
     

@@ -14,13 +14,13 @@ public interface Composer {
      * @param key 
      * @throws IllegalArgumentException if {@code key} is not recognized
      */
-    default void require(Object key) {
+    default void require(Key<?> key) {
         if (!include(key)) {
             throw new IllegalArgumentException("Unknown key: " + key);
         }
     }
     
-    boolean include(Object key);
+    boolean include(Key<?> key);
     
     /**
      * Returns the node that corresponds to {@code key}, or {@code null}
@@ -58,7 +58,7 @@ public interface Composer {
             } else if (k instanceof Iterable) {
                 requireAll((Iterable<?>) k);
             } else {
-                require(k);
+                require((Key) k);
             }
         }
     }
