@@ -6,7 +6,6 @@ import java.util.function.Function;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.entity.EntityType;
-import org.cthul.miro.entity.FactoryBuilder;
 import org.cthul.miro.graph.NodeType;
 import org.cthul.miro.graph.SelectorBuilder;
 

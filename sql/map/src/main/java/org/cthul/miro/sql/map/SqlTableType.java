@@ -18,7 +18,7 @@ import org.cthul.miro.graph.impl.AbstractTypeBuilder;
 import org.cthul.strings.JavaNames;
 
 /**
- *
+ * Builds an entity type from annotations. HAS NOTHING TO DO WITH SQL
  * @param <E>
  */
 public class SqlTableType<E> extends AbstractTypeBuilder<E, SqlTableType<E>> {

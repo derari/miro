@@ -61,18 +61,15 @@ public abstract class AbstractGraph implements GraphApi {
     @SuppressWarnings("unchecked")
     protected <Node> GraphNodes<Node> nodeSet(Object key) {
         GraphNodes<Node> n = (GraphNodes<Node>) nodeSets.get(key);
-        if (n == null) {
-            if (typeLookUp != null) {
-                NodeType<?> t = typeLookUp.apply(key);
-                if (t != null) {
-                    addType(key, t);
-                    return nodeSet(key);
-                }
+        if (n != null) return n;
+        if (typeLookUp != null) {
+            NodeType<?> t = typeLookUp.apply(key);
+            if (t != null) {
+                addType(key, t);
+                return nodeSet(key);
             }
-            throw new IllegalArgumentException(
-                    "Unknown node type: " + key);
         }
-        return n;
+        throw new IllegalArgumentException("Unknown node type: " + key);
     }
 
     @Override

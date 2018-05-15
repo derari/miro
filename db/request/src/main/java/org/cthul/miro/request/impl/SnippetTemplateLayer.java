@@ -9,61 +9,61 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import org.cthul.miro.request.Composer;
 import org.cthul.miro.request.template.Templates;
+import org.cthul.miro.request.part.Configurable;
 import org.cthul.miro.request.part.Copyable;
+import org.cthul.miro.request.template.InternalComposer;
 import org.cthul.miro.request.StatementPart;
-import org.cthul.miro.request.template.Snippets.Snippet;
+import org.cthul.miro.request.impl.SnippetSet.Snippet;
 import org.cthul.miro.request.template.Template;
-import org.cthul.miro.request.part.Parameterized;
 
 /**
  * @param <Builder>
  */
 public class SnippetTemplateLayer<Builder> extends AbstractTemplateLayer<Builder> {
     
-    private final Map<Parameterized.Key, Snippet<? super Builder>> snippets = new HashMap<>();
+    private final Map<Configurable.Key, Snippet<? super Builder>> snippets = new HashMap<>();
     private final Set<Object> onlyOnce = new HashSet<>();
     
-    public SnippetTemplateLayer<Builder> setUp(Parameterized.Key key, Snippet<? super Builder> snippet) {
+    public SnippetTemplateLayer<Builder> setUp(Configurable.Key key, Snippet<? super Builder> snippet) {
         snippets.put(key, snippet);
         return this;
     }
     
-    public SnippetTemplateLayer<Builder> setUp(Parameterized.Key key, Consumer<? super Builder> snippet) {
+    public SnippetTemplateLayer<Builder> setUp(Configurable.Key key, Consumer<? super Builder> snippet) {
         snippets.put(key, new NoArgsSnippet<>(key, snippet));
         return this;
     }
     
     public SnippetTemplateLayer<Builder> setUp(String key, Snippet<? super Builder> snippet) {
-        Parameterized.Key cfgKey = Parameterized.key(key);
+        Configurable.Key cfgKey = Configurable.key(key);
         return setUp(cfgKey, snippet);
     }
     
-    public SnippetTemplateLayer<Builder> setUp(String key, Consumer<? super Builder> snippet) {
-        Parameterized.Key cfgKey = Parameterized.key(key);
-        return setUp(cfgKey, snippet);
-    }
+//    public SnippetTemplateLayer<Builder> setUp(String key, Consumer<? super Builder> snippet) {
+//        Configurable.Key cfgKey = Configurable.key(key);
+//        return setUp(cfgKey, snippet);
+//    }
     
-    public SnippetTemplateLayer<Builder> once(Parameterized.Key key, Snippet<? super Builder> snippet) {
+    public SnippetTemplateLayer<Builder> once(Configurable.Key key, Snippet<? super Builder> snippet) {
         onlyOnce.add(key);
         return setUp(key, snippet);
     }
     
-    public SnippetTemplateLayer<Builder> once(Parameterized.Key key, Consumer<? super Builder> snippet) {
-        onlyOnce.add(key);
-        return setUp(key, snippet);
-    }
+//    public SnippetTemplateLayer<Builder> once(Configurable.Key key, Consumer<? super Builder> snippet) {
+//        onlyOnce.add(key);
+//        return setUp(key, snippet);
+//    }
     
     public SnippetTemplateLayer<Builder> once(String key, Snippet<? super Builder> snippet) {
-        Parameterized.Key cfgKey = Parameterized.key(key);
+        Configurable.Key cfgKey = Configurable.key(key);
         return once(cfgKey, snippet);
     }
     
-    public SnippetTemplateLayer<Builder> once(String key, Consumer<? super Builder> snippet) {
-        Parameterized.Key cfgKey = Parameterized.key(key);
-        return once(cfgKey, snippet);
-    }
+//    public SnippetTemplateLayer<Builder> once(String key, Consumer<? super Builder> snippet) {
+//        Configurable.Key cfgKey = Configurable.key(key);
+//        return once(cfgKey, snippet);
+//    }
 
     @Override
     @SuppressWarnings("element-type-mismatch")
@@ -72,7 +72,7 @@ public class SnippetTemplateLayer<Builder> extends AbstractTemplateLayer<Builder
             return Templates.newNodePart(() -> new SnippetsPart());
         }
         if (snippets.containsKey(key)) {
-            return Templates.newNode(ic -> new SnippetCfg((Parameterized.Key) key, ic));
+            return Templates.newNode(ic -> new SnippetCfg((Configurable.Key) key, ic));
         }
         return null;
     }
@@ -82,7 +82,7 @@ public class SnippetTemplateLayer<Builder> extends AbstractTemplateLayer<Builder
         return "Snippets";
     }
     
-    protected class SnippetsPart implements Snippets<Builder>, StatementPart<Builder>, Copyable {
+    protected class SnippetsPart implements Snippets<Builder>, StatementPart<Builder>, Copyable<Builder> {
 
         private final Set<Consumer<? super Builder>> actions = new LinkedHashSet<>();
         private final Map<Object, Consumer<? super Builder>> onceGuard = new HashMap<>();
@@ -95,16 +95,16 @@ public class SnippetTemplateLayer<Builder> extends AbstractTemplateLayer<Builder
             this.onceGuard.putAll(source.onceGuard);
         }
         
-        private Parameterized.Key cfgKey(Object key) {
-            if (key instanceof Parameterized.Key) {
-                return (Parameterized.Key) key;
+        private Configurable.Key cfgKey(Object key) {
+            if (key instanceof Configurable.Key) {
+                return (Configurable.Key) key;
             }
-            return Parameterized.key(key);
+            return Configurable.key(key);
         }
 
         @Override
         public void set(Object key, Object... args) {
-            Parameterized.Key cKey = cfgKey(key);
+            Configurable.Key cKey = cfgKey(key);
             Snippet<? super Builder> snippet = snippets.get(cKey);
             if (snippet == null) {
                 throw new IllegalArgumentException("Unknown snippet key: " + key);
@@ -134,7 +134,7 @@ public class SnippetTemplateLayer<Builder> extends AbstractTemplateLayer<Builder
         }
 
         @Override
-        public Object copyFor(CopyComposer cc) {
+        public Object copyFor(CopyComposer<Builder> cc) {
             return new SnippetsPart(this);
         }
 
@@ -142,25 +142,30 @@ public class SnippetTemplateLayer<Builder> extends AbstractTemplateLayer<Builder
         public boolean allowReadOnly(Predicate<Object> isLatest) {
             return true;
         }
+
+        @Override
+        public Configurable get(Object key) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
     }
     
-    protected static class SnippetCfg implements Parameterized, Copyable {
-        final Parameterized.Key key;
-        final Snippets<?> snippets;
+    protected static class SnippetCfg implements Configurable, Copyable<Object> {
+        final Configurable.Key key;
+        final InternalComposer<?> ic;
 
-        public SnippetCfg(Parameterized.Key key, Composer ic) {
+        public SnippetCfg(Configurable.Key key, InternalComposer<?> ic) {
             this.key = key;
-            this.snippets = ic.node(Snippets.key());
+            this.ic = ic;
         }
 
         @Override
         public void set(Object... values) {
-            snippets.set(key, values);
+            ic.node(Snippets.key()).set(key, values);
         }
 
         @Override
-        public Object copyFor(CopyComposer cc) {
-            return new SnippetCfg(key, cc);
+        public Object copyFor(CopyComposer<Object> cc) {
+            return new SnippetCfg(key, ic.node(cc));
         }
 
         @Override

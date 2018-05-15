@@ -48,16 +48,17 @@
         </dependency>
         
         <dependency>
+            <groupId>org.cthul.miro</groupId>
+            <artifactId>miro-sql-syntax</artifactId>
+            <scope>test</scope>
+        </dependency>
+        
+        <dependency>
             <groupId>org.cthul</groupId>
             <artifactId>cthul-strings</artifactId>
             <version>1.0</version>
         </dependency>
         
-        <dependency>
-            <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-sql-syntax</artifactId>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>org.cthul.miro</groupId>
             <artifactId>miro-util-test</artifactId>

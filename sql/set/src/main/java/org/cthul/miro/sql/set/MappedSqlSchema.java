@@ -15,7 +15,7 @@ import org.cthul.miro.entity.base.ResultColumns;
 import org.cthul.miro.entity.base.ResultColumns.ColumnRule;
 import org.cthul.miro.graph.NodeType;
 import org.cthul.miro.graph.impl.GraphSchemaBuilder;
-import org.cthul.miro.map.layer.MappedQuery;
+import org.cthul.miro.map.MappedQuery;
 
 /**
  *
@@ -59,6 +59,10 @@ public class MappedSqlSchema extends GraphSchemaBuilder {
     public <N> MappedSqlBuilder<N, ?> getMappingBuilder(Class<N> entityClass) {
         MappedSqlBuilder<N,?> t = (MappedSqlBuilder<N,?>) nodeType(entityClass);
         return t;
+    }
+    
+    public <N> MappedSqlType<N> getMappedType(Class<N> entityClass) {
+        return (MappedSqlType<N>) nodeType(entityClass);
     }
     
     public <N> TemplateLayer<MappedQuery<N, SelectQuery>> getSelectLayer(Class<N> entityClass) {

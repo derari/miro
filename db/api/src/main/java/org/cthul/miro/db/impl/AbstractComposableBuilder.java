@@ -32,6 +32,12 @@ public abstract class AbstractComposableBuilder implements AutocloseableBuilder 
         autocloseableBuilder = NO_CLOSABLE;
     }
     
+    protected String peekNestedClause() {
+        return autocloseableBuilder == NO_CLOSABLE ? 
+                "" :
+                autocloseableBuilder.toString();
+    }
+    
     /**
      * Returns a string builder for nested clauses to write to.
      * Should not return this object, for writing on this will close

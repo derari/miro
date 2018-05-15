@@ -2,6 +2,7 @@ package org.cthul.miro.request.template;
 
 import java.util.function.Consumer;
 import org.cthul.miro.request.impl.SnippetTemplateLayer;
+import org.cthul.miro.request.part.Configurable;
 
 /**
  *
@@ -19,6 +20,8 @@ public interface Snippets<Builder> {
     
     void add(Consumer<? super Builder> action);
     
+    Configurable get(Object key);
+    
     class Key<Builder> implements org.cthul.miro.util.Key<Snippets<Builder>> {
         private static final Key INSTANCE = new Key();
     }
@@ -29,14 +32,5 @@ public interface Snippets<Builder> {
     
     static <Builder> SnippetTemplateLayer<Builder> newLayer() {
         return new SnippetTemplateLayer<>();
-    }
-    
-    public static interface Snippet<Builder> {
-        
-        void accept(Builder builder, Object[] args);
-        
-        default Consumer<Builder> curry(Object[] args) {
-            return builder -> accept(builder, args);
-        }
     }
 }

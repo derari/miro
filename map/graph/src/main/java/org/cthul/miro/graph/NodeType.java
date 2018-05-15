@@ -1,5 +1,6 @@
 package org.cthul.miro.graph;
 
+import java.util.Collections;
 import java.util.List;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.entity.EntityConfiguration;
@@ -8,6 +9,7 @@ import org.cthul.miro.entity.EntityType;
 import org.cthul.miro.entity.EntityTypes;
 import org.cthul.miro.entity.InitializationBuilder;
 import org.cthul.miro.graph.impl.CompositeSelector;
+import org.cthul.miro.graph.impl.FakeGraph;
 
 /**
  * Creates entity factories and node selectors.
@@ -105,5 +107,17 @@ public interface NodeType<Node> {
         EntityType<Node> type = asEntityType(graph, nodeSet);
         if (attributes.isEmpty()) return type;
         return type.with(getAttributeReader(graph, attributes));
+    }
+    
+    default EntityType<Node> asPlainEntityType() {
+        return asPlainEntityType(Collections.emptyList());
+    }
+    
+    default EntityType<Node> asPlainEntityType(List<?> attributes) {
+        GraphApi dummyGraph = new FakeGraph(null);
+        NodeSet<Node> dummySet = b -> newNodeFactory(dummyGraph, b);
+        EntityType<Node> type = asEntityType(dummyGraph, dummySet);
+        if (attributes.isEmpty()) return type;
+        return type.with(getAttributeReader(dummyGraph, attributes));
     }
 }

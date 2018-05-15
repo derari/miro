@@ -81,6 +81,10 @@ public class MiDBStringBuilder extends AbstractComposableBuilder implements MiDB
 
     @Override
     public String toString() {
+        String s = peekNestedClause();
+        if (s != null && !s.isEmpty()) {
+            return string.toString() + "<PENDING:>" + peekNestedClause();
+        }
         return string.toString();
     }
 

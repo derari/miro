@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import org.cthul.miro.db.MiConnection;
+import org.cthul.miro.db.MiException;
 import org.cthul.miro.ext.jdbc.JdbcConnection;
 import org.cthul.miro.sql.syntax.AnsiSqlSyntax;
 
@@ -52,10 +53,17 @@ public class TestDB {
     }
     
     private static MiConnection cnn = null;
+    public static String lastStmt = null;
     
     public static MiConnection getMiConnection() {
         if (cnn == null) {
-            cnn = new JdbcConnection(TestDB::getConnection, new AnsiSqlSyntax());
+            cnn = new JdbcConnection(TestDB::getConnection, new AnsiSqlSyntax()) {
+                @Override
+                public PreparedStatement prepareStatement(String sql) throws MiException {
+                    lastStmt = sql;
+                    return super.prepareStatement(sql);
+                }
+            };
         }
         return cnn;
     }

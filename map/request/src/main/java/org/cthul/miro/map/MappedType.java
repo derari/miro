@@ -1,5 +1,6 @@
 package org.cthul.miro.map;
 
+import org.cthul.miro.map.impl.MappedQueryNodeFactory;
 import java.util.ArrayList;
 import java.util.List;
 import org.cthul.miro.entity.EntityType;
@@ -42,6 +43,10 @@ public abstract class MappedType<Entity, This extends MappedType<Entity, This>> 
                 new MaterializationLayer<>(this));
         }
         return materializationLayer;
+    }
+    
+    public MappedQueryComposer newMappedQueryComposer() {
+        return new MappedQueryNodeFactory(this, entityClass(), asPlainEntityType()).newComposer();
     }
 
     public Key<ListNode<Object[]>> getValueFilterKey(String[] properties) {

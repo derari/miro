@@ -9,15 +9,13 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.cthul.miro.request.Composer;
 import org.cthul.miro.request.StatementPart;
-import org.cthul.miro.request.impl.ValueKey;
+import org.cthul.miro.request.part.Configurable;
 import org.cthul.miro.request.part.Copyable;
-import org.cthul.miro.request.part.ListNode;
 import org.cthul.miro.request.template.InternalComposer;
 import org.cthul.miro.request.template.Template;
 import org.cthul.miro.sql.SelectBuilder;
 import org.cthul.miro.sql.syntax.MiSqlParser.SelectStmt;
 import org.cthul.miro.util.Key;
-import org.cthul.miro.request.part.Parameterized;
 
 /**
  *
@@ -80,8 +78,6 @@ public abstract class SqlSnippet<Builder> implements Template<Builder> {
         };
     }
     
-    public static final Key<ListNode<Object>> SNIPPET_DEPENDENCIES_KEY = new ValueKey<>("Snippet Dependencies", true);
-    
     private final String key;
     private final Set<Object> dependencies;
 
@@ -104,11 +100,11 @@ public abstract class SqlSnippet<Builder> implements Template<Builder> {
     }
 
     public void requireDependencies(Composer c) {
-        c.node(SNIPPET_DEPENDENCIES_KEY).addAll(getDependencies());
+        c.requireAll(getDependencies());
     }
 
     @Override
-    public void addTo(Key<?> key, InternalComposer<? extends Builder> composer) {
+    public void addTo(Object key, InternalComposer<? extends Builder> composer) {
         composer.addPart((Key) key, new Part());
     }
     
@@ -120,6 +116,10 @@ public abstract class SqlSnippet<Builder> implements Template<Builder> {
         composer.addPart((Part) composer.node((Key) key));
     }
     
+    public Part newPart() {
+        return new Part();
+    }
+    
     protected abstract void writePart(Builder builder, Object[] args);
 
     @Override
@@ -127,7 +127,7 @@ public abstract class SqlSnippet<Builder> implements Template<Builder> {
         return key;
     }
     
-    protected class Part implements StatementPart<Builder>, Copyable, Parameterized {
+    public class Part implements StatementPart<Builder>, Copyable<Builder>, Configurable {
         
         private Object[] args;
 
@@ -149,13 +149,19 @@ public abstract class SqlSnippet<Builder> implements Template<Builder> {
         }
 
         @Override
-        public Object copyFor(CopyComposer cc) {
+        public Object copyFor(CopyComposer<Builder> cc) {
             return new Part(args);
         }
 
         @Override
         public boolean allowReadOnly(Predicate<Object> isLatest) {
             return true;
+        }
+
+        @Override
+        public String toString() {
+            return SqlSnippet.this.toString() + 
+                    (args == null || args.length == 0 ? "" : Arrays.toString(args));
         }
     }
 }

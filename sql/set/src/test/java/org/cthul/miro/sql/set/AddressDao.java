@@ -1,10 +1,6 @@
 package org.cthul.miro.sql.set;
 
-import org.cthul.miro.request.template.TemplateLayer;
 import org.cthul.miro.db.MiConnection;
-import org.cthul.miro.sql.SelectQuery;
-import org.cthul.miro.map.MappingKey;
-import org.cthul.miro.map.layer.MappedQuery;
 import static org.cthul.miro.sql.template.AttributeFilter.like;
 
 /**
@@ -12,8 +8,8 @@ import static org.cthul.miro.sql.template.AttributeFilter.like;
  */
 public class AddressDao extends SqlEntitySet<Address, AddressDao> {
 
-    public AddressDao(MiConnection cnn, TemplateLayer<MappedQuery<Address, SelectQuery>> queryLayer) {
-        super(cnn, queryLayer);
+    public AddressDao(MiConnection cnn, MappedSqlType<Address> type) {
+        super(cnn, type);
     }
 
     protected AddressDao(SqlEntitySet<Address, AddressDao> source) {
@@ -23,14 +19,14 @@ public class AddressDao extends SqlEntitySet<Address, AddressDao> {
     @Override
     protected void initialize() {
         super.initialize();
-        setUp(MappingKey.FETCH, "city", "street");
+        setUp(FETCH, "city", "street");
     }
     
     public AddressDao byId(int id) {
-        return sql(sql -> sql.where().sql("id = ?", id));
+        return sql(sql -> sql.where("id = ?", id));
     }
     
     public AddressDao cityLike(String pattern) {
-        return setUp(MappingKey.PROPERTY_FILTER, "city", like(pattern));
+        return setUp(PROPERTY_FILTER, "city", like(pattern));
     }
 }

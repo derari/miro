@@ -6,15 +6,20 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.request.impl.ValueKey;
-import org.cthul.miro.request.part.KeyValueNode;
 import org.cthul.miro.request.part.ListNode;
+import org.cthul.miro.request.part.MultiKeyValueNode;
 
 /**
  *
  */
-public interface AttributeFilter extends KeyValueNode<String, Object> {
+public interface AttributeFilter extends MultiKeyValueNode<String, Object> {
 
     ListNode<Object[]> forAttributes(String... attributeKeys);
+
+    @Override
+    default ListNode<Object[]> forKeys(String... keys) {
+        return forAttributes(keys);
+    }
     
     @Override
     default void put(Map<? extends String, ? extends Object> filters) {

@@ -1,7 +1,6 @@
 package org.cthul.miro.sql.set;
 
 import org.cthul.miro.db.MiConnection;
-import org.cthul.miro.map.MappingKey;
 
 /**
  *
@@ -23,17 +22,17 @@ public class PeopleDao2 extends SqlEntitySet<Person, PeopleDao2> {
     }
     
     public PeopleDao2 selectFirstName() {
-        return sql(sql -> sql.select().sql("p.first_name AS `firstName`"))
-               .setUp(MappingKey.LOAD, "firstName");
+        return sql(sql -> sql.select("p.first_name AS `firstName`"))
+               .setUp(LOAD, "firstName");
     }
     
     public PeopleDao2 withId(int id) {
-        return sql(sql -> sql.where().sql("p.id = ?", id));
+        return sql(sql -> sql.where("p.id = ?", id));
     }
 
     public PeopleDao2 selectLastName() {
-        return sql(sql -> sql.select().sql("p.last_name AS `lastName`"))
-               .setUp(MappingKey.LOAD, "lastName");
+        return sql(sql -> sql.select("p.last_name AS `lastName`"))
+               .setUp(LOAD, "lastName");
     }
     
     public PeopleDao2 selectFirstAndLast() {

@@ -3,13 +3,11 @@ package org.cthul.miro.sql.set;
 import java.util.ArrayList;
 import java.util.List;
 import org.cthul.miro.request.RequestComposer;
-import org.cthul.miro.request.StatementHolder;
 import org.cthul.miro.request.impl.SimpleRequestComposer;
 import org.cthul.miro.sql.template.SqlComposerKey;
 import org.cthul.miro.sql.template.SqlTemplatesBuilder;
 import org.cthul.miro.sql.template.SqlTemplates;
 import org.cthul.miro.request.template.TemplateLayer;
-import org.cthul.miro.request.template.TemplateLayerStack;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.sql.SelectQuery;
@@ -17,9 +15,8 @@ import org.cthul.miro.sql.SqlDQML;
 import org.cthul.miro.entity.EntityType;
 import org.cthul.miro.graph.GraphApi;
 import org.cthul.miro.map.MappedType;
-import org.cthul.miro.map.MappingHolder;
 import org.cthul.miro.map.MappingKey;
-import org.cthul.miro.map.layer.MappedQuery;
+import org.cthul.miro.map.MappedQuery;
 import org.cthul.miro.request.part.ListNode;
 import org.cthul.miro.sql.template.AttributeFilter;
 import org.cthul.miro.sql.template.JoinedView;
@@ -86,17 +83,37 @@ public class MappedSqlType<Entity>
 //        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
 //    }
     
+    public SqlTemplates getSqlTemplates() {
+        return sqlTemplates;
+    }
+
     @Override
     public SqlTemplatesBuilder<?> internalSqlTemplatesBuilder() {
         return sqlTemplates;
     }
     
     public TemplateLayer<MappedQuery<Entity, SelectQuery>> getSelectLayer() {
-        return TemplateLayerStack.join(
-            MappingHolder.wrapped(getMaterializationLayer()),
-            StatementHolder.wrapped(sqlTemplates.getSelectLayer()));
+        return null;
+//        return TemplateLayerStack.join(
+//            MappingHolder.wrapped(getMaterializationLayer()),
+//            StatementHolder.wrapped(sqlTemplates.getSelectLayer()));
     }
+    
+//    public <Builder> MappedSelectNodeFactory<Entity, MappedQuery<Entity,SelectQuery>> getMappedSelectNodeFactory() {
+//        return getMappedSelectNodeFactory(Function.identity());
+//    }
+//    
+//    public <Builder> MappedSelectNodeFactory<Entity, Builder> getMappedSelectNodeFactory(Function<? super Builder, ? extends MappedQuery<Entity,SelectQuery>> builderAdapter) {
+//        return new MappedSelectNodeFactory<>(
+//                this.<Builder>getMappedQueryNodeFactory(builderAdapter.andThen(q -> q.getMapping())),
+//                sqlTemplates.<Builder>getSelectNodeFactory(builderAdapter.andThen(q -> q.getStatement())));
+//    }
 
+    public MappedSelectRequest<Entity> newMappedSelectComposer() {
+        return MappedSelectNodeFactory.newComposer(newMappedQueryComposer(), sqlTemplates.newSelectComposer());
+//        return new MappedSelectNodeFactory(newMappedQueryComposer(), sqlTemplates.newSelectComposer()).newComposer();
+    }
+    
     @Override
     protected Key<ListNode<Object[]>> getColumnFilterKey(List<String> columns) {
         String[] ary = columns.toArray(new String[columns.size()]);

@@ -1,18 +1,18 @@
 package org.cthul.miro.sql.set;
 
-import org.cthul.miro.request.template.TemplateLayer;
 import org.cthul.miro.db.MiConnection;
-import org.cthul.miro.sql.SelectQuery;
-import org.cthul.miro.map.MappingKey;
-import org.cthul.miro.map.layer.MappedQuery;
 
 /**
  *
  */
 public class PeopleImpl extends SqlEntitySet<Person, PeopleImpl> implements People {
 
-    public PeopleImpl(MiConnection cnn, TemplateLayer<MappedQuery<Person, SelectQuery>> queryLayer) {
-        super(cnn, queryLayer);
+    public PeopleImpl(MiConnection cnn, MappedSqlType<Person> type) {
+        super(cnn, type);
+    }
+
+    public PeopleImpl(MiConnection cnn, MappedSelectRequest<Person> composer) {
+        super(cnn, composer);
     }
 
     protected PeopleImpl(SqlEntitySet<Person, PeopleImpl> source) {
@@ -22,29 +22,21 @@ public class PeopleImpl extends SqlEntitySet<Person, PeopleImpl> implements Peop
     @Override
     protected void initialize() {
         super.initialize();
-        setUp(MappingKey.FETCH, "id", "firstName", "lastName");
+        setUp(FETCH, "id", "firstName", "lastName");
     }
 
     @Override
     public People withFirstName(String name) {
-        return setUp(MappingKey.PROPERTY_FILTER, "firstName", name);
-//        return setUp(MappingKey.PROPERTY_FILTER, f -> f.forProperties("firstName").add(new Object[]{name}));
-//        return sql(sql -> {
-//           sql.where().ql("first_name").eq(name);
-//        });
+        return setUp(PROPERTY_FILTER, "firstName", name);
     }
 
     @Override
     public People withLastName(String name) {
-        return setUp(MappingKey.PROPERTY_FILTER, "lastName", name);
-//        return setUp(MappingKey.PROPERTY_FILTER, f -> f.forProperties("firstName").add(new Object[]{name}));
-//        return sql(sql -> {
-//           sql.where().ql("first_name").eq(name);
-//        });
+        return setUp(PROPERTY_FILTER, "lastName", name);
     }
 
     @Override
     public People withName(String first, String last) {
-        return setUp(MappingKey.PROPERTY_FILTER, "firstName", first, "lastName", last);
+        return setUp(PROPERTY_FILTER, "firstName", first, "lastName", last);
     }
 }

@@ -1,4 +1,4 @@
-package org.cthul.miro.map.layer;
+package org.cthul.miro.map;
 
 import org.cthul.miro.request.StatementHolder;
 import org.cthul.miro.entity.EntityConfiguration;

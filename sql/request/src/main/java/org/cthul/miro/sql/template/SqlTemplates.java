@@ -58,6 +58,13 @@ public class SqlTemplates
         return stack;
     }
     
+//    public <Builder> SelectNodeFactory<Builder> getSelectNodeFactory(Function<? super Builder, ? extends SelectBuilder> builderAdapter) {
+//        return new SelectNodeFactory<>(this, builderAdapter);
+//    }
+    public SelectComposer newSelectComposer() {
+        return new SelectNodeFactory(this).newComposer();
+    }
+    
     protected void collectJoinedSelectTemplateLayers(Layers<SelectBuilder> bag) {
         // TODO: rewrite so that joined layers are looked up on demand
         joinedViews.values().forEach(jv -> jv.collectSelectTemplateLayers(bag));

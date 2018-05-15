@@ -4,15 +4,20 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.cthul.miro.request.impl.ValueKey;
-import org.cthul.miro.request.part.KeyValueNode;
 import org.cthul.miro.request.part.ListNode;
+import org.cthul.miro.request.part.MultiKeyValueNode;
 
 /**
  *
  */
-public interface PropertyFilter extends KeyValueNode<String, Object> {
+public interface PropertyFilter extends MultiKeyValueNode<String, Object> {
 
     ListNode<Object[]> forProperties(String... propertyKeys);
+
+    @Override
+    default ListNode<Object[]> forKeys(String... keys) {
+        return forProperties(keys);
+    }
 
     @Override
     public default void put(String key, Object value) {

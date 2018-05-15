@@ -4,7 +4,7 @@ import java.util.concurrent.ExecutionException;
 import static org.cthul.matchers.fluent8.FluentAssert.*;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.map.MappingKey;
-import org.cthul.miro.map.layer.MappedQuery;
+import org.cthul.miro.map.MappedQuery;
 import org.cthul.miro.request.RequestComposer;
 import org.cthul.miro.request.impl.SimpleRequestComposer;
 import org.cthul.miro.sql.SelectBuilder;
@@ -90,14 +90,18 @@ public class SqlTest {
             .selectSnippet("q", s -> s.include(stmt))
             .column("firstName").field("firstName");
         
-        RequestComposer<MappedQuery<Person, SelectQuery>> c = new SimpleRequestComposer<>(type.getSelectLayer());
-        c.node(MappingKey.FETCH).add("firstName");
-        c = c.copy();
-        c.node(SqlComposerKey.SNIPPETS).get("q");
+        MappedSelectRequest<Person> req = type.newMappedSelectComposer();
+        req.getFetchedProperties().add("firstName");
+        MappedSelectRequest<Person> req2 = req.copy();
+        req2.getMainView().addSnippet("q");
         
-        MappedQuery<Person, SelectQuery> query = new MappedQuery(TestDB.getMiConnection(), SqlDQML.select());
-        query.query(c);
+        MappedQuery<Person, SelectQuery> query1 = new MappedQuery(TestDB.getMiConnection(), SqlDQML.select());
+        query1.query(req);
         
-        assertThat(query.getStatement()).hasToString("SELECT firstName FROM People WHERE id = 1");
+        MappedQuery<Person, SelectQuery> query2 = new MappedQuery(TestDB.getMiConnection(), SqlDQML.select());
+        query2.query(req2);
+        
+        assertThat(query1.getStatement()).hasToString("SELECT firstName");
+        assertThat(query2.getStatement()).hasToString("SELECT firstName FROM People WHERE id = 1");
     }
 }

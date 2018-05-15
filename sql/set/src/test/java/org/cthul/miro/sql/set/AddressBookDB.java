@@ -22,11 +22,11 @@ public class AddressBookDB {
 
     private AddressBookDB(MappedSqlSchema schemaBuilder, Graph graph, MiConnection cnn) {
         this.graph = graph;
-        this.people = new PeopleImpl(cnn, schemaBuilder.getSelectLayer(Person.class));
+        this.people = new PeopleImpl(cnn, schemaBuilder.getMappedType(Person.class));
         schemaBuilder.getMappingBuilder(Address.class)
                 .from("Addresses a")
                 .attributes("a.city, a.street");
-        this.addressDao = new AddressDao(cnn, schemaBuilder.getSelectLayer(Address.class));
+        this.addressDao = new AddressDao(cnn, schemaBuilder.getMappedType(Address.class));
     }
 
     public People people() {
