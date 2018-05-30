@@ -2,12 +2,8 @@ package org.cthul.miro.sql.set;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.cthul.miro.request.RequestComposer;
-import org.cthul.miro.request.impl.SimpleRequestComposer;
-import org.cthul.miro.sql.template.SqlComposerKey;
-import org.cthul.miro.sql.template.SqlTemplatesBuilder;
-import org.cthul.miro.sql.template.SqlTemplates;
-import org.cthul.miro.request.template.TemplateLayer;
+import org.cthul.miro.sql.composer.SqlTemplatesBuilder;
+import org.cthul.miro.sql.composer.model.SqlTemplates;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.sql.SelectQuery;
@@ -15,13 +11,9 @@ import org.cthul.miro.sql.SqlDQML;
 import org.cthul.miro.entity.EntityType;
 import org.cthul.miro.graph.GraphApi;
 import org.cthul.miro.map.MappedType;
-import org.cthul.miro.map.MappingKey;
 import org.cthul.miro.map.MappedQuery;
-import org.cthul.miro.request.part.ListNode;
-import org.cthul.miro.sql.template.AttributeFilter;
-import org.cthul.miro.sql.template.JoinedView;
-import org.cthul.miro.sql.template.SqlAttribute;
-import org.cthul.miro.util.Key;
+import org.cthul.miro.sql.composer.model.JoinedView;
+import org.cthul.miro.sql.composer.model.SqlAttribute;
 
 /**
  *
@@ -33,7 +25,8 @@ public class MappedSqlType<Entity>
         SqlTemplatesBuilder.Delegator<MappedSqlType<Entity>> {
 
     private final SqlTemplates sqlTemplates;
-    private RequestComposer<MappedQuery<Entity, SelectQuery>> batchComposer = null;
+    private MappedSelectRequest<Entity> selectComposer = null;
+    private MappedSelectRequest<Entity> batchComposer = null;
 
     public MappedSqlType(Class<Entity> clazz) {
         super(clazz);
@@ -92,59 +85,33 @@ public class MappedSqlType<Entity>
         return sqlTemplates;
     }
     
-    public TemplateLayer<MappedQuery<Entity, SelectQuery>> getSelectLayer() {
-        return null;
-//        return TemplateLayerStack.join(
-//            MappingHolder.wrapped(getMaterializationLayer()),
-//            StatementHolder.wrapped(sqlTemplates.getSelectLayer()));
-    }
-    
-//    public <Builder> MappedSelectNodeFactory<Entity, MappedQuery<Entity,SelectQuery>> getMappedSelectNodeFactory() {
-//        return getMappedSelectNodeFactory(Function.identity());
-//    }
-//    
-//    public <Builder> MappedSelectNodeFactory<Entity, Builder> getMappedSelectNodeFactory(Function<? super Builder, ? extends MappedQuery<Entity,SelectQuery>> builderAdapter) {
-//        return new MappedSelectNodeFactory<>(
-//                this.<Builder>getMappedQueryNodeFactory(builderAdapter.andThen(q -> q.getMapping())),
-//                sqlTemplates.<Builder>getSelectNodeFactory(builderAdapter.andThen(q -> q.getStatement())));
-//    }
-
     public MappedSelectRequest<Entity> newMappedSelectComposer() {
-        return MappedSelectNodeFactory.newComposer(newMappedQueryComposer(), sqlTemplates.newSelectComposer());
-//        return new MappedSelectNodeFactory(newMappedQueryComposer(), sqlTemplates.newSelectComposer()).newComposer();
-    }
-    
-    @Override
-    protected Key<ListNode<Object[]>> getColumnFilterKey(List<String> columns) {
-        String[] ary = columns.toArray(new String[columns.size()]);
-        return AttributeFilter.key(ary);
-    }
-
-    @Override
-    public Key<ListNode<String>> getResultColumnsKey() {
-        return SqlComposerKey.ATTRIBUTES;
+        if (selectComposer == null) {
+            selectComposer =  MappedSelectRequestImpl.newComposer(newMappedQueryComposer(), sqlTemplates.newSelectComposer());
+        }
+        return selectComposer.copy();
     }
 
     @Override
     protected BatchLoader<Entity> newBatchLoader(GraphApi graph, List<?> attributes) throws MiException {
         if (batchComposer == null) {
-            batchComposer = new SimpleRequestComposer<>(getSelectLayer());
+            batchComposer = newMappedSelectComposer();
         }
         // TODO: most of this can be moved up to MappedType
         String[] keyArray = getKeys().toArray(new String[0]);
         return new AbstractBatchLoader(graph) {
-            RequestComposer<MappedQuery<Entity, SelectQuery>> batch = null;
+            MappedSelectRequest<Entity> batch = null;
             @Override
             protected void fillAttributes(EntityType<Entity> type, List<Object[]> keys) throws MiException {
                 if (batch == null) {
                     batch = batchComposer.copy();
-                    batch.node(MappingKey.TYPE).setGraph(graph);
-                    batch.node(MappingKey.TYPE).setType(type);
-                    batch.node(MappingKey.INCLUDE).addAll(getKeys());
-                    batch.node(MappingKey.FETCH).addAll(flattenStr(attributes));
+                    batch.getType().setGraph(graph);
+                    batch.getType().setType(type);
+                    batch.getIncludedProperties().addAll(getKeys());
+                    batch.getFetchedProperties().addAll(flattenStr(attributes));
                 }
-                RequestComposer<MappedQuery<Entity, SelectQuery>> cmp = batch.copy();
-                cmp.node(MappingKey.PROPERTY_FILTER).forProperties(keyArray).addAll(keys);
+                MappedSelectRequest<Entity> cmp = batch.copy();
+                cmp.getPropertyFilter().forProperties(keyArray).addAll(keys);
                 MappedQuery<Entity, SelectQuery> query = new MappedQuery<>(graph, SqlDQML.select());
                 query.query(cmp)._get().noResult();
             }

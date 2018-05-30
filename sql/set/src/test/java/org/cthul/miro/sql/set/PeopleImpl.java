@@ -26,6 +26,11 @@ public class PeopleImpl extends SqlEntitySet<Person, PeopleImpl> implements Peop
     }
 
     @Override
+    public People includeAddress() {
+        return setUp(FETCH, "address.city");
+    }
+
+    @Override
     public People withFirstName(String name) {
         return setUp(PROPERTY_FILTER, "firstName", name);
     }

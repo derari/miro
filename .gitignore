@@ -29,3 +29,8 @@ nbproject
 dependency-reduced-pom.xml
 /.idea
 *.iml
+/set/set/target/
+/map/composer/target/
+/sql/composer/target/
+/db/composer/target/
+/map/set/target/

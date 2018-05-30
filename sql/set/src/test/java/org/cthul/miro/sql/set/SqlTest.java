@@ -3,16 +3,12 @@ package org.cthul.miro.sql.set;
 import java.util.concurrent.ExecutionException;
 import static org.cthul.matchers.fluent8.FluentAssert.*;
 import org.cthul.miro.db.MiException;
-import org.cthul.miro.map.MappingKey;
 import org.cthul.miro.map.MappedQuery;
-import org.cthul.miro.request.RequestComposer;
-import org.cthul.miro.request.impl.SimpleRequestComposer;
 import org.cthul.miro.sql.SelectBuilder;
 import org.cthul.miro.sql.SelectQuery;
 import org.cthul.miro.sql.SqlBuilder.Code;
 import org.cthul.miro.sql.SqlDQML;
 import org.cthul.miro.sql.syntax.MiSqlParser;
-import org.cthul.miro.sql.template.SqlComposerKey;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -93,7 +89,7 @@ public class SqlTest {
         MappedSelectRequest<Person> req = type.newMappedSelectComposer();
         req.getFetchedProperties().add("firstName");
         MappedSelectRequest<Person> req2 = req.copy();
-        req2.getMainView().addSnippet("q");
+        req2.getSelectComposer().getMainView().addSnippet("q");
         
         MappedQuery<Person, SelectQuery> query1 = new MappedQuery(TestDB.getMiConnection(), SqlDQML.select());
         query1.query(req);
@@ -104,4 +100,12 @@ public class SqlTest {
         assertThat(query1.getStatement()).hasToString("SELECT firstName");
         assertThat(query2.getStatement()).hasToString("SELECT firstName FROM People WHERE id = 1");
     }
+    
+//    @Test
+//    public void test_join() throws InterruptedException, ExecutionException, MiException {
+//        People people = db.people().withFirstName("Bob").includeAddress();
+//        Person bob = people.result().getSingle();
+//        assertThat(bob.lastName).is("Brown");
+//        assertThat(bob.address.city).is("Brown");
+//    }
 }

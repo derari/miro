@@ -1,15 +1,15 @@
 package org.cthul.miro.sql.set;
 
 import org.cthul.miro.db.MiConnection;
-import static org.cthul.miro.sql.template.AttributeFilter.like;
+import static org.cthul.miro.sql.composer.Comparison.like;
 
 /**
  *
  */
 public class AddressDao extends SqlEntitySet<Address, AddressDao> {
 
-    public AddressDao(MiConnection cnn, MappedSqlType<Address> type) {
-        super(cnn, type);
+    public AddressDao(MiConnection cnn, MappedSelectRequest<Address> composer) {
+        super(cnn, composer);
     }
 
     protected AddressDao(SqlEntitySet<Address, AddressDao> source) {

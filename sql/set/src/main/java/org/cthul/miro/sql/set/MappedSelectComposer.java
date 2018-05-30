@@ -1,26 +1,30 @@
 package org.cthul.miro.sql.set;
 
 import org.cthul.miro.map.MappedQueryComposer;
-import org.cthul.miro.sql.template.SelectComposer;
+import org.cthul.miro.composer.node.ListNode;
+import org.cthul.miro.composer.node.MultiKeyValueNode;
+import org.cthul.miro.sql.composer.SelectComposer;
 
 /**
  *
  */
-public interface MappedSelectComposer<Entity> extends MappedQueryComposer<Entity>, SelectComposer {
+public interface MappedSelectComposer<Entity> extends MappedQueryComposer<Entity> {
 
-    interface Internal<Entity> extends MappedSelectComposer<Entity>, MappedQueryComposer.Internal<Entity>, SelectComposer.Internal {
+    SelectComposer getSelectComposer();
+
+    interface Internal<Entity> extends MappedSelectComposer<Entity>, MappedQueryComposer.Internal<Entity> {
+
+        @Override
+        default ListNode<String> getSelectedAttributes() {
+            return getSelectComposer().getSelectedAttributes();
+        }
+
+        @Override
+        default MultiKeyValueNode<String, Object> getAttributeFilter() {
+            return getSelectComposer().getAttributeFilter();
+        }
     }
 
-    interface Delegator<Entity> extends MappedSelectComposer<Entity>, MappedQueryComposer.Delegator<Entity>, SelectComposer.Delegator {
+    interface Delegator<Entity> extends MappedSelectComposer.Internal<Entity>, MappedQueryComposer.Delegator<Entity> {
     }
-    
-    
-
-//    @Override
-//    default Initializable<?> getAlways() {
-//        return cmp -> {
-//            getMappedQueryComposerInternalDelegate().getAlways().initialize(cmp);
-////            getSelectComposerDelegate().get
-//        };
-//    }
 }

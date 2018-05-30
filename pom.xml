@@ -17,20 +17,19 @@
         
         <module>db/api</module>
         <module>db/migrate</module>
-        <module>db/request</module>
+        <module>db/composer</module>
         
         <module>map/entity</module>
         <module>map/graph</module>
-        <module>map/request</module>
+        <module>map/composer</module>
+        <module>map/set</module>
 
         <module>at/model</module>
-
-        <module>set/dsl</module>
         
         <module>sql/syntax</module>
         <module>sql/migrate</module>
+        <module>sql/composer</module>
         <module>sql/map</module>
-        <module>sql/request</module>
         <module>sql/set</module>
         
         <module>ext/jdbc</module>
@@ -239,7 +238,7 @@
             </dependency>
             <dependency>
                 <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-db-request</artifactId>
+                <artifactId>miro-db-composer</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
@@ -255,7 +254,7 @@
             </dependency>
             <dependency>
                 <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-map-request</artifactId>
+                <artifactId>miro-map-composer</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
@@ -272,7 +271,7 @@
             
             <dependency>
                 <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-set-dsl</artifactId>
+                <artifactId>miro-map-set</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
@@ -288,7 +287,7 @@
             </dependency>
             <dependency>
                 <groupId>org.cthul.miro</groupId>
-                <artifactId>miro-sql-request</artifactId>
+                <artifactId>miro-sql-composer</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -63,11 +63,11 @@
         
         <dependency>
             <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-set-dsl</artifactId>
+            <artifactId>miro-map-set</artifactId>
         </dependency>
         <dependency>
             <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-sql-request</artifactId>
+            <artifactId>miro-sql-composer</artifactId>
         </dependency>
         
         <dependency>

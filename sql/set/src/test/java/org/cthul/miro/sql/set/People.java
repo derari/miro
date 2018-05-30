@@ -7,6 +7,8 @@ import org.cthul.miro.set.ValueSet;
  */
 public interface People extends ValueSet<Person> {
     
+    People includeAddress();
+    
     People withFirstName(String name);
     
     People withLastName(String name);

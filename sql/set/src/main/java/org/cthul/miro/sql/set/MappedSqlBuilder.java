@@ -1,7 +1,7 @@
 package org.cthul.miro.sql.set;
 
 import org.cthul.miro.graph.GraphApi;
-import org.cthul.miro.sql.template.SqlTemplatesBuilder;
+import org.cthul.miro.sql.composer.SqlTemplatesBuilder;
 import org.cthul.miro.graph.TypeBuilder;
 
 /**

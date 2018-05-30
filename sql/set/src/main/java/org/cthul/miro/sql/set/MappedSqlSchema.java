@@ -7,15 +7,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.cthul.miro.at.model.TypeAnnotationReader;
-import org.cthul.miro.sql.template.SqlAttribute;
-import org.cthul.miro.request.template.TemplateLayer;
-import org.cthul.miro.sql.SelectQuery;
+import org.cthul.miro.sql.composer.model.SqlAttribute;
 import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.entity.base.ResultColumns;
 import org.cthul.miro.entity.base.ResultColumns.ColumnRule;
 import org.cthul.miro.graph.NodeType;
 import org.cthul.miro.graph.impl.GraphSchemaBuilder;
-import org.cthul.miro.map.MappedQuery;
 
 /**
  *
@@ -61,18 +58,13 @@ public class MappedSqlSchema extends GraphSchemaBuilder {
         return t;
     }
     
-    public <N> MappedSqlType<N> getMappedType(Class<N> entityClass) {
-        return (MappedSqlType<N>) nodeType(entityClass);
+    public <N> MappedSelectRequest<N> newMappedSelectRequest(Class<N> entityClass) {
+        return newMappedSelectRequest((Object) entityClass);
     }
     
-    public <N> TemplateLayer<MappedQuery<N, SelectQuery>> getSelectLayer(Class<N> entityClass) {
-        MappedSqlType<N> t = (MappedSqlType<N>) nodeType(entityClass);
-        return t.getSelectLayer();
-    }
-    
-    public <N> TemplateLayer<MappedQuery<N, SelectQuery>> getSelectLayer(Object entityClass) {
-        MappedSqlType<N> t = (MappedSqlType<N>) nodeType(entityClass);
-        return t.getSelectLayer();
+    public <N> MappedSelectRequest<N> newMappedSelectRequest(Object key) {
+        MappedSqlType<N> type = (MappedSqlType<N>) nodeType(key);
+        return type.newMappedSelectComposer();
     }
     
     private class AnnotatedType<Entity> extends MappedSqlType<Entity> {
