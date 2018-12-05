@@ -1,11 +1,14 @@
 package org.cthul.miro.graph.impl;
 
-import java.util.List;
+import java.util.Collection;
+import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;
+import org.cthul.miro.domain.Domain;
+import org.cthul.miro.domain.Repository;
+import org.cthul.miro.domain.impl.AbstractTypeBuilder;
+import org.cthul.miro.domain.impl.DomainBuilder;
 import org.cthul.miro.entity.EntityFactory;
-import org.cthul.miro.graph.GraphApi;
-import org.cthul.miro.graph.GraphSchema;
 import static org.hamcrest.Matchers.is;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -20,10 +23,10 @@ public class AbstractTypeBuilderTest {
 
     @Test
     public void factoryWithConstructor() throws MiException {
-        GraphSchemaBuilder schema = GraphSchema.build();
+        DomainBuilder schema = Domain.build();
         schema.put(Integer.class, new AbstractTypeBuilderImpl());
         MiResultSet rs = new IntResultSet();
-        EntityFactory<Integer> ef = schema.getEntityType(Integer.class).newFactory(rs);
+        EntityFactory<Integer> ef = schema.newUncachedRepository(null).getEntitySet(Integer.class).getLookUp().newFactory(rs);
         assertThat(ef.newEntity(), is(1));
     }
 
@@ -32,12 +35,12 @@ public class AbstractTypeBuilderTest {
         public AbstractTypeBuilderImpl() {
             super(Integer.class);
             keys("i");
-            require("i").readOnly();
+            property("i").requiredColumn("i").readOnly();
             constructor(args -> (Integer) args[0]);
         }
 
         @Override
-        protected BatchLoader<Integer> newBatchLoader(GraphApi graph, List<?> attributes) throws MiException {
+        protected BatchLoader<Integer> newBatchLoader(Repository repository, MiConnection connection, Collection<?> properties) {
             throw new UnsupportedOperationException();
         }
     }

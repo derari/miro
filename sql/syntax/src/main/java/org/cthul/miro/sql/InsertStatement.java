@@ -1,7 +1,7 @@
 package org.cthul.miro.sql;
 
 import org.cthul.miro.db.MiConnection;
-import org.cthul.miro.db.stmt.MiUpdate;
+import org.cthul.miro.db.request.MiUpdate;
 
 /**
  *
@@ -15,6 +15,6 @@ public interface InsertStatement extends InsertFromBuilder, InsertValuesBuilder,
     }
     
     static InsertStatement create(MiConnection cnn) {
-        return cnn.newStatement(SqlDQML.insert());
+        return cnn.newRequest(SqlDQML.insert());
     }
 }

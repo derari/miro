@@ -2,16 +2,14 @@ package org.cthul.miro.map.node;
 
 import org.cthul.miro.composer.node.Initializable;
 import org.cthul.miro.composer.CopyableNodeSet;
-import org.cthul.miro.composer.node.CopyInitializable;
 import org.cthul.miro.composer.node.Copyable;
 import java.util.*;
-import org.cthul.miro.entity.map.EntityAttribute;
-import org.cthul.miro.graph.GraphApi;
-import org.cthul.miro.map.MappedType;
+import org.cthul.miro.composer.node.*;
+import org.cthul.miro.map.AbstractQueryableType;
 import org.cthul.miro.map.PropertyFilter;
 import org.cthul.miro.map.PropertyFilter.PropertyFilterKey;
 import org.cthul.miro.map.PropertyFilterComposer.Internal;
-import org.cthul.miro.composer.node.ListNode;
+import org.cthul.miro.entity.map.MappedProperty;
 
 /**
  *
@@ -19,10 +17,10 @@ import org.cthul.miro.composer.node.ListNode;
 public class PropertyFilterPart extends CopyableNodeSet<PropertyFilterKey, Void, ListNode<Object[]>> 
                 implements PropertyFilter, Initializable<Internal>, Copyable<Internal> {
     
-    private final MappedType<?,?> owner;
+    private final AbstractQueryableType<?,?> owner;
     private Internal composer = null;
 
-    public PropertyFilterPart(MappedType<?, ?> owner) {
+    public PropertyFilterPart(AbstractQueryableType<?, ?> owner) {
         this.owner = owner;
     }
 
@@ -64,14 +62,14 @@ public class PropertyFilterPart extends CopyableNodeSet<PropertyFilterKey, Void,
     
     protected static class PropertiesIn extends CopyInitializable<Internal> implements ListNode<Object[]> {
         
-        private final MappedType<?,?> owner;
+        private final AbstractQueryableType<?,?> owner;
         private final String[] propertyKeys;
-        private final List<EntityAttribute<?, GraphApi>> properties;
+        private final List<MappedProperty<?>> properties;
         private ListNode<Object[]> attributeFilter;
         private Object[][] bags = null;
         private Object[] totalBag = null;
 
-        public PropertiesIn(MappedType<?,?> owner, String[] properties) {
+        public PropertiesIn(AbstractQueryableType<?,?> owner, String[] properties) {
             this.owner = owner;
             this.propertyKeys = properties;
             this.properties = new ArrayList<>();
@@ -92,6 +90,7 @@ public class PropertyFilterPart extends CopyableNodeSet<PropertyFilterKey, Void,
 
         @Override
         public void initialize(Internal composer) {
+            // FIXME: column names, not property keys
             attributeFilter = composer.getAttributeFilter().forKeys(propertyKeys);
         }
 
@@ -110,9 +109,9 @@ public class PropertyFilterPart extends CopyableNodeSet<PropertyFilterKey, Void,
             if (bags == null) bags = new Object[properties.size()][];
             int totalLength = 0;
             for (int i = 0; i < bags.length; i++) {
-                EntityAttribute<?, GraphApi> at = properties.get(i);
+                MappedProperty<?> at = properties.get(i);
                 Object v = values[i];
-                bags[i] = at.toColumns(v, bags[i]);
+                bags[i] = at.getMapping().writeColumns(v, 0, bags[i]);
                 totalLength += bags[i].length;
             }
             if (totalBag == null) totalBag = new Object[totalLength];

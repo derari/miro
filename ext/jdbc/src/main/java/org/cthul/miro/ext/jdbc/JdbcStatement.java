@@ -8,7 +8,7 @@ import java.util.List;
 import org.cthul.miro.db.*;
 import org.cthul.miro.db.impl.MiDBStringBuilder;
 import org.cthul.miro.db.impl.MiDBStringDelegator;
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
 import org.cthul.miro.db.syntax.ClauseType;
 import org.cthul.miro.db.syntax.StatementBuilder;
 

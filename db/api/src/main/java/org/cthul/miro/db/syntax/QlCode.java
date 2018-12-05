@@ -25,6 +25,10 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
         return build().append(code);
     }
     
+    static Fluent ql(QlCode code) {
+        return build(code);
+    }
+    
     static Fluent ql(String string) {
         return new PlainSyntax(string);
     }

@@ -19,7 +19,7 @@ public interface EntityConfiguration<Entity> {
      * @throws MiException 
      */
     default EntityInitializer<Entity> newInitializer(MiResultSet resultSet) throws MiException {
-        return EntityTypes.buildInitializer(this, resultSet);
+        return Entities.buildInitializer(builder -> newInitializer(resultSet, builder));
     }
 
     void newInitializer(MiResultSet resultSet, InitializationBuilder<? extends Entity> builder) throws MiException;
@@ -31,6 +31,6 @@ public interface EntityConfiguration<Entity> {
      * @return combined configuration
      */
     default <E extends Entity> EntityConfiguration<E> and(EntityConfiguration<? super E> cfg) {
-        return EntityTypes.multiConfiguration(this, cfg);
+        return Entities.multiConfiguration(this, cfg);
     }
 }

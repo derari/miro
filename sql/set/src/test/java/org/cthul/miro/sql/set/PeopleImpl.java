@@ -1,6 +1,8 @@
 package org.cthul.miro.sql.set;
 
 import org.cthul.miro.db.MiConnection;
+import org.cthul.miro.sql.map.MappedSelectRequest;
+import org.cthul.miro.sql.map.MappedSqlType;
 
 /**
  *

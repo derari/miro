@@ -3,7 +3,7 @@ package org.cthul.miro.sql;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.sql.impl.StandardSelectQuery;
 import org.cthul.miro.sql.syntax.AnsiSqlSyntax;
-import org.cthul.miro.db.stmt.MiQueryString;
+import org.cthul.miro.db.request.MiQueryString;
 import org.junit.Test;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;

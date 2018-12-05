@@ -1,22 +1,16 @@
 package org.cthul.miro.sql.composer.model;
 
-import org.cthul.miro.sql.composer.model.SqlAttribute;
-import org.cthul.miro.sql.composer.model.SqlTable;
-import org.cthul.miro.sql.composer.model.SqlSnippet;
-import org.cthul.miro.sql.composer.model.VirtualView;
-import org.cthul.miro.sql.composer.model.JoinedVirtualView;
-import org.cthul.miro.sql.composer.model.JoinedView;
 import org.cthul.miro.sql.composer.node.SelectNodeFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.util.ValueKey;
 import org.cthul.miro.sql.SelectBuilder;
-import org.cthul.miro.sql.SqlFilterableClause;
 import org.cthul.miro.sql.composer.Comparison;
 import org.cthul.miro.sql.composer.SelectRequest;
 import org.cthul.miro.sql.composer.SqlTemplatesBuilder;
@@ -52,10 +46,14 @@ public class SqlTemplates
         return tables;
     }
 
-    public Map<String, JoinedView> getJoinedViews() {
-        return joinedViews;
-    }
+//    public Map<String, JoinedView> getJoinedViews() {
+//        return joinedViews;
+//    }
 
+    public void collectJoinedViews(BiConsumer<String, JoinedView> bag) {
+        joinedViews.entrySet().forEach(e -> bag.accept(e.getKey(), e.getValue()));
+    }
+    
     private Key<?> getMainKey() {
         return mainKey;
     }
@@ -136,6 +134,10 @@ public class SqlTemplates
             public String toString() { 
                 return getMainKey() + " AS " + prefix;
             }
+            @Override
+            public void collectJoinedViews(BiConsumer<String, JoinedView> bag) {
+                SqlTemplates.this.collectJoinedViews(bag);
+            }
             private QlCode initCondition() {
                 QlCode.Builder code = QlCode.build();
                 List<SqlAttribute> keys = new ArrayList<>();
@@ -172,6 +174,10 @@ public class SqlTemplates
             @Override
             public String toString() { 
                 return getMainKey()+ " AS " + prefix;
+            }
+            @Override
+            public void collectJoinedViews(BiConsumer<String, JoinedView> bag) {
+                SqlTemplates.this.collectJoinedViews(bag);
             }
         };
     }

@@ -3,35 +3,35 @@ package org.cthul.miro.set.base;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.cthul.miro.db.MiConnection;
-import org.cthul.miro.entity.EntityType;
-import org.cthul.miro.graph.Graph;
-import org.cthul.miro.db.stmt.MiQuery;
+import org.cthul.miro.db.request.MiQuery;
 import org.cthul.miro.db.syntax.RequestType;
 import org.cthul.miro.map.MappedQueryComposer;
 import org.cthul.miro.result.Results;
 import org.cthul.miro.map.MappedQuery;
 import org.cthul.miro.composer.node.BatchNode;
 import org.cthul.miro.composer.RequestComposer;
+import org.cthul.miro.domain.Repository;
+import org.cthul.miro.entity.EntityTemplate;
 
 /**
  *
  * @param <Entity>
- * @param <Stmt>
+ * @param <Req>
  * @param <Cmp>
  * @param <This>
  */
-public abstract class AbstractQuerySet<Entity, Stmt extends MiQuery, Cmp extends RequestComposer<MappedQuery<Entity, Stmt>> & MappedQueryComposer, This extends AbstractQuerySet<Entity, Stmt, Cmp, This>> extends AbstractValueSet<Entity, This> {
+public abstract class AbstractQuerySet<Entity, Req extends MiQuery, Cmp extends RequestComposer<MappedQuery<Entity, Req>> & MappedQueryComposer, This extends AbstractQuerySet<Entity, Req, Cmp, This>> extends AbstractValueSet<Entity, This> {
 
     MiConnection cnn;
-    RequestType<Stmt> requestType;
+    private final RequestType<Req> requestType;
     private Cmp composer = null;
 
-    public AbstractQuerySet(MiConnection cnn, RequestType<Stmt> requestType) {
+    public AbstractQuerySet(MiConnection cnn, RequestType<Req> requestType) {
         this.cnn = cnn;
         this.requestType = requestType;
     }
 
-    protected AbstractQuerySet(AbstractQuerySet<Entity, Stmt, Cmp, This> source) {
+    protected AbstractQuerySet(AbstractQuerySet<Entity, Req, Cmp, This> source) {
         super(source);
         this.cnn = source.cnn;
         this.requestType = source.requestType;
@@ -53,15 +53,17 @@ public abstract class AbstractQuerySet<Entity, Stmt extends MiQuery, Cmp extends
         return doSafe(me -> me.cnn = cnn);
     }
 
-    protected This withGraph(Graph graph) {
+    protected This withRepository(Repository repository) {
         return doSafe(me -> {
-            me.getComposer().getType().setGraph(graph);
-            if (graph instanceof MiConnection) me.cnn = (MiConnection) graph;
+            me.getComposer().getType().setRepository(repository);
+            if (repository instanceof MiConnection) {
+                me.cnn = (MiConnection) repository;
+            }
         });
     }
 
-    protected This withEntityType(EntityType<Entity> entityType) {
-        return doSafe(me -> me.getComposer().getType().setType(entityType));
+    protected This withTemplate(EntityTemplate<Entity> template) {
+        return doSafe(me -> me.getComposer().getType().setTemplate(template));
     }
     
     protected This compose(Consumer<? super Cmp> action) {
@@ -73,12 +75,12 @@ public abstract class AbstractQuerySet<Entity, Stmt extends MiQuery, Cmp extends
     }
 
     protected <V> This setUp(Function<? super Cmp, ? extends BatchNode<V>> key, V... values) {
-        return doSafe(me -> key.apply(me.getComposer()).set(values));
+        return doSafe(me -> key.apply(me.getComposer()).batch(values));
     }
 
     @Override
     protected Results.Action<Entity> buildResult() {
-        MappedQuery<Entity, Stmt> qry = new MappedQuery<>(cnn, requestType);
-        return qry.query(getComposer());
+        MappedQuery<Entity, Req> qry = new MappedQuery<>(cnn, requestType);
+        return qry.apply(getComposer()).result();
     }
 }

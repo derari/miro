@@ -1,7 +1,7 @@
 package org.cthul.miro.db.syntax;
 
 import java.util.function.Consumer;
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
 
 /**
  * Interface for building queries from identifiers, string literals,
@@ -29,6 +29,20 @@ public interface QlBuilder<This extends QlBuilder<This>> extends MiDBString, Sta
     
     default This ql(QlCode code) {
         return append(code);
+    }
+    
+    default This appendAll(Object... code) {
+        This self = (This) this;
+        for (Object c: code) {
+            if (c instanceof String) {
+                self = self.ql((String) c);
+            } else if (c instanceof QlCode) {
+                self = self.append((QlCode) c);
+            } else {
+                throw new IllegalArgumentException("Expected String or QlCode, got " + c);
+            }
+        }
+        return self;
     }
     
     This identifier(String id);

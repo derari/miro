@@ -164,8 +164,8 @@ public class SnippetSet<Builder> {
 //        }
 //
 //        @Override
-//        public void set(Object... values) {
-//            ic.node(Snippets.key()).set(key, values);
+//        public void batch(Object... values) {
+//            ic.node(Snippets.key()).batch(key, values);
 //        }
 //
 //        @Override

@@ -3,7 +3,7 @@ package org.cthul.miro.sql.syntax;
 import static org.cthul.matchers.fluent8.FluentAssert.assertThat;
 import org.cthul.miro.db.impl.MiDBStringBuilder;
 import org.cthul.miro.sql.SqlClause;
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.junit.Test;
 

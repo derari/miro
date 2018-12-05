@@ -51,9 +51,9 @@ public abstract class TypeAnnotationReader {
         }
         for (Field f: clazz.getDeclaredFields()) {
             if (isTransient(f)) continue;
-            Column atColumn = f.getAnnotation(Column.class);
             boolean key = f.getAnnotation(Id.class) != null;
             property(key, f);
+            Column atColumn = f.getAnnotation(Column.class);
             if (atColumn != null) {
                 String colName = atColumn.name();
                 if (colName == null) colName = f.getName();

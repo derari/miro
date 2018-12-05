@@ -26,12 +26,12 @@ public interface ListNode<Entry> extends BatchNode<Entry> {
     }
 
     @Override
-    public default void set(Collection<? extends Entry> values) {
+    public default void batch(Collection<? extends Entry> values) {
         addAll(values);
     }
 
     @Override
-    public default void set(Entry... values) {
+    public default void batch(Entry... values) {
         addAll(values);
     }
 

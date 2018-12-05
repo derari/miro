@@ -1,7 +1,7 @@
 package org.cthul.miro.db.impl;
 
 import org.cthul.miro.db.syntax.NestedBuilder;
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.db.syntax.Syntax;
 

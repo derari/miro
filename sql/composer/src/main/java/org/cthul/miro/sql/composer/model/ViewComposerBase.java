@@ -2,33 +2,36 @@ package org.cthul.miro.sql.composer.model;
 
 import org.cthul.miro.composer.CopyableNodeSet;
 import org.cthul.miro.composer.node.StatementPart;
-import org.cthul.miro.composer.node.Copyable;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
-import org.cthul.miro.composer.node.Configurable;
+import org.cthul.miro.composer.node.*;
 import org.cthul.miro.sql.SelectBuilder;
+import org.cthul.miro.sql.composer.SqlDqmlComposer;
 
 /**
  *
  */
-public abstract class ViewComposerBase implements Copyable<Object>, VirtualView, StatementPart<SelectBuilder> {
+public abstract class ViewComposerBase extends CopyInitializable<SqlDqmlComposer> implements VirtualView, StatementPart<SelectBuilder> {
     
     private final SqlTemplates owner;
-    private final JoinedViews joinedViews;
     private final Map<String, SqlSnippet<? super SelectBuilder>.Part> snippets;
     private final Consumer<Object> dependencyCollector = key -> ViewComposerBase.this.get((String) key);
+    private MapNode<String, VirtualView> joinedViews;
 
     public ViewComposerBase(SqlTemplates owner) {
         this.owner = owner;
         this.snippets = new LinkedHashMap<>();
-        this.joinedViews = new JoinedViews();
     }
 
     protected ViewComposerBase(ViewComposerBase source) {
         this.owner = source.owner;
         this.snippets = new LinkedHashMap<>(source.snippets);
-        this.joinedViews = source.joinedViews.copy();
+    }
+
+    @Override
+    public void initialize(SqlDqmlComposer composer) {
+        joinedViews = composer.getViews();
     }
 
     protected SqlTemplates getOwner() {
@@ -92,52 +95,10 @@ public abstract class ViewComposerBase implements Copyable<Object>, VirtualView,
         snippets.values().forEach((s) -> {
             s.addTo(builder);
         });
-        joinedViews.addPartsTo(builder);
     }
 
     @Override
     public boolean allowReadOriginal() {
         return true;
     }
-    
-    protected class JoinedViews extends CopyableNodeSet<String, Object, VirtualView> {
-        // ToDo: Every view manages its own joins, 
-        // will be a problem if two views want to join in the same tables
-
-        public JoinedViews() {
-        }
-
-        public JoinedViews(JoinedViews parent) {
-            super(parent);
-        }
-        
-        public JoinedViews copy() {
-            return new JoinedViews(this);
-        }
-
-        @Override
-        public void addPartsTo(Object builder) {
-            super.addPartsTo(builder);
-        }
-
-        @Override
-        protected void newEntry(String key, Object hint) {
-            JoinedView jv = getOwner().getJoinedViews().get(key);
-            if (jv != null) {
-                putNode(key, jv.newVirtualView());
-            } else {
-                putNullNode(key);
-            }
-        }
-
-        @Override
-        protected Object getInitializationArg() {
-            return null;
-        }
-        
-        public VirtualView get(String key) {
-            return getValue(key, null);
-        }
-    }
-
 }

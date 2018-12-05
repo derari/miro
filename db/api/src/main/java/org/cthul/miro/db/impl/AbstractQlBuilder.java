@@ -1,6 +1,6 @@
 package org.cthul.miro.db.impl;
 
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.db.syntax.Syntax;
 
@@ -36,7 +36,7 @@ public abstract class AbstractQlBuilder<This extends QlBuilder<This>> extends Ab
 
     @Override
     public This constant(Object key) {
-        getSyntax().appendConstanct(key, this);
+        getSyntax().appendConstant(key, this);
         return (This) this;
     }
 

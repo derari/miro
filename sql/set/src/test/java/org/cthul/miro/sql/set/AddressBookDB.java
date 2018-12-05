@@ -1,26 +1,27 @@
 package org.cthul.miro.sql.set;
 
 import org.cthul.miro.db.MiConnection;
-import org.cthul.miro.graph.Graph;
+import org.cthul.miro.domain.Repository;
+import org.cthul.miro.sql.map.MappedSqlDomain;
 
 /**
  *
  */
 public class AddressBookDB {
     
-    private final Graph graph;
+    private final Repository graph;
     private final People people;
     private final AddressDao addressDao;
 
     public AddressBookDB(MiConnection cnn) {
-        this(new MappedSqlSchema(), cnn);
+        this(new MappedSqlDomain(), cnn);
     }
     
-    private AddressBookDB(MappedSqlSchema schemaBuilder, MiConnection cnn) {
-        this(schemaBuilder, schemaBuilder.newFakeGraph(cnn), cnn);
+    private AddressBookDB(MappedSqlDomain schemaBuilder, MiConnection cnn) {
+        this(schemaBuilder, schemaBuilder.newUncachedRepository(cnn), cnn);
     }
 
-    private AddressBookDB(MappedSqlSchema schemaBuilder, Graph graph, MiConnection cnn) {
+    private AddressBookDB(MappedSqlDomain schemaBuilder, Repository graph, MiConnection cnn) {
         this.graph = graph;
         this.people = new PeopleImpl(cnn, schemaBuilder.newMappedSelectRequest(Person.class));
         schemaBuilder.getMappingBuilder(Address.class)

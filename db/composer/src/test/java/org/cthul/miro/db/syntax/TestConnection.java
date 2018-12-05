@@ -4,8 +4,9 @@ import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.impl.MiDBStringBuilder;
-import org.cthul.miro.db.stmt.MiQueryString;
-import org.cthul.miro.db.stmt.MiUpdateString;
+import org.cthul.miro.db.request.MiQueryString;
+import org.cthul.miro.db.request.MiRequest;
+import org.cthul.miro.db.request.MiUpdateString;
 import org.cthul.miro.futures.MiAction;
 
 /**
@@ -39,8 +40,8 @@ public class TestConnection implements MiConnection {
     }
 
     @Override
-    public <Stmt> Stmt newStatement(RequestType<Stmt> type) {
-        return syntax.newStatement(this, type);
+    public <Req extends MiRequest<?>> Req newRequest(RequestType<Req> type) {
+        return syntax.newRequest(this, type);
     }
 
     @Override

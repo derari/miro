@@ -7,7 +7,7 @@ import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.impl.AbstractQlBuilder;
 import org.cthul.miro.db.impl.MiDBStringBuilder;
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
 import org.cthul.miro.db.syntax.ClauseType;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.db.syntax.QlCode;

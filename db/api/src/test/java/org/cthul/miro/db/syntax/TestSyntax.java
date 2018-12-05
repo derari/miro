@@ -3,7 +3,8 @@ package org.cthul.miro.db.syntax;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.impl.AbstractNestedBuilder;
 import org.cthul.miro.db.impl.AbstractQlBuilder;
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
+import org.cthul.miro.db.request.MiRequest;
 
 /**
  *
@@ -11,7 +12,7 @@ import org.cthul.miro.db.stmt.MiDBString;
 public class TestSyntax implements Syntax {
 
     @Override
-    public <Req> Req newStatement(MiConnection cnn, RequestType<Req> type, RequestType<Req> onDefault) {
+    public <Req extends MiRequest<?>> Req newRequest(MiConnection cnn, RequestType<Req> type, RequestType<Req> onDefault) {
         return onDefault.createDefaultRequest(this, cnn);
     }
 

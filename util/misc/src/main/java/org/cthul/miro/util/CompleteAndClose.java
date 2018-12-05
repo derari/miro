@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 /**
  *
  */
-public class CompleteAndClose implements Completable, AutoCloseable {
+public final class CompleteAndClose implements Completable, AutoCloseable {
     
     public static boolean blank(Collection<?> c) {
         return c == null || c.isEmpty();
@@ -64,7 +64,7 @@ public class CompleteAndClose implements Completable, AutoCloseable {
         protected List<AutoCloseable> getCloseables() {
             return closeables;
         }
-
+        
         @Override
         public This addCompletable(Completable completable) {
             if (completables == null) completables = new ArrayList<>();
@@ -98,7 +98,7 @@ public class CompleteAndClose implements Completable, AutoCloseable {
         }
         
         public CompleteAndClose buildCompleteAndClose() {
-            if (blank(getNames()) && blank(getCompletables()) && blank(getCloseables())) {
+            if (blank(names) && blank(completables) && blank(closeables)) {
                 return NO_OP;
             }
             return new CompleteAndClose(getNames(), getCompletables(), getCloseables());

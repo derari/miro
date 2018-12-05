@@ -6,12 +6,13 @@ import org.cthul.miro.db.syntax.RequestType;
 import org.cthul.miro.db.syntax.StatementBuilder;
 import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.util.Key;
+import org.cthul.miro.db.request.MiRequest;
 
 /**
  *
- * @param <Stmt>
+ * @param <Req>
  */
-public interface SqlDDL<Stmt> extends RequestType<Stmt>, ClauseType<Stmt> {
+public interface SqlDDL<Req extends MiRequest<?>> extends RequestType<Req>, ClauseType<Req> {
     
     static SqlDDL<CreateStatement> create() { return Type.CREATE_TABLE; }
     
@@ -35,8 +36,8 @@ public interface SqlDDL<Stmt> extends RequestType<Stmt>, ClauseType<Stmt> {
         }
 
         @Override
-        public Object createDefaultRequest(Syntax syntax, MiConnection cnn) {
-            return newStmt(cnn).begin(this);
+        public MiRequest<?> createDefaultRequest(Syntax syntax, MiConnection cnn) {
+            return (MiRequest) newStmt(cnn).begin(this);
         }
     }
 }

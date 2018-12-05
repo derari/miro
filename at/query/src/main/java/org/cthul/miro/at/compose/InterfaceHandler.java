@@ -11,6 +11,7 @@ import java.util.Set;
 import org.cthul.miro.composer.Composer;
 import org.cthul.miro.composer.ConfigureKey.Configurable;
 import org.cthul.miro.composer.InternalComposer;
+import org.cthul.miro.composer.node.Configurable;
 import org.cthul.miro.db.stmt.MiStatement;
 
 /**

@@ -1,8 +1,10 @@
 package org.cthul.miro.sql.composer.model;
 
+import org.cthul.miro.composer.node.Initializable;
 import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.sql.SelectBuilder;
 import org.cthul.miro.sql.SqlJoinableClause;
+import org.cthul.miro.sql.composer.SqlDqmlComposer;
 
 /**
  *
@@ -42,7 +44,7 @@ public class JoinedVirtualView extends ViewComposerBase {
     }
 
     @Override
-    public Object copy(Object composer) {
+    protected Initializable<SqlDqmlComposer> copyInstance() {
         return new JoinedVirtualView(this);
     }
 }

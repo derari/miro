@@ -9,9 +9,10 @@ public class ArrayMap<K, V> extends AbstractMap<K, V> {
     
     private final Object[] data;
     private EntrySet entrySet;
-    private KeySet keySet;
+    private ItemSet<K> keySet;
+    private ItemSet<V> valueSet;
 
-    public ArrayMap(Object[] data) {
+    public ArrayMap(Object... data) {
         if (data.length % 2 != 0) throw new IllegalArgumentException("Expected key-value pairs");
         this.data = data;
     }
@@ -23,7 +24,12 @@ public class ArrayMap<K, V> extends AbstractMap<K, V> {
 
     @Override
     public Set<K> keySet() {
-        return keySet != null ? keySet : (keySet = new KeySet());
+        return keySet != null ? keySet : (keySet = new ItemSet<>(0));
+    }
+
+    @Override
+    public Collection<V> values() {
+        return valueSet != null ? valueSet : (valueSet = new ItemSet<>(1));
     }
 
     @Override
@@ -48,6 +54,9 @@ public class ArrayMap<K, V> extends AbstractMap<K, V> {
     }
     
     protected class EntrySet extends AbstractSet<Entry<K, V>> {
+        
+        private Entry<K, V>[] entries = new Entry[size()];
+        
         @Override
         public Iterator<Entry<K, V>> iterator() {
             return new Iterator<Entry<K, V>>() {
@@ -58,24 +67,24 @@ public class ArrayMap<K, V> extends AbstractMap<K, V> {
                 }
                 @Override
                 public Entry<K, V> next() {
-                    index++;
-                    return new Entry<K, V>() {
+                    int i = index++;
+                    return entries[i] != null ? entries[i] :
+                            (entries[i] = new Entry<K, V>() {
                         @Override
                         public K getKey() {
-                            return (K) data[index * 2 - 2];
+                            return (K) data[i * 2];
                         }
                         @Override
                         public V getValue() {
-                            return (V) data[index * 2 - 1];
+                            return (V) data[i * 2 + 1];
                         }
-
                         @Override
                         public V setValue(V value) {
                             V old = getValue();
-                            data[index * 2 - 1] = value;
+                            data[i * 2 + 1] = value;
                             return old;
                         }
-                    };
+                    });
                 }
             };
         }
@@ -85,18 +94,24 @@ public class ArrayMap<K, V> extends AbstractMap<K, V> {
         }
     }
     
-    protected class KeySet extends AbstractSet<K> {
+    protected class ItemSet<T> extends AbstractSet<T> {
+        private final int offset;
+
+        public ItemSet(int offset) {
+            this.offset = offset;
+        }
+        
         @Override
-        public Iterator<K> iterator() {
-            return new Iterator<K>() {
+        public Iterator<T> iterator() {
+            return new Iterator<T>() {
                 int index = 0;
                 @Override
                 public boolean hasNext() {
-                    return index < size();
+                    return index + offset < size();
                 }
                 @Override
-                public K next() {
-                    return (K) data[(index++) * 2];
+                public T next() {
+                    return (T) data[(index++) * 2 + offset];
                 }
             };
         }

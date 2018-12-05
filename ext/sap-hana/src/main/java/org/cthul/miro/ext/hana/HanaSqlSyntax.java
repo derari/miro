@@ -2,7 +2,7 @@ package org.cthul.miro.ext.hana;
 
 import org.cthul.miro.db.impl.AbstractNestedBuilder;
 import org.cthul.miro.sql.syntax.AnsiSqlSyntax;
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.sql.SqlClause;

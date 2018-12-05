@@ -1,6 +1,6 @@
 package org.cthul.miro.db.impl;
 
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
 import org.cthul.miro.db.syntax.ClauseType;
 import org.cthul.miro.db.syntax.StatementBuilder;
 import org.cthul.miro.db.syntax.Syntax;

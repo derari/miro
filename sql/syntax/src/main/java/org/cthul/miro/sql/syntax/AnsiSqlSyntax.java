@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.cthul.miro.db.impl.AbstractNestedBuilder;
 import org.cthul.miro.sql.SqlClause;
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.db.syntax.Syntax;
@@ -34,7 +34,7 @@ public class AnsiSqlSyntax implements SqlSyntax {
     }
 
     @Override
-    public void appendConstanct(Object key, QlBuilder<?> query) {
+    public void appendConstant(Object key, QlBuilder<?> query) {
         QlCode c = constants.get(String.valueOf(key));
         if (c == null) throw new IllegalArgumentException(String.valueOf(key));
         c.appendTo(query);

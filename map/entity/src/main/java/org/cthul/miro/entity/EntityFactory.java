@@ -1,6 +1,7 @@
 package org.cthul.miro.entity;
 
 import org.cthul.miro.db.MiException;
+import org.cthul.miro.entity.builder.BatchFactory;
 import org.cthul.miro.util.Completable;
 import org.cthul.miro.util.XFunction;
 
@@ -37,7 +38,7 @@ public interface EntityFactory<Entity> extends Completable, AutoCloseable {
      * @return batch factory
      */
     default EntityFactory<Entity> batch() {
-        return EntityTypes.batch(this);
+        return new BatchFactory<>(this);
     }
     
     /**
@@ -46,7 +47,7 @@ public interface EntityFactory<Entity> extends Completable, AutoCloseable {
      * @return initializing factory
      */
     default EntityFactory<Entity> with(EntityInitializer<? super Entity> initializer) {
-        return EntityTypes.initializingFactory(this, initializer);
+        return Entities.initializingFactory(this, initializer);
     }
     
     default <T> EntityFactory<T> andThen(XFunction<? super Entity, ? extends T, MiException> function) {

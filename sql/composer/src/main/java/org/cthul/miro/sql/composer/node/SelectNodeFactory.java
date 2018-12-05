@@ -1,18 +1,16 @@
 package org.cthul.miro.sql.composer.node;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.BiConsumer;
 import org.cthul.miro.composer.node.CopyInitializable;
 import org.cthul.miro.composer.ComposerState;
-import org.cthul.miro.composer.node.Initializable;
-import org.cthul.miro.composer.node.ListNode;
+import org.cthul.miro.composer.ComposerState.Behavior;
+import org.cthul.miro.composer.CopyableNodeSet;
+import org.cthul.miro.composer.node.*;
 import org.cthul.miro.sql.SelectBuilder;
-import org.cthul.miro.sql.composer.AttributeFilter;
-import org.cthul.miro.sql.composer.SelectComposer;
-import org.cthul.miro.sql.composer.SelectRequest;
-import org.cthul.miro.sql.composer.model.SqlSnippet;
-import org.cthul.miro.sql.composer.model.SqlTemplates;
-import org.cthul.miro.sql.composer.model.ViewComposerBase;
-import org.cthul.miro.sql.composer.model.VirtualView;
-import org.cthul.miro.sql.composer.node.AttributeFilterPart;
+import org.cthul.miro.sql.composer.*;
+import org.cthul.miro.sql.composer.model.*;
 
 /**
  *
@@ -27,6 +25,7 @@ public class SelectNodeFactory implements SelectComposer {
     
     public SelectRequest newComposer() {
         return ComposerState.builder()
+                .setImpl(new Impl())
                 .setFactory(this)
                 .create(SelectRequest.class);
     }
@@ -37,7 +36,12 @@ public class SelectNodeFactory implements SelectComposer {
 
     @Override
     public VirtualView getMainView() {
-        return new SelectView();
+        throw new UnsupportedOperationException("Impl");
+    }
+
+    @Override
+    public MapNode<String, VirtualView> getViews() {
+        return new ViewMap();
     }
 
     @Override
@@ -82,25 +86,93 @@ public class SelectNodeFactory implements SelectComposer {
         }
 
         @Override
-        public Object copy(Object composer) {
+        protected Initializable<SqlDqmlComposer> copyInstance() {
             return new SelectView(this);
         }
     }
     
+    protected class ViewMap extends CopyableNodeSet<String, Void, VirtualView> 
+            implements MapNode<String, VirtualView>, StatementPart<SelectBuilder>,
+                        Initializable<SqlDqmlComposer>, Copyable<SqlDqmlComposer> {
+        
+        private final Map<String, JoinedView> views;
+        private SqlDqmlComposer cmp;
+
+        public ViewMap() {
+            this.views = new HashMap<>();
+            owner.collectJoinedViews(initializeViewsBag());
+        }
+
+        public ViewMap(ViewMap source) {
+            super(source);
+            this.views = source.views;
+        }
+
+        @Override
+        public void initialize(SqlDqmlComposer composer) {
+            this.cmp = composer;
+            putNode("", new SelectView());
+        }
+
+        @Override
+        public Object copy(SqlDqmlComposer composer) {
+            ViewMap copy = new ViewMap(this);
+            copy.cmp = composer;
+            return copy;
+        }
+
+        @Override
+        protected void newEntry(String key, Void hint) {
+            JoinedView jv = views.get(key);
+            if (jv != null) {
+                putNode(key, jv.newVirtualView());
+            } else {
+                putNullNode(key);
+            }
+        }
+
+        @Override
+        protected Object getInitializationArg() {
+            return cmp;
+        }
+
+        @Override
+        public VirtualView get(String key) {
+            return getValue(key, null);
+        }
+        
+        private BiConsumer<String, JoinedView> initializeViewsBag() {
+            return new BiConsumer<String, JoinedView>() {
+                @Override
+                public void accept(String key, JoinedView view) {
+                    if (views.putIfAbsent(key, view) == null) {
+                        view.collectJoinedViews(this);
+                    }
+                }
+            };
+        }
+
+        @Override
+        public void addTo(SelectBuilder builder) {
+            addPartsTo(builder);
+        }
+    }
     
-    
-//    protected static class Impl implements SelectComposerDelegator, Initializable<SelectComposer> {
-//        
-//        SelectComposer actual = null;
-//
-//        @Override
-//        public SelectComposer getSelectComposerDelegate() {
-//            return actual;
-//        }
-//
-//        @Override
-//        public void initialize(SelectComposer composer) {
-//            actual = composer;
-//        }
-//    }
+    protected static class Impl implements Behavior<SelectComposer> {
+        SelectComposer actual;
+
+        @Override
+        public Object copy() {
+            return new Impl();
+        }
+
+        @Override
+        public void initialize(SelectComposer composer) {
+            this.actual = composer;
+        }
+        
+        public VirtualView getMainView() {
+            return actual.getViews().get("");
+        }
+    }
 }

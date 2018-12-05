@@ -4,7 +4,7 @@ import java.util.function.Consumer;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;
-import org.cthul.miro.db.stmt.MiQueryString;
+import org.cthul.miro.db.request.MiQueryString;
 import org.cthul.miro.db.syntax.ClauseType;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.db.syntax.Syntax;

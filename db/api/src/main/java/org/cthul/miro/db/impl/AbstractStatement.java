@@ -1,7 +1,7 @@
 package org.cthul.miro.db.impl;
 
 import java.util.function.Supplier;
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
 import org.cthul.miro.db.syntax.AutocloseableBuilder;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.db.syntax.Syntax;
@@ -9,25 +9,25 @@ import org.cthul.miro.db.syntax.Syntax;
 /**
  * A complex statement consisting of several sub-clauses.
  * Can be used as a request or a clause.
- * @param <Request>
+ * @param <Statement>
  */
-public abstract class AbstractStatement<Request extends MiDBString> implements AutocloseableBuilder {
+public abstract class AbstractStatement<Statement extends MiDBString> implements AutocloseableBuilder {
     
-    private final Supplier<Request> requestAccess;
+    private final Supplier<Statement> stmtAccess;
     private final MiDBString dbString;
     private final Syntax syntax;
     private boolean closed = false;
 
     /**
      * Creates a statement that can be executed multiple times.
-     * @param requestFactory
+     * @param stmtFactory
      * @param syntax 
      */
-    public AbstractStatement(Syntax syntax, Supplier<Request> requestFactory) {
-        this.requestAccess = () -> {
+    public AbstractStatement(Syntax syntax, Supplier<Statement> stmtFactory) {
+        this.stmtAccess = () -> {
             closeSubclauses();
-            Request r = requestFactory.get();
-            return stmt(r);
+            Statement r = stmtFactory.get();
+            return _buildStatement(r);
         };
         this.dbString = null;
         this.syntax = syntax;
@@ -35,29 +35,29 @@ public abstract class AbstractStatement<Request extends MiDBString> implements A
 
     /**
      * Creates statement as a request-clause that can be executed only once.
-     * @param request
+     * @param statement
      * @param syntax 
      */
-    public AbstractStatement(Syntax syntax, Request request) {
-        this(syntax, request, request);
+    public AbstractStatement(Syntax syntax, Statement statement) {
+        this(syntax, statement, statement);
     }
     
     /**
      * Creates a clause.
      * If {@code request} is given, the statement can be executed once.
      * @param dbString
-     * @param request
+     * @param statement
      * @param syntax 
      */
-    public AbstractStatement(Syntax syntax, MiDBString dbString, Request request) {
-        this.requestAccess = request != null ? () -> request 
+    public AbstractStatement(Syntax syntax, MiDBString dbString, Statement statement) {
+        this.stmtAccess = statement != null ? () -> statement 
                 : () -> { throw new UnsupportedOperationException("Can't execute clause"); };
         this.dbString = dbString;
         this.syntax = syntax;
     }
 
-    protected Request request() {
-        return requestAccess.get();
+    protected Statement request() {
+        return stmtAccess.get();
     }
 
     protected Syntax getSyntax() {
@@ -86,10 +86,10 @@ public abstract class AbstractStatement<Request extends MiDBString> implements A
     
     @Override
     public String toString() {
-        return stmt(new MiDBStringBuilder()).toString();
+        return _buildStatement(new MiDBStringBuilder()).toString();
     }
     
-    protected <Stmt extends MiDBString> Stmt stmt(Stmt stmt) {
+    private <Stmt extends MiDBString> Stmt _buildStatement(Stmt stmt) {
         buildStatement(stmt);
         return stmt;
     }
@@ -104,10 +104,10 @@ public abstract class AbstractStatement<Request extends MiDBString> implements A
         append(target, prefix, part, false);
     }
     
-    protected void append(MiDBString target, String prefix, SubClause part, boolean forceNonEmpty) {
+    protected void append(MiDBString target, String prefix, SubClause part, boolean required) {
         if (part == null) return;
         if (part.isEmpty()) {
-            if (forceNonEmpty) {
+            if (required) {
                 throw new IllegalStateException(
                         "Empty " + prefix.trim() + " clause");
             }

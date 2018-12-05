@@ -105,7 +105,7 @@ public class SqlTemplatesTest {
         instance.using("f").selectSnippet("b", (s, a) -> s.where("b = ?", a));
                 
         SelectRequest c = instance.newSelectComposer();
-        c.getMainView().get("b").set(1);
+        c.getMainView().get("b").batch(1);
         
         MiDBStringBuilder qryString = new MiDBStringBuilder();
         c.build(qryString.as(syntax, SqlDQML.select()));

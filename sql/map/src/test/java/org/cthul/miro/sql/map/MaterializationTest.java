@@ -2,18 +2,19 @@ package org.cthul.miro.sql.map;
 
 import static org.cthul.matchers.fluent8.FluentAssert.assertThat;
 import org.cthul.miro.db.MiConnection;
-import org.cthul.miro.entity.EntityType;
+import org.cthul.miro.domain.Repository;
 import org.cthul.miro.ext.jdbc.JdbcConnection;
-import org.cthul.miro.graph.Graph;
 import org.cthul.miro.result.Results;
 import org.cthul.miro.sql.SelectQuery;
 import org.cthul.miro.sql.syntax.AnsiSqlSyntax;
 import org.cthul.miro.test.Address;
 import org.cthul.miro.test.Person;
 import org.cthul.miro.test.TestDB;
+import org.cthul.strings.JavaNames;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.cthul.miro.entity.EntityTemplate;
 
 /**
  *
@@ -37,9 +38,23 @@ public class MaterializationTest {
     }
     
     private final MiConnection connection = new JdbcConnection(TestDB::getConnection, new AnsiSqlSyntax());
-    private final SqlSchema schema = new SqlSchema();
-    private final EntityType<Person> personType = schema.getEntityType(Person.class, "*");
-    private final EntityType<Address> addressType = schema.getEntityType(Address.class, "*");
+    private final MappedSqlDomain schema = new MappedSqlDomain() {
+        @Override
+        protected String defaultColumnName(String propertyName) {
+            return JavaNames.under_score(propertyName);
+        }
+        @Override
+        protected String defaultAliasName(String columnName, String propertyName) {
+            return columnName;
+        }
+        @Override
+        protected String nestedPropertyPrefix(String columnName) {
+            return columnName + "_";
+        }
+    };
+    private final Repository repository = schema.newUncachedRepository(null);
+    private final EntityTemplate<Person> personType = repository.getEntitySet(Person.class).getLookUp().andRead("*");
+    private final EntityTemplate<Address> addressType = repository.getEntitySet(Address.class).getLookUp().andRead("*");
     
     @Test
     public void select_single_object() {
@@ -103,8 +118,8 @@ public class MaterializationTest {
                 "WHERE p.id = ? " +
                 "ORDER BY p.id, a.id, p2.id", 1);
 
-        Graph graph = schema.newGraph(connection);
-        EntityType<Person> personGraph = graph.getEntityType(Person.class, "*");
+        Repository graph = schema.newRepository(connection);
+        EntityTemplate<Person> personGraph = graph.getEntitySet(Person.class).getLookUp().andRead("*");
         Person p = qry.submit()
                 .andThen(Results.build(personGraph))
                 ._getSingle();

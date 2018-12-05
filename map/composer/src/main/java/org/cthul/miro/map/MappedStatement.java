@@ -1,21 +1,21 @@
 package org.cthul.miro.map;
 
 import org.cthul.miro.entity.EntityConfiguration;
-import org.cthul.miro.entity.EntityType;
-import org.cthul.miro.entity.EntityTypes;
+import org.cthul.miro.entity.Entities;
+import org.cthul.miro.entity.EntityTemplate;
 
 /**
  *
  * @param <Entity>
- * @param <Stmt>
+ * @param <Req>
  */
-public class MappedStatement<Entity, Stmt> implements Mapping<Entity> {
+public class MappedStatement<Entity, Req> implements Mapping<Entity> {
     
-    private final Stmt statement;
-    private EntityType<Entity> entityType = null;
-    private EntityConfiguration<Entity> entityConfig = EntityTypes.noConfiguration();
+    private final Req statement;
+    private EntityTemplate<Entity> entityType = null;
+    private EntityConfiguration<Entity> entityConfig = Entities.noConfiguration();
 
-    public MappedStatement(Stmt statement) {
+    public MappedStatement(Req statement) {
         this.statement = statement;
     }
 
@@ -24,7 +24,7 @@ public class MappedStatement<Entity, Stmt> implements Mapping<Entity> {
     }
 
     @Override
-    public void setType(EntityType<Entity> type) {
+    public void setTemplate(EntityTemplate<Entity> type) {
         entityType = type;
     }
 
@@ -33,11 +33,11 @@ public class MappedStatement<Entity, Stmt> implements Mapping<Entity> {
         entityConfig = entityConfig.and(config);
     }
 
-    public EntityType<Entity> getEntityType() {
+    public EntityTemplate<Entity> getEntityType() {
         return entityType.with(entityConfig);
     }
 
-    public Stmt getStatement() {
+    public Req getStatement() {
         return statement;
     }
 }

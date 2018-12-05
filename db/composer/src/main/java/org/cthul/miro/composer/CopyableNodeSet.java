@@ -190,4 +190,25 @@ public abstract class CopyableNodeSet<Key, Hint, Value> {
             return true;
         }
     };
+    
+    public static abstract class CopyInit<Key, Hint, Value, Composer> 
+                    extends CopyableNodeSet<Key, Hint, Value>
+                    implements Initializable<Composer>, Copyable<Composer> {
+
+        public CopyInit() {
+        }
+
+        public CopyInit(CopyableNodeSet<Key, Hint, Value> parent) {
+            super(parent);
+        }
+
+        protected abstract Initializable<Composer> copyInstance();
+
+        @Override
+        public Object copy(Composer composer) {
+            Initializable<Composer> copy = copyInstance();
+            copy.initialize(composer);
+            return copy;
+        }
+    }
 }

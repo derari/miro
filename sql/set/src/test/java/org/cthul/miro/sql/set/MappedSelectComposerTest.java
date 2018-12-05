@@ -3,9 +3,12 @@ package org.cthul.miro.sql.set;
 import java.util.List;
 import org.cthul.miro.map.MappedQuery;
 import org.cthul.miro.composer.ComposerState;
+import org.cthul.miro.domain.impl.SimpleRepository;
 import org.cthul.miro.result.Results.Action;
 import org.cthul.miro.sql.SelectQuery;
 import org.cthul.miro.sql.SqlDQML;
+import org.cthul.miro.sql.map.MappedSelectRequest;
+import org.cthul.miro.sql.map.MappedSqlType;
 import org.junit.Before;
 import org.junit.Test;
 import static org.hamcrest.Matchers.is;
@@ -16,16 +19,16 @@ import static org.junit.Assert.assertThat;
  */
 public class MappedSelectComposerTest {
     
-    MappedSelectComposer cmp;
+    MappedSelectRequest<Person> cmp;
     
     @Before
     public void setUp() {
         TestDB.scenario1();
         MappedSqlType<Person> type = new MappedSqlType<>(Person.class)
                 .sql("SELECT p.id, p.first_name AS firstName, p.last_name AS lastName FROM People p")
-                .column("id").field("id")
-                .column("firstName").field("firstName")
-                .column("lastLame").field("lastName");
+                .property("id").column("id").field("id")
+                .property("firstName").column("firstName").field("firstName")
+                .property("lastLame").column("lastLame").field("lastName");
         
         cmp = type.newMappedSelectComposer();
     }
@@ -42,6 +45,6 @@ public class MappedSelectComposerTest {
     
     private Action<Person> getQueryString() {
         MappedQuery<Person,SelectQuery> qry = new MappedQuery<>(TestDB.getMiConnection(), SqlDQML.select());
-        return qry.query(ComposerState.asRequestComposer(cmp));
+        return qry.apply(ComposerState.asRequestComposer(cmp)).result();
     }
 }

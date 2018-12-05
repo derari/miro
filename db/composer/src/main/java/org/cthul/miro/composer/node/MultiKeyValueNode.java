@@ -18,12 +18,12 @@ public interface MultiKeyValueNode<K, V> extends BatchNode<Object> {
     ListNode<V[]> forKeys(K... keys);
 
     @Override
-    public default void set(Collection<? extends Object> values) {
-        set(values.toArray());
+    public default void batch(Collection<? extends Object> values) {
+        batch(values.toArray());
     }
 
     @Override
-    public default void set(Object... values) {
+    public default void batch(Object... values) {
         if (values.length == 2) {
             put((K) values[0], (V) values[1]);
         } else {
@@ -58,9 +58,9 @@ public interface MultiKeyValueNode<K, V> extends BatchNode<Object> {
             @Override
             public void add(Object entry) { }
             @Override
-            public void set(Object... values) { }
+            public void batch(Object... values) { }
             @Override
-            public void set(Collection<? extends Object> values) { }
+            public void batch(Collection<? extends Object> values) { }
         }
         return new Dummy();
     }

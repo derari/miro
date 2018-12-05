@@ -1,30 +1,23 @@
 package org.cthul.miro.result;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.entity.EntityConfiguration;
 import org.cthul.miro.entity.EntityFactory;
-import org.cthul.miro.entity.EntityTypes;
-import org.cthul.miro.graph.NodeSelector;
+import org.cthul.miro.entity.Entities;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.ext.jdbc.JdbcConnection;
-import org.cthul.miro.db.stmt.MiQueryString;
-import org.cthul.miro.entity.EntityType;
-import org.cthul.miro.entity.InitializationBuilder;
-import org.cthul.miro.entity.map.PropertiesConfiguration;
-import org.cthul.miro.entity.base.NestedFactoryConfiguration;
-import org.cthul.miro.entity.base.ResultColumns;
-import org.cthul.miro.entity.base.ResultReadingEntityType;
-import org.cthul.miro.graph.Graph;
-import org.cthul.miro.graph.GraphApi;
-import org.cthul.miro.graph.GraphSchema;
-import org.cthul.miro.graph.SelectorBuilder;
-import org.cthul.miro.graph.impl.AbstractNodeType;
-import org.cthul.miro.graph.impl.ColumnReader;
+import org.cthul.miro.db.request.MiQueryString;
+import org.cthul.miro.domain.Domain;
+import org.cthul.miro.domain.Repository;
+import org.cthul.miro.domain.impl.AbstractEntityType;
+import org.cthul.miro.domain.impl.ColumnReader;
+import org.cthul.miro.entity.*;
+import org.cthul.miro.entity.builder.SelectorBuilder;
+import org.cthul.miro.entity.map.*;
+import org.cthul.miro.entity.map.ResultColumns.ColumnRule;
 import org.cthul.miro.sql.SqlClause;
 import org.cthul.miro.sql.syntax.AnsiSqlSyntax;
 import org.cthul.miro.test.Address;
@@ -60,7 +53,7 @@ public class ResultsTest {
     
     private final MiConnection connection = new JdbcConnection(TestDB::getConnection, new AnsiSqlSyntax());
     
-    private final GraphSchema schema = GraphSchema.build()
+    private final Domain schema = Domain.build()
                 .put(Person.class, new PersonNode())
                 .put(Address.class, new AddressNode());
     
@@ -97,8 +90,9 @@ public class ResultsTest {
     
     @Test
     public void test_graph() throws MiException {
-        try (Graph graph = schema.newGraph(connection);
-                NodeSelector<Person> people = graph.newNodeSelector(Person.class, "*", "address.*", "address.people.*")) {
+        
+        try (Repository graph = schema.newRepository(connection);
+                EntitySelector<Person> people = graph.getEntitySet(Person.class).getSelector().andLoad("*", "address.*", "address.people.*")) {
             Person p = people.get(1);
             people.complete();
             assertThat(p.firstName, is("John"));
@@ -109,9 +103,9 @@ public class ResultsTest {
     
     @Test
     public void test_graph_with_custom_query_and_manual_types() throws MiException, InterruptedException, ExecutionException {
-        try (Graph graph = schema.newGraph(connection)) {
-            EntityType<Person> personType = graph.getEntityType(Person.class, PERSON_FIELD_IDS);
-            EntityType<Address> addressType = graph.<Address>getEntityType(Address.class, ADDRESS_FIELD_IDS);
+        try (Repository graph = schema.newRepository(connection)) {
+            EntityTemplate<Person> personType = graph.getEntitySet(Person.class).getLookUp().andLoad(PERSON_FIELD_IDS);
+            EntityTemplate<Address> addressType = graph.getEntitySet(Address.class).getLookUp().andLoad(ADDRESS_FIELD_IDS);
             addressType = addressType.with(new AddressPersonConfig(personType));
             personType = personType.with(new PersonAddressConfig(addressType));
             
@@ -138,10 +132,10 @@ public class ResultsTest {
     
     @Test
     public void test_graph_with_custom_query() throws MiException, InterruptedException, ExecutionException {
-        try (Graph graph = schema.newGraph(connection)) {
-            EntityType<Person> personType = graph.<Person>getEntityType(Person.class, "*", "address.*");
+        try (Repository graph = schema.newRepository(connection)) {
+            EntityTemplate<Person> personType = graph.getEntitySet(Person.class).getLookUp().andLoad("*", "address.*");
             
-            Person p = graph.<Person>newNodeSelector(Person.class).get(1);
+            Person p = graph.getEntitySet(Person.class).getSelector().get(1);
             assertThat(p.firstName, is(nullValue()));
             
             query4().submit()
@@ -154,88 +148,73 @@ public class ResultsTest {
     }
     
     static final List<String> PERSON_FIELD_IDS = Arrays.asList("first_name", "last_name");
-    static final PropertiesConfiguration<Person, GraphApi> PERSON_FIELDS = new PropertiesConfiguration<Person, GraphApi>()
-            .optional("first_name").set((p, o) -> p.firstName = (String) o)
-            .optional("last_name").set((p, o) -> p.lastName = (String) o);
+    static final EntityProperties<Person> PERSON_FIELDS = new PropertiesConfiguration<Person>()
+            .property("first_name").requiredColumn("first_name").set((p, o) -> p.firstName = (String) o)
+            .property("last_name").requiredColumn("last_name").set((p, o) -> p.lastName = (String) o);
     static final PersonEntity PERSON_ENTITY = new PersonEntity();
     
     static final List<String> ADDRESS_FIELD_IDS = Arrays.asList("street", "city");
-    static final PropertiesConfiguration<Address, GraphApi> ADDRESS_FIELDS = new PropertiesConfiguration<Address, GraphApi>(Address.class)
-            .optional("street").field("street")
-            .optional("city").field("city");
+    static final EntityProperties<Address> ADDRESS_FIELDS = new PropertiesConfiguration<>(Address.class)
+            .property("street").requiredColumn("street").field("street")
+            .property("city").requiredColumn("city").field("city");
     static final AddressEntity ADDRESS_ENTITY = new AddressEntity();
     
     static final EntityConfiguration<Person> PERSON_ADDRESS = new PersonAddressConfig(ADDRESS_ENTITY);
     
-    static class PersonEntity extends ResultReadingEntityType<Person> {
-
-        public PersonEntity() {
-            super(PERSON_FIELDS.newConfiguration(null));
-        }
+    static class PersonEntity implements EntityTemplate<Person> {
 
         @Override
-        protected Person newEntity(MiResultSet rs, int[] indices) throws MiException {
-            Person p = new Person();
-            p.id = rs.getInt(indices[0]);
-            return p;
-        }
-
-        @Override
-        protected int[] findColumns(MiResultSet rs) throws MiException {
-            return ResultColumns.findAllColumns(rs, "id");
+        public void newFactory(MiResultSet resultSet, FactoryBuilder<? super Person> builder) throws MiException {
+            int cId = ResultColumns.findColumn(ColumnRule.REQUIRED, resultSet, "id");
+            builder.setFactory(Person::new)
+                    .add(p -> p.id = resultSet.getInt(cId))
+                    .add(PERSON_FIELDS.read(null), resultSet);
         }
     }
     
-    static class PersonAddressConfig extends NestedFactoryConfiguration<Person, Address> {
-        private final EntityType<Address> addressType;
+    static class PersonAddressConfig implements EntityConfiguration<Person> {
+        private final EntityTemplate<Address> addressTemplate;
 
-        public PersonAddressConfig(EntityType<Address> addressType) {
-            super("address = " + addressType);
-            this.addressType = addressType;
-        }
-        
-        @Override
-        protected EntityFactory<Address> nestedFactory(MiResultSet rs) throws MiException {
-            return addressType.newFactory(rs.subResult("address_"));
+        public PersonAddressConfig(EntityTemplate<Address> addressTemplate) {
+            this.addressTemplate = addressTemplate;
         }
 
         @Override
-        protected void apply(Person person, EntityFactory<Address> factory) throws MiException {
-            person.address = factory.newEntity();
+        public void newInitializer(MiResultSet resultSet, InitializationBuilder<? extends Person> builder) throws MiException {
+            EntityFactory<Address> addressFactory = builder.nestedFactory(addressTemplate, resultSet.subResult("address_"));
+            builder.addName("address = " + addressFactory);
+            builder.addInitializer(p -> p.address = addressFactory.newEntity());
+        }
+
+        @Override
+        public String toString() {
+            return "address = " + addressTemplate;
         }
     }
     
-    static class AddressEntity extends ResultReadingEntityType<Address> {
-
-        public AddressEntity() {
-            super(ADDRESS_FIELDS.newConfiguration(null));
-        }
+    static class AddressEntity implements EntityTemplate<Address> {
 
         @Override
-        protected Address newEntity(MiResultSet rs, int[] indices) throws MiException {
-            Address a = new Address();
-            a.id = rs.getInt(indices[0]);
-            return a;
-        }
-        
-        @Override
-        protected int[] findColumns(MiResultSet rs) throws MiException {
-            return ResultColumns.findAllColumns(rs, "id");
+        public void newFactory(MiResultSet resultSet, FactoryBuilder<? super Address> builder) throws MiException {
+            int cId = ResultColumns.findColumn(ColumnRule.REQUIRED, resultSet, "id");
+            builder.set(Address::new)
+                .addInitializer(a -> a.id = resultSet.getInt(cId))
+                .add(ADDRESS_FIELDS.read(null), resultSet);
         }
     }
     
     static class AddressPersonConfig implements EntityConfiguration<Address> {
-        private final EntityType<Person> personType;
+        private final EntityTemplate<Person> personType;
 
-        public AddressPersonConfig(EntityType<Person> personType) {
+        public AddressPersonConfig(EntityTemplate<Person> personType) {
             this.personType = personType;
         }
 
         @Override
         public void newInitializer(MiResultSet resultSet, InitializationBuilder<? extends Address> builder) throws MiException {
-            EntityFactory<Person> personFactory = personType.newFactory(resultSet.subResult("p_"));
-            PropertiesConfiguration<Address, GraphApi> cfg = new PropertiesConfiguration<Address, GraphApi>(Address.class)
-                    .allOrNone("id", "p_id").readAs((rs, i) -> {
+            EntityFactory<Person> personFactory = builder.nestedFactory(personType, resultSet.subResult("p_"));
+            PropertiesConfiguration<Address> cfg = new PropertiesConfiguration<>(Address.class)
+                    .property("people").allOrNoneColumns("id", "p_id").read((rs, i) -> {
                         List<Person> list = new ArrayList<>();
                         int id = rs.getInt(i[0]);
                         while (id == rs.getInt(i[0])) {
@@ -245,34 +224,53 @@ public class ResultsTest {
                         rs.previous();                        
                         return list;
                     }).field("people");
-            builder.addCompleteAndClose(personFactory);
-            cfg.newInitializer(resultSet, null, builder);
+            builder.add(cfg.read(null), resultSet);
         }
     }
     
-    static class PersonNode extends AbstractNodeType<Person> {
+    static class PersonNode extends AbstractEntityType<Person> {
 
         @Override
-        protected EntityConfiguration<Person> createAttributeReader(GraphApi graph, List<?> attributes) {
-            EntityConfiguration<Person> config = PERSON_FIELDS.newConfiguration(graph, flattenStr(attributes));
+        public void newEntityCreator(Repository repository, SelectorBuilder<Person> builder) {
+            builder.setSelector(key -> {
+                Person p = new Person();
+                p.id = (Integer) key[0];
+                return p;
+            });
+        }
+
+        @Override
+        protected EntityConfiguration<Person> createPropertiesReader(Repository repository, Collection<?> properties) {
+            EntityConfiguration<Person> config = PERSON_FIELDS.read(repository, flattenStr(properties));
             List<String> addressAttributes = new ArrayList<>();
-            flattenStr(attributes).stream().filter(a -> a.startsWith("address.")).forEach(a -> {
+            flattenStr(properties).stream().filter(a -> a.startsWith("address.")).forEach(a -> {
                 addressAttributes.add(a.substring(8));
             });
             if (!addressAttributes.isEmpty()) {
-                config = config.and(
-                        EntityTypes.subResultConfiguration("address_", 
-                            new PersonAddressLink(graph, addressAttributes)));
+                config = config.and(Entities.subResultConfiguration("address_", 
+                            new PersonAddressLink(repository, addressAttributes)));
             }
             return config;
         }
 
         @Override
-        protected BatchLoader<Person> newBatchLoader(GraphApi graph, List<?> attributes) throws MiException {
-            return new SimpleBatchLoader(graph, attributes) {
+        protected Object[] getKey(Person e, Object[] array) throws MiException {
+            if (array == null) array = new Object[1];
+            array[0] = e.id;
+            return array;
+        }
+
+        @Override
+        protected ColumnReader newKeyReader(Repository repository, MiResultSet resultSet) throws MiException {
+            return ColumnReader.create(resultSet, "id");
+        }
+
+        @Override
+        protected BatchLoader<Person> newBatchLoader(Repository repository, MiConnection connection, Collection<?> properties) {
+            return new SimpleBatchLoader(repository, properties) {
                 @Override
-                protected MiResultSet fetchAttributes(List<Object[]> keys) throws MiException {
-                    return queryAttributes(graph, keys, attributes);
+                protected MiResultSet fetchProperties(List<Object[]> keys) throws MiException {
+                    return queryAttributes(connection, keys, flattenStr(properties));
                 }
             };
         }
@@ -286,41 +284,25 @@ public class ResultsTest {
         }
 
         @Override
-        public void newNodeFactory(GraphApi graph, SelectorBuilder<? super Person> builder) throws MiException {
-            builder.setFactory(key -> {
-                Person p = new Person();
-                p.id = (Integer) key[0];
-                return p;
-            });
-        }
-
-        @Override
-        public Object[] getKey(Person e, Object[] array) {
-            if (array == null) array = new Object[1];
-            array[0] = e.id;
-            return array;
-        }
-
-        @Override
-        protected ColumnReader newKeyReader(MiResultSet resultSet, GraphApi graph) throws MiException {
-            return ColumnReader.create(resultSet, "id");
+        public ColumnMapping mapToColumns(String prefix, Object key) {
+            throw new UnsupportedOperationException("Not supported yet.");
         }
     }
     
-    static class AddressNode extends AbstractNodeType<Address> {
+    static class AddressNode extends AbstractEntityType<Address> {
 
         @Override
-        protected EntityConfiguration<Address> createAttributeReader(GraphApi graph, List<?> attributes) {
-            return ADDRESS_FIELDS.newConfiguration(graph, flattenStr(attributes))
-                    .and(new AddressPersonLink(graph, Arrays.asList("*")));
+        protected EntityConfiguration<Address> createPropertiesReader(Repository repository, Collection<?> properties) {
+            return ADDRESS_FIELDS.read(repository, flattenStr(properties))
+                    .and(new AddressPersonLink(repository, Arrays.asList("*")));
         }
 
         @Override
-        protected BatchLoader<Address> newBatchLoader(GraphApi graph, List<?> attributes) throws MiException {
-            return new SimpleBatchLoader(graph, attributes) {
+        protected BatchLoader<Address> newBatchLoader(Repository repository, MiConnection connection, Collection<?> properties) {
+            return new SimpleBatchLoader(repository, properties) {
                 @Override
-                protected MiResultSet fetchAttributes(List<Object[]> keys) throws MiException {
-                    return queryAttributes(graph, keys, attributes);
+                protected MiResultSet fetchProperties(List<Object[]> keys) throws MiException {
+                    return queryAttributes(connection, keys, flattenStr(properties));
                 }
             };
         }
@@ -341,8 +323,8 @@ public class ResultsTest {
         }
 
         @Override
-        public void newNodeFactory(GraphApi graph, SelectorBuilder<? super Address> builder) throws MiException {
-            builder.setFactory(key -> {
+        public void newEntityCreator(Repository repository, SelectorBuilder<Address> selectorBuilder) {
+            selectorBuilder.setSelector(key -> {
                 Address a = new Address();
                 a.id = (Integer) key[0];
                 return a;
@@ -357,47 +339,52 @@ public class ResultsTest {
         }
 
         @Override
-        protected ColumnReader newKeyReader(MiResultSet resultSet, GraphApi graph) throws MiException {
+        protected ColumnReader newKeyReader(Repository repository, MiResultSet resultSet) throws MiException {
             return ColumnReader.create(resultSet, "id");
+        }
+        
+        @Override
+        public ColumnMapping mapToColumns(String prefix, Object key) {
+            throw new UnsupportedOperationException("Not supported yet.");
         }
     }
     
     static class PersonAddressLink implements EntityConfiguration<Person> {
 
-        private final GraphApi graph;
+        private final Repository repo;
         private final List<String> addressAttributes;
 
-        public PersonAddressLink(GraphApi graph, List<String> addressAttributes) {
-            this.graph = graph;
+        public PersonAddressLink(Repository graph, List<String> addressAttributes) {
+            this.repo = graph;
             this.addressAttributes = addressAttributes;
         }
 
         @Override
         public void newInitializer(MiResultSet resultSet, InitializationBuilder<? extends Person> builder) throws MiException {
-            NodeSelector<Address> addressSelector = graph.newNodeSelector(Address.class, addressAttributes);
-            PropertiesConfiguration<Person, GraphApi> cfg = new PropertiesConfiguration<Person, GraphApi>(Person.class)
-                    .require("id").mapToValue(o -> addressSelector.get((Integer) o))
+            EntitySelector<Address> addressSelector = repo.getEntitySet(Address.class).getSelector().andLoad(addressAttributes);
+            PropertiesConfiguration<Person> cfg = new PropertiesConfiguration<>(Person.class)
+                    .property("id").requiredColumn("id").mapToValue(o -> addressSelector.get((Integer) o))
                     .field("address");
             builder.addCompleteAndClose(addressSelector);
-            cfg.newInitializer(resultSet, null, builder);
+            cfg.newReader(repo, resultSet, builder);
         }
     }
     
     static class AddressPersonLink implements EntityConfiguration<Address> {
         
-        private final GraphApi graph;
+        private final Repository repo;
         private final List<String> personAttributes;
 
-        public AddressPersonLink(GraphApi graph, List<String> personAttributes) {
-            this.graph = graph;
+        public AddressPersonLink(Repository graph, List<String> personAttributes) {
+            this.repo = graph;
             this.personAttributes = personAttributes;
         }
 
         @Override
         public void newInitializer(MiResultSet resultSet, InitializationBuilder<? extends Address> builder) throws MiException {
-            NodeSelector<Person> personSelector = graph.newNodeSelector(Person.class, personAttributes);
-            PropertiesConfiguration<Address, GraphApi> cfg = new PropertiesConfiguration<Address, GraphApi>(Address.class)
-                    .allOrNone("id", "p_id").readAs((rs, i) -> {
+            EntitySelector<Person> personSelector = repo.getEntitySet(Person.class).getSelector().andLoad(personAttributes);
+            PropertiesConfiguration<Address> cfg = new PropertiesConfiguration<>(Address.class)
+                    .property("people").allOrNoneColumns("id", "p_id").read((rs, i) -> {
                         List<Person> list = new ArrayList<>();
                         int id = rs.getInt(i[0]);
                         while (id == rs.getInt(i[0])) {
@@ -409,7 +396,7 @@ public class ResultsTest {
                         return list;
                     }).field("people");
             builder.addCompleteAndClose(personSelector);
-            cfg.newInitializer(resultSet, null, builder);
+            cfg.newReader(repo, resultSet, builder);
         }
     }
 }

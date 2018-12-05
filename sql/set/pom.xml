@@ -67,13 +67,9 @@
         </dependency>
         <dependency>
             <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-sql-composer</artifactId>
+            <artifactId>miro-sql-map</artifactId>
         </dependency>
         
-        <dependency>
-            <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-at-model</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.cthul.miro</groupId>
             <artifactId>miro-util-test</artifactId>

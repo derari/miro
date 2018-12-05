@@ -44,21 +44,19 @@
         </dependency>
         <dependency>
             <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-map-graph</artifactId>
+            <artifactId>miro-map-composer</artifactId>
         </dependency>
-        
         <dependency>
             <groupId>org.cthul.miro</groupId>
-            <artifactId>miro-sql-syntax</artifactId>
-            <scope>test</scope>
+            <artifactId>miro-sql-composer</artifactId>
         </dependency>
         
         <dependency>
             <groupId>org.cthul</groupId>
             <artifactId>cthul-strings</artifactId>
             <version>1.0</version>
+            <scope>test</scope>
         </dependency>
-        
         <dependency>
             <groupId>org.cthul.miro</groupId>
             <artifactId>miro-util-test</artifactId>

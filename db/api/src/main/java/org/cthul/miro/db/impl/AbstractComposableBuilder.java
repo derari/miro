@@ -2,7 +2,7 @@ package org.cthul.miro.db.impl;
 
 import org.cthul.miro.db.syntax.AutocloseableBuilder;
 import java.util.function.Function;
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
 
 /**
  * A builder implementation with sub-clause support.

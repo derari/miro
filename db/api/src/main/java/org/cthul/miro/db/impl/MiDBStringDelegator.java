@@ -1,6 +1,6 @@
 package org.cthul.miro.db.impl;
 
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
 
 /**
  * Wraps a {@link MiDBString}.

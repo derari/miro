@@ -1,6 +1,6 @@
 package org.cthul.miro.db.syntax;
 
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
 import org.cthul.miro.util.Key;
 
 /**

@@ -3,7 +3,6 @@ package org.cthul.miro.sql.composer;
 import org.cthul.miro.sql.composer.model.SqlAttribute;
 import org.cthul.miro.sql.composer.model.SqlTable;
 import org.cthul.miro.sql.composer.model.SqlSnippet;
-import org.cthul.miro.sql.composer.model.JoinedView;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -13,6 +12,7 @@ import org.cthul.miro.sql.SqlJoinableClause.JoinType;
 import org.cthul.miro.sql.syntax.MiSqlParser;
 import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.sql.SelectBuilder;
+import org.cthul.miro.sql.composer.model.JoinedView;
 
 public interface SqlTemplatesBuilder<This extends SqlTemplatesBuilder<This>> {
     

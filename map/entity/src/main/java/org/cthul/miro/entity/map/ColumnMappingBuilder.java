@@ -1,31 +1,27 @@
 package org.cthul.miro.entity.map;
 
-import java.util.ArrayList;
+import java.util.*;
+import java.util.function.BiConsumer;
+import org.cthul.miro.domain.Repository;
 import org.cthul.miro.util.XBiFunction;
 import org.cthul.miro.util.XFunction;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;
-import org.cthul.miro.entity.EntityFactory;
-import org.cthul.miro.entity.EntityType;
-import org.cthul.miro.entity.EntityTypes;
-import org.cthul.miro.entity.base.ResultColumns;
-import org.cthul.miro.entity.base.ResultColumns.ColumnMatcher;
-import org.cthul.miro.entity.base.ResultColumns.ColumnRule;
+import org.cthul.miro.entity.*;
+import org.cthul.miro.entity.map.ResultColumns.ColumnMatcher;
+import org.cthul.miro.entity.map.ResultColumns.ColumnRule;
+import org.cthul.miro.entity.map.ResultColumns.ColumnsMatcher;
+import org.cthul.miro.util.*;
 import org.cthul.miro.util.Closeables.FunctionalHelper;
 
 /**
  *
  * @param <Entity>
- * @param <Cnn>
  * @param <S>
  * @param <G>
  */
-public interface ColumnMappingBuilder<Entity, Cnn, S extends ColumnMappingBuilder.Single<Entity, Cnn, S>, G extends ColumnMappingBuilder.Group<Entity, Cnn, G>> {
+public interface ColumnMappingBuilder<Entity, S extends ColumnMappingBuilder.Single<Entity, ?>, G extends ColumnMappingBuilder.Group<Entity, ?>> {
     
     S column(ColumnRule rule, String column);
     
@@ -33,27 +29,33 @@ public interface ColumnMappingBuilder<Entity, Cnn, S extends ColumnMappingBuilde
     
     G columns(ColumnRule allRule, ColumnRule eachRule, String... columns);
     
+    G columns(ColumnsMatcher matcher, String[] columns);
+    
+    default G columns(ColumnsMatcher matcher, Collection<String> columns) {
+        return columns(matcher, columns.toArray(new String[columns.size()]));
+    }
+    
     /**
-     * Adds attribute with required column.
+     * Adds attribute with requiredColumns columnMatcher.
      * @param column
      * @return single
      */
-    default S require(String column) {
+    default S requiredColumn(String column) {
         return ColumnMappingBuilder.this.column(ColumnRule.REQUIRED, column);
     }
 
     /**
-     * Adds attribute with optional column.
+     * Adds attribute with optionalColumn columnMatcher.
      * @param column
      * @return single
      */
-    default S optional(String column) {
+    default S optionalColumn(String column) {
         return ColumnMappingBuilder.this.column(ColumnRule.OPTIONAL, column);
     }
 
     /**
      * Adds attribute with no default behavior.
-     * Setter will be called with index -1 if column is not present.
+     * Setter will be called with index -1 if columnMatcher is not present.
      * @param column
      * @return single
      */
@@ -62,40 +64,40 @@ public interface ColumnMappingBuilder<Entity, Cnn, S extends ColumnMappingBuilde
     }
 
     /**
-     * Adds attribute with required columns.
+     * Adds attribute with requiredColumns columns.
      * @param columns
      * @return group
      */
-    default G required(String... columns) {
+    default G requiredColumns(String... columns) {
         return ColumnMappingBuilder.this.columns(ColumnRule.REQUIRED, ColumnRule.REQUIRED, columns);
     }
 
     /**
-     * Adds attribute with optional columns.
+     * Adds attribute with optionalColumn columns.
      * If only some columns are missing, their indices are set to -1.
      * @param columns
      * @return group
      */
-    default G optional(String... columns) {
+    default G optionalColumns(String... columns) {
         return ColumnMappingBuilder.this.columns(ColumnRule.OPTIONAL, ColumnRule.DEFAULT, columns);
     }
 
     /**
-     * Adds attribute with optional columns.
-     * If any column is missing, setter is not called.
+     * Adds attribute with optionalColumn columns.
+     * If anyColumn columnMatcher is missing, setter is not called.
      * @param columns
      * @return group
      */
-    default G allOrNone(String... columns) {
+    default G allOrNoneColumns(String... columns) {
         return ColumnMappingBuilder.this.columns(ColumnRule.OPTIONAL, ColumnRule.OPTIONAL, columns);
     }
 
     /**
-     * Adds attribute that requires at least one column.
+     * Adds attribute that requires at least one columnMatcher.
      * @param columns
      * @return group
      */
-    default G any(String... columns) {
+    default G anyColumn(String... columns) {
         return ColumnMappingBuilder.this.columns(ColumnRule.REQUIRED, ColumnRule.DEFAULT, columns);
     }
 
@@ -109,122 +111,151 @@ public interface ColumnMappingBuilder<Entity, Cnn, S extends ColumnMappingBuilde
         return ColumnMappingBuilder.this.columns(ColumnRule.DEFAULT, ColumnRule.DEFAULT, columns);
     }
     
-    public abstract class Single<Entity, Cnn, S extends Single<Entity, Cnn, S>> {
+    public class Single<Entity, S extends Single<Entity, S>> {
         
-        protected final ColumnMatcher column;
-        protected final List<String> columns = new ArrayList<>();
-        protected MultiValue multi = null;
-        protected Function<Object, Object> toColumn = null;
-        protected XFunction<Object, Object, MiException> toValue = null;
+        protected final ColumnMatcher columnMatcher;
+        protected String column = null;
+        protected Function<Object, Object> toColumn = IDENTITY;
+        protected XFunction<Object, Object, MiException> toValue = XIDENTITY;
         protected XBiFunction<MiResultSet, Integer, ?, MiException> reader = null;
-        protected XBiFunction<MiResultSet, Cnn, ? extends EntityFactory<?>, MiException> newReader = null;
+        protected XBiConsumer<MiResultSet, FactoryBuilder<Object>, MiException> newReader2 = null;
+        protected XTriConsumer<Repository, MiResultSet, FactoryBuilder<Object>, MiException> newReader3 = null;
+        protected Function<Collection<?>, ColumnMapping> nestedBuilder = null;
 
         public Single(ColumnMatcher column) {
+            this.columnMatcher = column;
+        }
+        
+        public S setColumn(String column) {
             this.column = column;
-        }
-        
-        public S addColumns(String... columns) {
-            return addColumns(Arrays.asList(columns));
-        }
-        
-        public S addColumns(List<String> columns) {
-            this.columns.addAll(columns);
             return (S) this;
         }
         
         public S mapToValue(XFunction<Object, Object, MiException> toValue) {
             this.toValue = toValue;
-            multi = null;
             return (S) this;
         }
         
         public S mapToColumn(Function<Object, Object> toColumn) {
             this.toColumn = toColumn;
-            multi = null;
             return (S) this;
         }
         
-        public S map(MultiValue multi) {
-            this.multi = multi;
-            return (S) this;
-        }
-        
-        public S readAs(XBiFunction<MiResultSet, Integer, ?, MiException> reader) {
+        public S read(XBiFunction<MiResultSet, Integer, ?, MiException> reader) {
             this.reader = reader;
-            this.newReader = null;
+            this.newReader2 = null;
+            this.newReader3 = null;
             return (S) this;
         }
         
-        public S readWith(XFunction<MiResultSet, ? extends EntityFactory<?>, MiException> newReader) {
-            return readWith((rs, cnn) -> newReader.apply(rs));
-        }
-        
-        public S readWith(XBiFunction<MiResultSet, Cnn, ? extends EntityFactory<?>, MiException> newReader) {
+        public S readWith(XBiConsumer<MiResultSet, FactoryBuilder<Object>, MiException> newReader) {
             this.reader = null;
-            this.newReader = newReader;
+            this.newReader2 = newReader;
+            this.newReader3 = null;
             return (S) this;
+        }
+        
+        public S readWith(XTriConsumer<Repository, MiResultSet, FactoryBuilder<Object>, MiException> newReader) {
+            this.reader = null;
+            this.newReader2 = null;
+            this.newReader3 = newReader;
+            return (S) this;
+        }
+
+        public S nested(Function<Collection<?>, ColumnMapping> nestedBuilder) {
+            this.nestedBuilder = nestedBuilder;
+            return (S) this;
+        }
+        
+        public S nested(BiConsumer<Collection<?>, ColumnMappingBuilder<Entity, Single<Entity,?>, Group<Entity,?>>> nested) {
+            return nested(a -> {
+                SimpleBuilder<Entity> sb = new SimpleBuilder<>();
+                nested.accept(a, sb);
+                return sb.getColumnMapping();
+            });
         }
         
         protected ColumnMapping buildColumnValue() {
-            XBiFunction<MiResultSet, Cnn, ? extends EntityFactory<?>, MiException> fNewReader;
-            final BiFunction<Object, Object[], Object[]> fToCol;
-            if (newReader != null || reader != null) {
-                if (toValue != null) throw new IllegalArgumentException(
+            if (newReader3 != null || newReader2 != null || reader != null) {
+                if (toValue != XIDENTITY) throw new IllegalArgumentException(
                         "Can't use mapToValue when reader is given");
-                if (multi != null) throw new IllegalArgumentException(
-                        "Can't use map when reader is given");
             }
-            if (newReader != null) {
-                fNewReader = (rs, cnn) -> {
-                    if (column.find(rs) == null) return null;
-                    return newReader.apply(rs, cnn);
+            XTriConsumer<Repository, MiResultSet, FactoryBuilder<Object>, MiException> fNewReader = buildNewReader();
+            XTriFunction<Object, Integer, Object[], Object[], RuntimeException> fToCol = buildToColumn();
+            XFunction<MiResultSet, Boolean, MiException> matcher = buildMatcher();
+            Function<Collection<?>, ColumnMapping> nested = buildNested();
+            return new SimpleColumnValue(matcher, new ReadOnlyArrayList<>(column), fToCol, fNewReader, nested);
+        }
+
+        protected XTriConsumer<Repository, MiResultSet, FactoryBuilder<Object>, MiException> buildNewReader() {
+            if (newReader3 != null) {
+                return (rep, rs, fb) -> {
+                    if (columnMatcher.find(rs) == null) return;
+                    newReader3.accept(rep, rs, fb);
+                };
+            } else if (newReader2 != null) {
+                return (rep, rs, fb) -> {
+                    if (columnMatcher.find(rs) == null) return;
+                    newReader2.accept(rs, fb);
                 };
             } else if (reader != null) {
-                fNewReader = (rs, cnn) -> {
-                    Integer i = column.find(rs);
-                    if (i == null) return null;
-                    return () -> reader.apply(rs, i);
+                return (rep, rs, fb) -> {
+                    Integer i = columnMatcher.find(rs);
+                    if (i == null) return;
+                    fb.setFactory(() -> reader.apply(rs, i))
+                            .addName(columnMatcher + "(#" + i + ")");
                 };
-            } else if (toValue != null) {
-                fNewReader = (rs, cnn) -> ResultColumns.readColumn(rs, column, multi).andThen(toValue);
             } else {
-                fNewReader = (rs, cnn) -> ResultColumns.readColumn(rs, column, multi);
-            }
-            if (toColumn != null) {
-                fToCol = (v,r) -> {
-                    if (r == null || r.length != 1) r = new Object[1];
-                    r[0] = toColumn.apply(v);
-                    return r;
-                };
-            } else if (multi != null) {
-                fToCol = multi::split;
-            } else {
-                fToCol = (v,r) -> { 
-                    if (r == null || r.length != 1) r = new Object[1];
-                    r[0] = v; 
-                    return r;
+                return (rep, rs, fb) -> {
+                    Integer i = columnMatcher.find(rs);
+                    if (i == null) return;
+                    fb.setFactory(() -> toValue.apply(rs.get(i)))
+                            .addName(columnMatcher + "(#" + i + ")");
                 };
             }
-            XFunction<MiResultSet, Boolean, MiException> matcher = rs -> column.test(rs) != null;
-            return new SimpleColumnValue<>(matcher, columns, fToCol, fNewReader);
+        }
+
+        protected XTriFunction<Object, Integer, Object[], Object[], RuntimeException> buildToColumn() {
+            return (v,i,a) -> {
+                if (a == null) a = new Object[i+1];
+                if (a.length <= i) a = Arrays.copyOf(a, i+1);
+                a[i] = toColumn.apply(v);
+                return a;
+            };
+        }
+
+        protected XFunction<MiResultSet, Boolean, MiException> buildMatcher() {
+            return rs -> columnMatcher.test(rs) != null;
+        }
+
+        protected Function<Collection<?>, ColumnMapping> buildNested() {
+            if (nestedBuilder != null) return nestedBuilder;
+            return null;
         }
     }
     
-    public abstract class Group<Entity, Cnn, G extends Group<Entity, Cnn, G>> {
+    public class Group<Entity, G extends Group<Entity, G>> {
         
         protected final String[] columns;
-        protected final ColumnRule allRule, eachRule;
-        protected ColumnMapping columnValue = null;
+        protected final ColumnsMatcher matcher;
         protected MultiValue multi = null;
         protected XFunction<Object[], ?, MiException> toValue = null;
-        protected BiFunction<Object, Object[], Object[]> toColumn = null;
+        protected XTriFunction<Object, Integer, Object[], Object[], RuntimeException> toColumn = null;
         protected XBiFunction<MiResultSet, int[], ?, MiException> reader = null;
-        protected XBiFunction<MiResultSet, Cnn, ? extends EntityFactory<?>, MiException> newReader = null;
+        protected XBiConsumer<MiResultSet, FactoryBuilder<Object>, MiException> newReader2 = null;
+        protected XTriConsumer<Repository, MiResultSet, FactoryBuilder<Object>, MiException> newReader3 = null;
+        protected Function<Collection<?>, ColumnMapping> nestedBuilder = null;
 
         public Group(String[] columns, ColumnRule allRule, ColumnRule eachRule) {
+            this(columns, ResultColumns.match(allRule, eachRule, columns));
+//            this.columns = columns;
+//            this.allRule = allRule;
+//            this.eachRule = eachRule;
+        }
+
+        public Group(String[] columns, ColumnsMatcher matcher) {
             this.columns = columns;
-            this.allRule = allRule;
-            this.eachRule = eachRule;
+            this.matcher = matcher;
         }
         
         public G mapToValue(XFunction<Object[], ?, MiException> toValue) {
@@ -232,9 +263,15 @@ public interface ColumnMappingBuilder<Entity, Cnn, S extends ColumnMappingBuilde
             multi = null;
             return (G) this;
         }
+//        
+//        public G mapToColumns(BiFunction<?, Object[], Object[]> toColumn) {
+//            this.toColumn = (BiFunction) toColumn;
+//            multi = null;
+//            return (G) this;
+//        }
         
-        public G mapToColumns(BiFunction<?, Object[], Object[]> toColumn) {
-            this.toColumn = (BiFunction) toColumn;
+        public G mapToColumns(XTriFunction<Object, Integer, Object[], Object[], RuntimeException> toColumn) {
+            this.toColumn = toColumn;
             multi = null;
             return (G) this;
         }
@@ -244,83 +281,154 @@ public interface ColumnMappingBuilder<Entity, Cnn, S extends ColumnMappingBuilde
             return (G) this;
         }
         
-        public G readAs(XBiFunction<MiResultSet, int[], ?, MiException> reader) {
+        public G read(XBiFunction<MiResultSet, int[], ?, MiException> reader) {
             this.reader = reader;
-            this.newReader = null;
+            this.newReader2 = null;
+            this.newReader3 = null;
             return (G) this;
         }
         
-        public G readWith(XFunction<MiResultSet, ? extends EntityFactory<?>, MiException> newReader) {
-            return readWith((rs, c) -> newReader.apply(rs));
-        }
-        
-        public G readWith(XBiFunction<MiResultSet, Cnn, ? extends EntityFactory<?>, MiException> newReader) {
+        public G readWith(XBiConsumer<MiResultSet, FactoryBuilder<Object>, MiException> newReader) {
             this.reader = null;
-            this.newReader = newReader;
+            this.newReader2 = newReader;
+            this.newReader3 = null;
             return (G) this;
+        }
+        
+        public G readWith(XTriConsumer<Repository, MiResultSet, FactoryBuilder<Object>, MiException> newReader) {
+            this.reader = null;
+            this.newReader2 = null;
+            this.newReader3 = newReader;
+            return (G) this;
+        }
+        
+        public G nested(Function<Collection<?>, ColumnMapping> nestedBuilder) {
+            this.nestedBuilder = nestedBuilder;
+            return (G) this;
+        }
+        
+        public G nested(BiConsumer<Collection<?>, ColumnMappingBuilder<Entity, Single<Entity,?>, Group<Entity,?>>> nested) {
+            return nested(a -> {
+                SimpleBuilder<Entity> sb = new SimpleBuilder<>();
+                nested.accept(a, sb);
+                return sb.getColumnMapping();
+            });
         }
         
         protected ColumnMapping buildColumnValue() {
-            if (columnValue != null) return columnValue;
-            XBiFunction<MiResultSet, Cnn, ? extends EntityFactory<?>, MiException> fNewReader;
-            final BiFunction<Object, Object[], Object[]> fToCol;
-            if (newReader != null || reader != null) {
+            if (newReader3 != null || newReader2 != null || reader != null) {
                 if (toValue != null) throw new IllegalArgumentException(
                         "Can't use mapToValue when reader is given");
                 if (multi != null) throw new IllegalArgumentException(
                         "Can't use map when reader is given");
             }
-            if (newReader != null) {
-                fNewReader = (rs, cnn) -> {
-                    if (ResultColumns.findColumns(allRule, eachRule, rs, columns) == null) return null;
-                    return newReader.apply(rs, cnn);
+            XTriConsumer<Repository, MiResultSet, FactoryBuilder<Object>, MiException> fNewReader = buildNewReader();
+            XTriFunction<Object, Integer, Object[], Object[], RuntimeException> fToCol = buildToColumn();
+            XFunction<MiResultSet, Boolean, MiException> accept = rs -> matcher.test(rs) != null;
+            return new SimpleColumnValue(accept, new ReadOnlyArrayList<>(columns), fToCol, fNewReader, nestedBuilder);
+        }
+
+        protected XTriConsumer<Repository, MiResultSet, FactoryBuilder<Object>, MiException> buildNewReader() {
+            if (newReader3 != null) {
+                return (rep,rs,fb) -> {
+                    if (matcher.find(rs) == null) return;
+                    newReader3.accept(rep, rs, fb);
+                };
+            } else if (newReader2 != null) {
+                return (rep,rs,fb) -> {
+                    if (matcher.find(rs) == null) return;
+                    newReader2.accept(rs, fb);
                 };
             } else if (reader != null) {
-                fNewReader = (rs, cnn) -> {
-                    int[] i = ResultColumns.findColumns(allRule, eachRule, rs, columns);
-                    if (i == null) return null;
-                    return () -> reader.apply(rs, i);
+                return (rep,rs,fb) -> {
+                    int[] i = matcher.find(rs);
+                    if (i == null) return;
+                    fb.setFactory(() -> reader.apply(rs, i))
+                            .addName(Arrays.toString(i));
                 };
             } else if (toValue != null || multi != null) {
                 if (toValue == null) toValue = multi::join;
-                fNewReader = (rs, cnn) -> {
-                    int[] i = ResultColumns.findColumns(allRule, eachRule, rs, columns);
-                    if (i == null) return null;
+                return (rep,rs,fb) -> {
+                    int[] i = matcher.find(rs);
+                    if (i == null) return;
                     Object[] result = new Object[i.length];
-                    return () -> toValue.apply(ResultColumns.readColumns(rs, i, result));
+                    fb.setFactory(() -> toValue.apply(ResultColumns.readColumns(rs, i, result)))
+                            .addName(Arrays.toString(i));
                 };
             } else {
-                fNewReader = (rs, cnn) -> { throw new UnsupportedOperationException("Dematerialization only"); };
+                return (rep,rs,fb) -> { throw new UnsupportedOperationException("Dematerialization only"); };
             }
+        }
+
+        protected XTriFunction<Object, Integer, Object[], Object[], RuntimeException> buildToColumn() {
             if (toColumn != null) {
-                fToCol = toColumn;
+                return toColumn;
             } else if (multi != null) {
-                fToCol = multi::split;
+                return multi::split;
             } else {
-                fToCol = (v,r) -> { throw new UnsupportedOperationException("Materialization only"); };
+                return (v,i,r) -> { throw new UnsupportedOperationException("Materialization only"); };
             }
-            XFunction<MiResultSet, Boolean, MiException> matcher = rs -> {
-                try {
-                    return ResultColumns.findColumns(allRule, eachRule, rs, columns) != null;
-                } catch (MiException e) {
-                    return false;
-                }
-            };
-            return new SimpleColumnValue(matcher, Arrays.asList(columns), fToCol, fNewReader);
         }
     }
     
-    static class SimpleColumnValue<Cnn> implements ColumnMapping<Cnn> {
+    static class SimpleBuilder<Entity> implements ColumnMappingBuilder<Entity, Single<Entity, ?>, Group<Entity, ?>> {
+        
+        private Single<Entity, ?> single;
+        private Group<Entity, ?> group;
+
+        @Override
+        public Single<Entity, ?> column(ColumnRule rule, String column) {
+            return column(ResultColumns.match(rule, column)).setColumn(column);
+        }
+
+        @Override
+        public Single<Entity, ?> column(ColumnMatcher column) {
+            return single = new Single<>(column);
+        }
+
+        @Override
+        public Group<Entity, ?> columns(ColumnRule allRule, ColumnRule eachRule, String... columns) {
+            return group = new Group<>(columns, allRule, eachRule);
+        }
+
+        @Override
+        public Group<Entity, ?> columns(ColumnsMatcher matcher, String[] columns) {
+            return group = new Group<>(columns, matcher);
+        }
+        
+        public ColumnMapping getColumnMapping() {
+            if (single != null) {
+                return single.buildColumnValue();
+            } else if (group != null) {
+                return group.buildColumnValue();
+            } else {
+                throw new IllegalStateException("No mapping built.");
+            }
+        }
+    }
+    
+    static class SimpleColumnValue implements ColumnMapping {
         final XFunction<MiResultSet, Boolean, MiException> matcher;
         final List<String> columns;
-        final BiFunction<Object, Object[], Object[]> toColumn;
-        final XBiFunction<MiResultSet, Cnn, ? extends EntityFactory<?>, MiException> newReader;
+        final XTriFunction<Object, Integer, Object[], Object[], RuntimeException> toColumn;
+        final XTriConsumer<Repository, MiResultSet, FactoryBuilder<Object>, MiException> newReader;
+        final Function<Collection<?>, ColumnMapping> nestedBuilder;
 
-        public SimpleColumnValue(XFunction<MiResultSet, Boolean, MiException> matcher, List<String> columns, BiFunction<Object, Object[], Object[]> toColumn, XBiFunction<MiResultSet, Cnn, ? extends EntityFactory<?>, MiException> newReader) {
+        public SimpleColumnValue(XFunction<MiResultSet, Boolean, MiException> matcher, List<String> columns, XTriFunction<Object, Integer, Object[], Object[], RuntimeException> toColumn, XTriConsumer<Repository, MiResultSet, FactoryBuilder<Object>, MiException> newReader, Function<Collection<?>, ColumnMapping> nestedBuilder) {
             this.matcher = matcher;
             this.columns = columns;
             this.toColumn = toColumn;
             this.newReader = newReader;
+            if (nestedBuilder != null) {
+                this.nestedBuilder = nestedBuilder;
+            } else {
+                this.nestedBuilder =  a -> {
+                    if (a.size() > 1 || (a.size() == 1 && !"*".equals(String.valueOf(a.iterator().next())))) {
+                        throw new UnsupportedOperationException("Nested: " + a);
+                    }
+                    return this;
+                };
+            }
         }
 
         @Override
@@ -329,23 +437,58 @@ public interface ColumnMappingBuilder<Entity, Cnn, S extends ColumnMappingBuilde
         }
 
         @Override
-        public Object[] toColumns(Object value, Object[] result) {
-            return toColumn.apply(value, result);
+        public Object[] writeColumns(Object value, int index, Object[] target) {
+            return toColumn.apply(value, index, target);
         }
 
         @Override
-        public boolean accept(MiResultSet rs, Cnn cnn) throws MiException {
-            return matcher.apply(rs);
+        public boolean accept(MiResultSet resultSet) throws MiException {
+            return matcher.apply(resultSet);
         }
 
         @Override
-        public EntityFactory<?> newValueReader(MiResultSet rs, Cnn cnn) throws MiException {
-            return newReader.apply(rs, cnn);
+        public void newValueReader(Repository repository, MiResultSet resultSet, FactoryBuilder<Object> factoryBuilder) throws MiException {
+            newReader.accept(repository, resultSet, factoryBuilder);
         }
 
         @Override
         public String toString() {
             return String.valueOf(columns);
+        }
+
+        @Override
+        public ColumnMapping nested(Collection<?> attributes) {
+            class Nested implements ColumnMapping {
+                ColumnMapping actual = null;
+                ColumnMapping actual() {
+                    if (actual != null) return actual;
+                    return actual = nestedBuilder.apply(attributes);
+                }
+                @Override
+                public List<String> getColumns() {
+                    return actual().getColumns();
+                }
+                @Override
+                public Object[] writeColumns(Object value, int index, Object[] target) {
+                    return actual().writeColumns(value, index, target);
+                }
+                @Override
+                public boolean accept(MiResultSet resultSet) throws MiException {
+                    return actual().accept(resultSet);
+                }
+                @Override
+                public void newValueReader(Repository repository, MiResultSet resultSet, FactoryBuilder<Object> factoryBuilder) throws MiException {
+                    actual().newValueReader(repository, resultSet, factoryBuilder);
+                }
+                @Override
+                public ColumnMapping nested(Collection<?> attributes2) {
+                    List<Object> all = new ArrayList<>(attributes.size() + attributes2.size());
+                    all.addAll(attributes);
+                    all.addAll(attributes2);
+                    return SimpleColumnValue.this.nested(all);
+                }
+            }
+            return new Nested();
         }
     }
     
@@ -353,10 +496,11 @@ public interface ColumnMappingBuilder<Entity, Cnn, S extends ColumnMappingBuilde
         
         Object join(Object[] values) throws MiException;
         
-        Object[] split(Object value, Object[] result);
+        Object[] split(Object value, int index, Object[] result);
     }
     
-    static final XFunction<Object, Object, MiException> IDENTITY = x -> x;
+    static final Function<Object, Object> IDENTITY = x -> x;
+    static final XFunction<Object, Object, MiException> XIDENTITY = x -> x;
     
     public static final XFunction<Object, Object, MiException> TO_BOOL = o -> 
             Objects.equals(o, true) || 
@@ -365,30 +509,44 @@ public interface ColumnMappingBuilder<Entity, Cnn, S extends ColumnMappingBuilde
     public static final XFunction<Object, Object, MiException> TO_BOOLEAN = o ->
             o == null ? null : TO_BOOL.apply(o);
     
-    public static <E> XFunction<MiResultSet, EntityFactory<List<E>>, MiException> listReader(String parent, String subresult, EntityType<E> type) {
-        return rs -> {
-            MiResultSet r = subresult != null ? rs.subResult(subresult) : rs;
-            int parentIndex = rs.findColumn(parent);
-            return listReader(parentIndex, r, type);
-        };
-    }
-    
-    public static <E> EntityFactory<List<E>> listReader(int parentIndex, MiResultSet resultSet, EntityType<E> type) throws MiException {
-        return listReader(parentIndex, resultSet, type.newFactory(resultSet));
-    }
-    
-    public static <E> EntityFactory<List<E>> listReader(int parentIndex, MiResultSet resultSet, EntityFactory<E> factory) {
-        return EntityTypes.buildFactory(b -> b
-                .setFactory(ArrayList::new)
-                .addInitializer(list -> {
-                    Object parentId = resultSet.get(parentIndex);
-                    while (resultSet.get(parentIndex).equals(parentId)) {
-                        list.add(factory.newEntity());
-                        if (!resultSet.next()) break;
-                    }
-                    resultSet.previous();
-                })
-                .addCompleteAndClose(factory)
-                .addName("List<"+factory+">"));
+//    public static <E> XFunction<MiResultSet, EntityFactory<List<E>>, MiException> listReader(String parent, String subresult, EntityTemplate<E> type) {
+//        return rs -> {
+//            MiResultSet r = subresult != null ? rs.subResult(subresult) : rs;
+//            int parentIndex = rs.findColumn(parent);
+//            return listReader(parentIndex, r, type);
+//        };
+//    }
+//    
+//    public static <E> EntityFactory<List<E>> listReader(int parentIndex, MiResultSet resultSet, EntityTemplate<E> type) throws MiException {
+//        return listReader(parentIndex, resultSet, type.newFactory(resultSet));
+//    }
+//    
+//    public static <E> EntityFactory<List<E>> listReader(int parentIndex, MiResultSet resultSet, EntityFactory<E> factory) {
+//        return Entities.buildFactory(b -> b
+//                .setFactory(ArrayList::new)
+//                .addInitializer(list -> {
+//                    Object parentId = resultSet.get(parentIndex);
+//                    while (resultSet.get(parentIndex).equals(parentId)) {
+//                        list.add(factory.newEntity());
+//                        if (!resultSet.next()) break;
+//                    }
+//                    resultSet.previous();
+//                })
+//                .addCompleteAndClose(factory)
+//                .addName("List<"+factory+">"));
+//    }
+    public static <E> void listReader(EntityTemplate<?> parentLookUp, EntityTemplate<E> nestedLookUp, String nestedPrefix, MiResultSet resultSet, FactoryBuilder<? super List<E>> builder) throws MiException {
+        EntityFactory<?> getParent = builder.nestedFactory(parentLookUp, resultSet);
+        EntityFactory<E> getNested = builder.nestedFactory(nestedLookUp, resultSet.subResult(nestedPrefix));
+        builder.setFactory(ArrayList::new)
+            .addName("List<" + getNested + ">")
+            .addInitializer(list -> {
+                Object parent = getParent.newEntity();
+                while (getParent.newEntity().equals(parent)) {
+                    list.add(getNested.newEntity());
+                    if (!resultSet.next()) break;
+                }
+                resultSet.previous();
+            });
     }
 }

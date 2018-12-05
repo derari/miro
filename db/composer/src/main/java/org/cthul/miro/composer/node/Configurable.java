@@ -12,12 +12,20 @@ public interface Configurable extends BatchNode<Object> {
         set(Key.NO_VALUES);
     }
 
-    @Override
     void set(Object... values);
 
+    default void set(Collection<? extends Object> values) {
+        batch(values.toArray());
+    }
+
     @Override
-    public default void set(Collection<? extends Object> values) {
-        set(values.toArray());
+    default void batch(Object... values) {
+        set(values);
+    }
+
+    @Override
+    default void batch(Collection<? extends Object> values) {
+        set(values);
     }
     
     static Key key(Object value) {

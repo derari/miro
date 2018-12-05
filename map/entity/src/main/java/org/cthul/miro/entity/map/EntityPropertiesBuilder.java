@@ -1,14 +1,14 @@
 package org.cthul.miro.entity.map;
 
-import org.cthul.miro.entity.base.ResultColumns;
+import org.cthul.miro.entity.map.MappedPropertyBuilder.Group;
+import org.cthul.miro.entity.map.MappedPropertyBuilder.Single;
 
 /**
  * Base class for configuring a mapping from result columns to entity properties.
  * @param <Entity>
- * @param <Cnn>
  * @param <This>
  */
-public interface EntityPropertiesBuilder<Entity, Cnn, This> extends EntityPropertyBuilder<Entity, Cnn, This> {
+public interface EntityPropertiesBuilder<Entity, This> {
     
     /**
      * Optional operation.
@@ -21,55 +21,44 @@ public interface EntityPropertiesBuilder<Entity, Cnn, This> extends EntityProper
      * @param attribute
      * @return this 
      */
-    This add(EntityAttribute<Entity, Cnn> attribute);
+    This add(MappedProperty<Entity> attribute);
     
-    @Override
-    default EntityPropertyBuilder<Entity, Cnn, This> as(String key) {
-        return new NewField<>(this, entityClass(), key);
+    default ColumnMappingBuilder<Entity, Single<Entity, This>, Group<Entity, This>> property(String key) {
+        return new NewProperty<>(this, entityClass(), key);
     }
+    
+//    @Override
+//    default MappedPropertyBuilder<Entity, This> property(String key) {
+//        return new NewProperty<>(this, entityClass(), key);
+//    }
 
-    @Override
-    default Single<Entity, Cnn, This> column(ResultColumns.ColumnRule rule, String column) {
-        return as(null).column(rule, column);
-    }
-
-    @Override
-    default Single<Entity, Cnn, This> column(ResultColumns.ColumnMatcher column) {
-        return as(null).column(column);
-    }
-
-    @Override
-    default Group<Entity, Cnn, This> columns(ResultColumns.ColumnRule allRule, ResultColumns.ColumnRule eachRule, String... columns) {
-        return as(null).columns(allRule, eachRule, columns);
-    }
-
-    public class NewField<Entity, Cnn, Mapping> extends SimplePropertyBuilder<Entity, Cnn, Mapping> {
+    class NewProperty<Entity, Parent> extends SimpleMappedPropertyBuilder<Entity, Parent> {
         
-        private final EntityPropertiesBuilder<Entity, Cnn, Mapping> mapping;
+        private final EntityPropertiesBuilder<Entity, Parent> mapping;
 
-        public NewField(EntityPropertiesBuilder<Entity, Cnn, Mapping> mapping, Class<Entity> clazz, String key) {
+        public NewProperty(EntityPropertiesBuilder<Entity, Parent> mapping, Class<Entity> clazz, String key) {
             super(clazz, key);
             this.mapping = mapping;
         }
 
         @Override
-        protected Mapping build(EntityAttribute<Entity, Cnn> field) {
+        protected Parent build(MappedProperty<Entity> field) {
             return mapping.add(field);
         }
     }
 
-    interface Delegator<Entity, Cnn, This extends EntityPropertiesBuilder<Entity, Cnn, This>> extends EntityPropertiesBuilder<Entity, Cnn, This> {
+    interface Delegator<Entity, This extends EntityPropertiesBuilder<Entity, This>> extends EntityPropertiesBuilder<Entity, This> {
 
-        EntityPropertiesBuilder<Entity, Cnn, ?> internalEntityFieldsBuilder();
+        EntityPropertiesBuilder<Entity, ?> internalPropertiesBuilder();
 
         @Override
         default Class<Entity> entityClass() {
-            return internalEntityFieldsBuilder().entityClass();
+            return internalPropertiesBuilder().entityClass();
         }
 
         @Override
-        public default This add(EntityAttribute<Entity, Cnn> field) {
-            internalEntityFieldsBuilder().add(field);
+        public default This add(MappedProperty<Entity> field) {
+            internalPropertiesBuilder().add(field);
             return (This) this;
         }
     }

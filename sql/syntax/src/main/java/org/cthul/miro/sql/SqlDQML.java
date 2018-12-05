@@ -6,13 +6,14 @@ import org.cthul.miro.db.syntax.RequestType;
 import org.cthul.miro.db.syntax.StatementBuilder;
 import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.util.Key;
+import org.cthul.miro.db.request.MiRequest;
 
 /**
- * Defines the four request types of the SQL data query and manipulation language:
+ * Defines the four request types of the SQL Data Query and Manipulation Language:
  * SELECT, INSERT, UPDATE, and DELETE.
- * @param <Stmt>
+ * @param <Req>
  */
-public interface SqlDQML<Stmt> extends RequestType<Stmt>, ClauseType<Stmt> {
+public interface SqlDQML<Req extends MiRequest<?>> extends RequestType<Req>, ClauseType<Req> {
     
     static SqlDQML<SelectQuery> select() { return Type.SELECT; }
     static SqlDQML<InsertStatement> insert() { return Type.INSERT; }
@@ -48,8 +49,8 @@ public interface SqlDQML<Stmt> extends RequestType<Stmt>, ClauseType<Stmt> {
         }
 
         @Override
-        public Object createDefaultRequest(Syntax syntax, MiConnection cnn) {
-            return newStmt(cnn).begin(this);
+        public MiRequest<?> createDefaultRequest(Syntax syntax, MiConnection cnn) {
+            return (MiRequest) newStmt(cnn).begin(this);
         }
     }
 }

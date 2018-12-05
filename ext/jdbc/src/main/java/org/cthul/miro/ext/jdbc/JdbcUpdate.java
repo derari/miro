@@ -1,7 +1,7 @@
 package org.cthul.miro.ext.jdbc;
 
 import org.cthul.miro.db.*;
-import org.cthul.miro.db.stmt.MiUpdateString;
+import org.cthul.miro.db.request.MiUpdateString;
 import org.cthul.miro.futures.MiAction;
 
 /**

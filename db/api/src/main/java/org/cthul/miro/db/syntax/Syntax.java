@@ -1,18 +1,19 @@
 package org.cthul.miro.db.syntax;
 
 import org.cthul.miro.db.MiConnection;
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
+import org.cthul.miro.db.request.MiRequest;
 
 /**
  * Defines a query language.
  */
 public interface Syntax {
 
-    default <Req> Req newStatement(MiConnection cnn, RequestType<Req> type) {
-        return newStatement(cnn, type, type);
+    default <Req extends MiRequest<?>> Req newRequest(MiConnection cnn, RequestType<Req> type) {
+        return newRequest(cnn, type, type);
     }
     
-    default <Req> Req newStatement(MiConnection cnn, RequestType<Req> type, RequestType<Req> onDefault) {
+    default <Req extends MiRequest<?>> Req newRequest(MiConnection cnn, RequestType<Req> type, RequestType<Req> onDefault) {
         return onDefault.createDefaultRequest(this, cnn);
     }
     
@@ -28,15 +29,15 @@ public interface Syntax {
         return onDefault.createDefaultClause(this, stmt, owner);
     }
     
-    default void appendConstanct(Object key, QlBuilder<?> query) {
+    default void appendConstant(Object key, QlBuilder<?> query) {
         throw new IllegalArgumentException(String.valueOf(key));
     }
     
-    default QlCode getConstanct(Object key) {
+    default QlCode getConstant(Object key) {
         class Constant implements QlCode {
             @Override
             public void appendTo(QlBuilder<?> qlBuilder) {
-                appendConstanct(key, qlBuilder);
+                appendConstant(key, qlBuilder);
             }
             @Override
             public String toString() {

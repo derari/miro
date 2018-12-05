@@ -3,7 +3,7 @@ package org.cthul.miro.sql.syntax;
 import java.util.Collections;
 import java.util.Map;
 import org.cthul.miro.db.impl.AbstractQlBuilder;
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
 import org.cthul.miro.db.syntax.Syntax;
 
 /**

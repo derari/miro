@@ -2,7 +2,7 @@ package org.cthul.miro.sql;
 
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.sql.CreateTableBuilder.Create;
-import org.cthul.miro.db.stmt.MiUpdate;
+import org.cthul.miro.db.request.MiUpdate;
 import org.cthul.miro.db.syntax.QlCode;
 
 /**
@@ -24,7 +24,7 @@ public interface CreateStatement extends CreateTableBuilder.Create, MiUpdate {
     }
     
     static CreateStatement create(MiConnection cnn) {
-        return cnn.newStatement(SqlDDL.create());
+        return cnn.newRequest(SqlDDL.create());
     }
     
     interface Table extends CreateTableBuilder, MiUpdate {

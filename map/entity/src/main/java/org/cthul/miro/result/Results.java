@@ -3,24 +3,24 @@ package org.cthul.miro.result;
 import java.util.Collection;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
-import org.cthul.miro.entity.EntityType;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 import org.cthul.miro.entity.EntityConfiguration;
-import org.cthul.miro.entity.EntityTypes;
+import org.cthul.miro.entity.Entities;
 import org.cthul.miro.futures.MiAction;
 import org.cthul.miro.function.MiActionFunction;
 import org.cthul.miro.futures.impl.MiActionDelegator;
 import org.cthul.miro.result.cursor.ResultCursor;
+import org.cthul.miro.entity.EntityTemplate;
 
 public class Results<Entity> implements AutoCloseable {
     
-    public static <Entity> Builder<Entity> build(EntityType<Entity> entityType) {
+    public static <Entity> Builder<Entity> build(EntityTemplate<Entity> entityType) {
         return build(() -> entityType);
     }
     
-    public static <Entity> Builder<Entity> build(Supplier<? extends EntityType<Entity>> entityType) {
+    public static <Entity> Builder<Entity> build(Supplier<? extends EntityTemplate<Entity>> entityType) {
         return new Builder<>(entityType);
     }
     
@@ -29,9 +29,9 @@ public class Results<Entity> implements AutoCloseable {
 //    }
     
     protected final MiResultSet rs;
-    protected final EntityType<? extends Entity> type;
+    protected final EntityTemplate<? extends Entity> type;
 
-    public Results(MiResultSet rs, EntityType<? extends Entity> type) {
+    public Results(MiResultSet rs, EntityTemplate<? extends Entity> type) {
         this.rs = rs;
         this.type = type;
     }
@@ -111,9 +111,9 @@ public class Results<Entity> implements AutoCloseable {
     
     public static class Builder<Entity> implements MiActionFunction<MiResultSet, Results<Entity>, Action<Entity>> {
         
-        private final Supplier<? extends EntityType<Entity>> entityType;
+        private final Supplier<? extends EntityTemplate<Entity>> entityType;
 
-        public Builder(Supplier<? extends EntityType<Entity>> entityType) {
+        public Builder(Supplier<? extends EntityTemplate<Entity>> entityType) {
             this.entityType = entityType;
         }
 
@@ -127,12 +127,12 @@ public class Results<Entity> implements AutoCloseable {
             return new Results<>(resultSet, entityType.get());
         }
         
-        private Supplier<? extends EntityType<Entity>> typeWith(EntityConfiguration<? super Entity>... configurations) {
-            return () -> EntityTypes.configuredType(entityType.get(), configurations);
+        private Supplier<? extends EntityTemplate<Entity>> typeWith(EntityConfiguration<? super Entity>... configurations) {
+            return () -> Entities.configuredTemplate(entityType.get(), configurations);
         }
         
-        private Supplier<? extends EntityType<Entity>> typeWith(Collection<EntityConfiguration<? super Entity>> configurations) {
-            return () -> EntityTypes.configuredType(entityType.get(), configurations);
+        private Supplier<? extends EntityTemplate<Entity>> typeWith(Collection<EntityConfiguration<? super Entity>> configurations) {
+            return () -> Entities.configuredTemplate(entityType.get(), configurations);
         }
         
         @SafeVarargs
@@ -154,7 +154,7 @@ public class Results<Entity> implements AutoCloseable {
 //        private final EntityConfiguration<? super Entity> cfg;
 //        
 //        public Builder2() {
-//            this(EntityTypes.noConfiguration());
+//            this(Entities.noConfiguration());
 //        }
 //
 //        public Builder2(EntityConfiguration<? super Entity> cfg) {
@@ -173,15 +173,15 @@ public class Results<Entity> implements AutoCloseable {
 //        
 //        @SafeVarargs
 //        public final Builder2<Entity> with(EntityConfiguration<? super Entity>... configurations) {
-//            return new Builder2<>(EntityTypes.multiConfiguration(cfg, configurations));
+//            return new Builder2<>(Entities.multiConfiguration(cfg, configurations));
 //        }
 //        
 //        public final Builder2<Entity> with(Collection<EntityConfiguration<? super Entity>> configurations) {
-//            return new Builder2<>(EntityTypes.multiConfiguration(cfg, configurations));
+//            return new Builder2<>(Entities.multiConfiguration(cfg, configurations));
 //        }
 //
 //        @Override
-//        public Results<Entity> build(MiResultSet rs, EntityType<? extends Entity> type) throws MiException {
+//        public Results<Entity> build(MiResultSet rs, EntityTemplate<? extends Entity> type) throws MiException {
 //            return new Results<>(rs, type);
 //        }
 //    }

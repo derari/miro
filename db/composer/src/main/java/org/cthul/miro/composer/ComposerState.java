@@ -14,7 +14,8 @@ import static java.util.Arrays.asList;
 /**
  *
  */
-public class ComposerState extends CopyableNodeSet<String, ComposerState.MethodHandler, Object> implements InvocationHandler, RequestComposer<Object> /*ComposerInternal<Object>, NewComposer<Object, Object>*/ {
+public class ComposerState
+        implements InvocationHandler, RequestComposer<Object>, NoOverride /*ComposerInternal<Object>, NewComposer<Object, Object>*/ {
     
     public static <B> RequestComposer<B> asRequestComposer(Object composer) {
         return (RequestComposer<B>) composer;
@@ -30,7 +31,7 @@ public class ComposerState extends CopyableNodeSet<String, ComposerState.MethodH
     
     public static void put(Object composer, String key, Object value) {
         ComposerState state = (ComposerState) Proxy.getInvocationHandler(composer);
-        state.putNode(key, value);
+        state.nodes.putNode(key, value);
     }
     
     public static Builder builder() {
@@ -45,34 +46,38 @@ public class ComposerState extends CopyableNodeSet<String, ComposerState.MethodH
     private final Object factory;
     private final Class[] interfaces;
     private final ConcurrentMap<String, MethodHandler> handlers;
+    private final ComposerNodeSet nodes;
 
     private boolean initialized;
+    private boolean noOverride;
     private final Function<Object,Object> builderAdapter;
     private final Object proxy;
     private Object root;
     
     protected ComposerState(Behavior<?> impl, Object factory, Class[] interfaces) {
+        this.nodes = new ComposerNodeSet();
         this.impl = (Behavior) impl;
         this.factory = factory;
         this.interfaces = interfaces;
         this.handlers = new ConcurrentHashMap<>(DEFAULT_HANDLERS);
         this.initialized = false;
+        this.noOverride = false;
         this.builderAdapter = Function.identity();
         this.proxy = newComposerProxy();
     }
     
-    @SuppressWarnings("LeakingThisInConstructor")
     protected ComposerState(ComposerState parent) {
         this(parent, parent.builderAdapter);
     }
     
     public ComposerState(ComposerState parent, Function<?,?> builderAdapter) {
-        super(parent);
+        this.nodes = new ComposerNodeSet(parent.nodes);
         this.impl = (Behavior) parent.impl.copy();
         this.factory = parent.factory;
         this.interfaces = parent.interfaces;
         this.handlers = parent.handlers;
         this.initialized = parent.initialized;
+        this.noOverride = parent.noOverride;
         this.builderAdapter = (Function) builderAdapter;
         this.proxy = newComposerProxy();
     }
@@ -88,7 +93,7 @@ public class ComposerState extends CopyableNodeSet<String, ComposerState.MethodH
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         if (args == null || args.length == 0) {
             String key = method.getName();
-            Object value = peekValue(key);
+            Object value = nodes.peekValue(key);
             if (value != null) return value;
             return handlers
                     .computeIfAbsent(key, k -> defaultHandler(method))
@@ -146,7 +151,7 @@ public class ComposerState extends CopyableNodeSet<String, ComposerState.MethodH
                 try {
                     recursionGuard = true;
                     Object value = method.invoke(state.impl);
-                    state.putValue(method.getName(), value);
+                    state.nodes.putValue(method.getName(), value);
                     if (!recursion) {
                         MethodHandler implHandler = nodeHandler(method, implHandlerNoCheck(method));
                         state.handlers.put(method.getName(), implHandler);
@@ -162,7 +167,7 @@ public class ComposerState extends CopyableNodeSet<String, ComposerState.MethodH
     private static MethodHandler implHandlerNoCheck(Method method) {
         return state -> {
             Object value = method.invoke(state.impl);
-            state.putValue(method.getName(), value);
+            state.nodes.putValue(method.getName(), value);
             return value;
         };
     }
@@ -181,7 +186,7 @@ public class ComposerState extends CopyableNodeSet<String, ComposerState.MethodH
             try {
                 String key = factoryMethod.getName();
                 Object value = factoryMethod.invoke(state.factory);
-                state.putNode(key, value);
+                state.nodes.putNode(key, value);
                 return value;
             } catch (InvocationTargetException e) {
                 throw e.getCause();
@@ -190,15 +195,17 @@ public class ComposerState extends CopyableNodeSet<String, ComposerState.MethodH
     }
     
     private static MethodHandler nodeHandler(Method method, MethodHandler def) {
-        return state -> state.getValue(method.getName(), def);
+        return state -> state.nodes.getValue(method.getName(), def);
     }
     
     private void initialize(Object composer) {
-        if (root != null) {
-            for (Class<?> i: interfaces) {
-                if (i != ComposerInternal.class && !i.isInstance(composer)) {
-                    return;
-                }
+        if (noOverride && root != null) {
+            return;
+        }
+        for (Class<?> i: interfaces) {
+            if (i != ComposerInternal.class && !i.isInstance(composer)) {
+                throw new IllegalArgumentException(
+                        "Root does not implement " + i);
             }
         }
         root = composer;
@@ -214,26 +221,26 @@ public class ComposerState extends CopyableNodeSet<String, ComposerState.MethodH
         }
     }
 
-    @Override
-    protected Object getInitializationArg() {
-        return root;
-    }
-
-    @Override
-    protected void newEntry(String key, MethodHandler hint) {
-        makeInitialized();
-        try {
-            hint.call(this);
-        } catch (Throwable t) {
-            throw new RuntimeException(t);
-        }
-    }
+//    @Override
+//    protected Object getInitializationArg() {
+//        return root;
+//    }
+//
+//    @Override
+//    protected void newEntry(String key, MethodHandler hint) {
+//        makeInitialized();
+//        try {
+//            hint.call(this);
+//        } catch (Throwable t) {
+//            throw new RuntimeException(t);
+//        }
+//    }
     
     @Override
     public void build(Object builder) {
         makeInitialized();
         Object adapted = ((Function) builderAdapter).apply(builder);
-        addPartsTo(adapted);
+        nodes.addPartsTo(adapted);
     }
 
     @Override
@@ -246,6 +253,14 @@ public class ComposerState extends CopyableNodeSet<String, ComposerState.MethodH
     public <Builder2> RequestComposer<Builder2> adapt(Function<? super Builder2, ? extends Object> builderAdapter) {
         makeInitialized();
         return (RequestComposer) new ComposerState(this, builderAdapter).proxy;
+    }
+
+    @Override
+    public NoOverride noOverride() {
+        makeInitialized();
+        ComposerState state = new ComposerState(this);
+        state.noOverride = true;
+        return (NoOverride) state.proxy;
     }
 
     @Override
@@ -269,10 +284,11 @@ public class ComposerState extends CopyableNodeSet<String, ComposerState.MethodH
     }
     
     private static final Map<String, MethodHandler> DEFAULT_HANDLERS = new HashMap<>();
-    private static final List<Class<?>> DEFAULT_INTERFACES = asList(Initializable.class, Copyable.class, RequestComposer.class, StatementPart.class);
+    private static final List<Class<?>> DEFAULT_INTERFACES = asList(Initializable.class, Copyable.class, RequestComposer.class, StatementPart.class, NoOverride.class);
     
     static {
         DEFAULT_HANDLERS.put("copy", h -> h.copy());
+        DEFAULT_HANDLERS.put("noOverride", h -> h.noOverride());
         DEFAULT_HANDLERS.put("toString", h -> h.toString());
         DEFAULT_HANDLERS.put("allowReadOriginal", h -> false);
     }
@@ -284,6 +300,31 @@ public class ComposerState extends CopyableNodeSet<String, ComposerState.MethodH
     public static interface Behavior<Composer> extends Initializable<Composer> {
         
         Object copy();
+    }
+    
+    private class ComposerNodeSet extends CopyableNodeSet<String, ComposerState.MethodHandler, Object> {
+
+        public ComposerNodeSet() {
+        }
+
+        public ComposerNodeSet(CopyableNodeSet<String, MethodHandler, Object> parent) {
+            super(parent);
+        }
+
+        @Override
+        protected void newEntry(String key, MethodHandler hint) {
+            makeInitialized();
+            try {
+                hint.call(ComposerState.this);
+            } catch (Throwable t) {
+                throw new RuntimeException(t);
+            }
+        }
+
+        @Override
+        protected Object getInitializationArg() {
+            return root;
+        }
     }
     
     private static final Behavior<Object> NO_IMPL = new Behavior<Object>() {
@@ -366,8 +407,16 @@ public class ComposerState extends CopyableNodeSet<String, ComposerState.MethodH
             return this;
         }
         
+        public Builder putNoOverride(String key, Object node) {
+            return put(key, NoOverride.noOverride(node));
+        }
+        
         public Builder putAdapted(String key, Object node, Function<?,?> adapter) {
             return put(key, adapt(node, adapter));
+        }
+        
+        public Builder putAdaptedNoOverride(String key, Object node, Function<?,?> adapter) {
+            return putAdapted(key, NoOverride.noOverride(node), adapter);
         }
         
         public <T> T create(Class<T> requestInterface) {
@@ -382,7 +431,7 @@ public class ComposerState extends CopyableNodeSet<String, ComposerState.MethodH
             ifaces.addAll(asList(factory.getClass().getInterfaces()));
             ifaces.remove(Behavior.class);
             ComposerState state = new ComposerState(impl, factory, ifaceArray(ifaces));
-            nodes.entrySet().forEach(e -> state.putNode(e.getKey(), e.getValue()));
+            nodes.entrySet().forEach(e -> state.nodes.putNode(e.getKey(), e.getValue()));
             return (T) state.proxy;
         }
         

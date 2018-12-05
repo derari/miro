@@ -1,42 +1,43 @@
 package org.cthul.miro.map.node;
 
+import java.util.*;
 import org.cthul.miro.composer.node.StatementPart;
 import org.cthul.miro.composer.ComposerState;
 import org.cthul.miro.composer.node.Initializable;
 import org.cthul.miro.composer.ComposerInternal;
 import org.cthul.miro.composer.node.CopyInitializable;
 import org.cthul.miro.composer.node.Copyable;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.function.Supplier;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.entity.EntityConfiguration;
 import org.cthul.miro.entity.EntityInitializer;
-import org.cthul.miro.entity.EntityType;
-import org.cthul.miro.entity.map.EntityAttribute;
-import org.cthul.miro.graph.Graph;
-import org.cthul.miro.graph.GraphApi;
 import org.cthul.miro.map.*;
 import org.cthul.miro.composer.node.ListNode;
+import org.cthul.miro.domain.*;
+import org.cthul.miro.domain.impl.MappedSelectorImpl;
 import org.cthul.miro.util.XBiConsumer;
 import org.cthul.miro.util.XConsumer;
 import static java.util.Arrays.asList;
+import org.cthul.miro.entity.EntityTemplate;
+import org.cthul.miro.entity.map.MappedProperty;
+import org.cthul.miro.domain.impl.MappedTemplateImpl;
+import org.cthul.miro.entity.*;
 
 /**
  *
+ * @param <Entity>
  */
 public class MappedQueryNodeFactory<Entity> implements MappedQueryComposer, ComposerInternal {
     
-    private final MappedType<Entity,?> owner;
+    private final AbstractQueryableType<Entity,?> owner;
     private final Object typeKey;
-    private final EntityType<Entity> defaultType;
+    private final Supplier<? extends EntityTemplate<Entity>> defaultType;
     
-    public MappedQueryNodeFactory(MappedType<Entity, ?> owner) {
-        this(owner, owner.entityClass(), owner.asPlainEntityType());
+    public MappedQueryNodeFactory(AbstractQueryableType<Entity, ?> owner) {
+        this(owner, owner.entityClass(), null);
     }
     
-    public MappedQueryNodeFactory(MappedType<Entity, ?> owner, Object typeKey, EntityType<Entity> defaultType) {
+    public MappedQueryNodeFactory(AbstractQueryableType<Entity, ?> owner, Object typeKey, Supplier<? extends EntityTemplate<Entity>> defaultType) {
         this.owner = owner;
         this.typeKey = typeKey;
         this.defaultType = defaultType;
@@ -46,7 +47,7 @@ public class MappedQueryNodeFactory<Entity> implements MappedQueryComposer, Comp
         return ComposerState.fromFactory(this);
     }
 
-    protected MappedType<Entity, ?> getOwner() {
+    protected AbstractQueryableType<Entity, ?> getOwner() {
         return owner;
     }
 
@@ -107,58 +108,83 @@ public class MappedQueryNodeFactory<Entity> implements MappedQueryComposer, Comp
     
     protected class TypePart implements Type<Entity>, StatementPart<Mapping<? extends Entity>>, Copyable<Object> {
 
-        private Graph graph = null;
-        private EntityType<? extends Entity> entityType = defaultType;
-        private boolean useGraph = false;
+        private Repository repository = null;
+        private EntitySet<Entity> entitySet;
+        private boolean useRepository = false;
 
         public TypePart() {
         }
 
         protected TypePart(TypePart source) {
-            this.graph = source.graph;
-            this.entityType = source.entityType;
-            this.useGraph = source.useGraph;
+            this.repository = source.repository;
+            this.entitySet = source.entitySet;
+            this.useRepository = source.useRepository;
         }
         
         @Override
-        public void setGraph(Graph graph) {
-            this.graph = graph;
-            useGraph = graph != null;
-        }
-
-        @Override
-        public Graph getGraph() {
-            return graph;
-        }
-
-        @Override
-        public void setType(EntityType<? extends Entity> type) {
-            this.entityType = type;
-            useGraph = type == null && graph != null;
+        public void setRepository(Repository repository) {
+            this.repository = repository;
+            useRepository = repository != null;
         }
         
-        protected EntityType<? extends Entity> entityType() {
-            if (useGraph) {
-                if (graph == null) {
+        protected final EntitySet<Entity> templateAsSet(EntityTemplate<? extends Entity> template) {
+            return new EntitySet<Entity>() {
+                @Override
+                public MappedTemplate<Entity> getLookUp() {
+                    return new MappedTemplateImpl<>(getOwner(), repository, null, template, Entities.noConfiguration());
+                }
+                @Override
+                public MappedSelector<Entity> getSelector() {
+                    return new MappedSelectorImpl<>(getOwner(), repository, null, getOwner().newEntityCreator(repository));
+                }
+                @Override
+                public EntityConfiguration<Entity> readProperties(Collection<?> properties) {
+                    return getOwner().getPropertyReader(repository, properties);
+                }
+                @Override
+                public void loadProperties(Collection<?> properties, InitializationBuilder<Entity> initBuilder) {
+                     getOwner().newPropertyLoader(repository, null, properties, initBuilder);
+                }
+            };
+        }
+
+        @Override
+        public EntitySet<Entity> getEntitySet() {
+            if (useRepository) {
+                if (repository == null) {
                     throw new IllegalStateException("Graph or entity type required");
                 }
                 if (typeKey == null) {
                     throw new IllegalStateException("Type key required");
                 }
-                return graph.getEntityType(typeKey);
+                return repository.<Entity>getEntitySet(typeKey);
+            } else if (entitySet != null) {
+                return entitySet;
+            } else if (defaultType != null) {
+                return entitySet = templateAsSet(defaultType.get());
             } else {
-                if (entityType == null && defaultType != null) {
-                    // entityType was explicitly set to null
+//                if (entitySet == null) {
+//                    // entityTemplate was explicitly batch to null
                     throw new IllegalStateException("Graph or entity type required");
-                }
-                return entityType;
+//                }
+            }
+        }
+
+        @Override
+        public void setTemplate(EntityTemplate<? extends Entity> template) {
+            if (template == null) {
+                this.entitySet = null;
+                useRepository = true;
+            } else {
+                this.entitySet = templateAsSet(template);
+                this.useRepository = false;
             }
         }
 
         @Override
         public void addTo(Mapping<? extends Entity> mapping) {
-            EntityType et = entityType();
-            if (et != null) mapping.setType(et);
+            EntityTemplate et = getEntitySet().getLookUp();
+            if (et != null) mapping.setTemplate(et);
         }
 
         @Override
@@ -209,14 +235,14 @@ public class MappedQueryNodeFactory<Entity> implements MappedQueryComposer, Comp
     protected class LoadField extends CopyInitializable<MappedQueryComposer.Internal>
                     implements ListNode<String>, StatementPart<Mapping<? extends Entity>> {
 
-        private final LinkedHashSet<String> attributes = new LinkedHashSet<>();
+        private final LinkedHashSet<String> properties = new LinkedHashSet<>();
         private MappedQueryComposer cmp;
 
         public LoadField() {
         }
 
         public LoadField(LoadField src) {
-            attributes.addAll(src.attributes);
+            properties.addAll(src.properties);
         }
 
         @Override
@@ -226,14 +252,14 @@ public class MappedQueryNodeFactory<Entity> implements MappedQueryComposer, Comp
         
         @Override
         public void addTo(Mapping<? extends Entity> mapping) {
-            GraphApi graph = (GraphApi) cmp.getType().getGraph();
-            EntityConfiguration<Entity> cfg = getOwner().getAttributes().newConfiguration(graph, attributes);
+            EntitySet<Entity> set = cmp.getType().getEntitySet();
+            EntityConfiguration<Entity> cfg = set.readProperties(properties);
             mapping.configureWith(cfg);
         }
 
         @Override
         public void add(String attribute) {
-            attributes.add(attribute);
+            properties.add(attribute);
         }
 
         @Override
@@ -243,7 +269,7 @@ public class MappedQueryNodeFactory<Entity> implements MappedQueryComposer, Comp
 
         @Override
         public String toString() {
-            return "LOAD " + attributes;
+            return "LOAD " + properties;
         }
     }
     
@@ -262,9 +288,9 @@ public class MappedQueryNodeFactory<Entity> implements MappedQueryComposer, Comp
 
         @Override
         public void add(String entry) {
-            EntityAttribute<?,GraphApi> at = getOwner().getAttributes().getAttributeMap().get(entry);
+            MappedProperty<?> at = getOwner().getAttributes().getAttributeMap().get(entry);
             if (at == null) throw new IllegalArgumentException(entry);
-            resultColumns.addAll(at.getColumns());
+            resultColumns.addAll(at.getMapping().getColumns());
         }
 
         @Override
@@ -281,7 +307,7 @@ public class MappedQueryNodeFactory<Entity> implements MappedQueryComposer, Comp
         
         @Override
         public void set(String key, Supplier<?> value) {
-            EntityAttribute<Entity, GraphApi> at = getOwner().getAttributes().getAttributeMap().get(key);
+            MappedProperty<Entity> at = getOwner().getAttributes().getAttributeMap().get(key);
             if (at == null) throw new IllegalArgumentException(key);
             XBiConsumer<Entity, Object, MiException> setter = at::set;
             setUps.add(new XConsumer<Entity, MiException>() {

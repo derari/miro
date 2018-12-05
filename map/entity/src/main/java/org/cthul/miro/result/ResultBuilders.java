@@ -4,7 +4,6 @@ import java.lang.reflect.Array;
 import java.util.AbstractList;
 import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.MiException;
-import org.cthul.miro.entity.EntityType;
 import org.cthul.miro.entity.EntityFactory;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,6 +16,7 @@ import java.util.function.Supplier;
 import org.cthul.miro.result.cursor.ResultCursor;
 import org.cthul.miro.result.cursor.ResultCursorBase;
 import org.cthul.miro.util.Closeables;
+import org.cthul.miro.entity.EntityTemplate;
 
 /**
  * Default implementations of {@link EntityResultBuilder}.
@@ -39,7 +39,7 @@ public class ResultBuilders {
         private static final IteratorResult ITERATOR_RESULT = new IteratorResult<>();
 
         @Override
-        public ResultIterator<Entity> build(MiResultSet rs, EntityType<? extends Entity> type) throws MiException {
+        public ResultIterator<Entity> build(MiResultSet rs, EntityTemplate<? extends Entity> type) throws MiException {
             return new ResultReader<>(rs, type);
         }
     }
@@ -53,7 +53,7 @@ public class ResultBuilders {
         private boolean hasMore = true;
         private long rowId = 0;
 
-        public ResultReader(MiResultSet rs, EntityType<? extends Entity> type) throws MiException {
+        public ResultReader(MiResultSet rs, EntityTemplate<? extends Entity> type) throws MiException {
             this.rs = rs;
             this.factory = type.newFactory(rs);
         }
@@ -135,7 +135,7 @@ public class ResultBuilders {
         private static final LazyListResult LIST_RESULT = new LazyListResult<>();
 
         @Override
-        public EntityList<Entity> build(MiResultSet rs, EntityType<? extends Entity> type) throws MiException {
+        public EntityList<Entity> build(MiResultSet rs, EntityTemplate<? extends Entity> type) throws MiException {
             return new LazyList<>(rs, type);
         }
     }
@@ -146,7 +146,7 @@ public class ResultBuilders {
         private EntityFactory<? extends Entity> factory;
         private MiResultSet rs;
 
-        public LazyList(MiResultSet rs, EntityType<? extends Entity> type) throws MiException {
+        public LazyList(MiResultSet rs, EntityTemplate<? extends Entity> type) throws MiException {
             this.rs = rs;
             this.factory = type.newFactory(rs);
         }
@@ -237,7 +237,7 @@ public class ResultBuilders {
         private static final ListResult LIST_RESULT = new ListResult<>();
 
         @Override
-        public List<Entity> build(MiResultSet rs, EntityType<? extends Entity> type) throws MiException {
+        public List<Entity> build(MiResultSet rs, EntityTemplate<? extends Entity> type) throws MiException {
             final List<Entity> result = new ArrayList<>();
             try (MiResultSet __ = rs;
                     EntityFactory<? extends Entity> factory = type.newFactory(rs)) {
@@ -274,7 +274,7 @@ public class ResultBuilders {
         }
 
         @Override
-        public Entity[] build(MiResultSet rs, EntityType<? extends Entity> type) throws MiException {
+        public Entity[] build(MiResultSet rs, EntityTemplate<? extends Entity> type) throws MiException {
             Collection<Entity> result = listResult.build(rs, type);
             return result.toArray(ary);
         }
@@ -295,7 +295,7 @@ public class ResultBuilders {
         private static final CursorResult CURSOR_RESULT = new CursorResult<>();
 
         @Override
-        public ResultCursor<Entity> build(MiResultSet rs, EntityType<? extends Entity> type) throws MiException {
+        public ResultCursor<Entity> build(MiResultSet rs, EntityTemplate<? extends Entity> type) throws MiException {
             return new MappedResultCursor<>(rs, type);
         }
     }
@@ -308,7 +308,7 @@ public class ResultBuilders {
         private boolean isAtNext = false;
 
         @SuppressWarnings("LeakingThisInConstructor")
-        public MappedResultCursor(MiResultSet rs, EntityType<? extends Entity> type) throws MiException {
+        public MappedResultCursor(MiResultSet rs, EntityTemplate<? extends Entity> type) throws MiException {
             this.rs = rs;
             this.factory = type.newFactory(rs);
 //            setCursorValue(factory.newCursorValue(this));
@@ -402,7 +402,7 @@ public class ResultBuilders {
         }
 
         @Override
-        public Entity build(MiResultSet rs, EntityType<? extends Entity> type) throws MiException {
+        public Entity build(MiResultSet rs, EntityTemplate<? extends Entity> type) throws MiException {
             if (!rs.next()) {
                 return defValue.get();
             }

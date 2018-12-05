@@ -8,6 +8,9 @@ import org.cthul.miro.sql.SelectBuilder;
 import org.cthul.miro.sql.SelectQuery;
 import org.cthul.miro.sql.SqlBuilder.Code;
 import org.cthul.miro.sql.SqlDQML;
+import org.cthul.miro.sql.composer.SelectComposer;
+import org.cthul.miro.sql.map.MappedSelectRequest;
+import org.cthul.miro.sql.map.MappedSqlType;
 import org.cthul.miro.sql.syntax.MiSqlParser;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,8 +60,8 @@ public class SqlTest {
     @Test
     public void test3() throws InterruptedException, ExecutionException, MiException {
         MappedSqlType<Person> type = new MappedSqlType<>(Person.class);
-        type.column("firstName").field("firstName")
-            .column("lastName").get(p -> p.lastName).set((Person p, String n) -> p.lastName = n);
+        type.property("firstName").column("firstName").field("firstName")
+            .property("lastName").column("lastName").get(p -> p.lastName).set((Person p, String n) -> p.lastName = n);
         PeopleDao2 query = new PeopleDao2(TestDB.getMiConnection(), type);
         Person p = query
                 .selectFirstName().selectLastName()
@@ -69,8 +72,8 @@ public class SqlTest {
     @Test
     public void test_nested_doSafe() throws InterruptedException, ExecutionException, MiException {
         MappedSqlType<Person> type = new MappedSqlType<>(Person.class);
-        type.column("firstName").field("firstName")
-            .column("lastName").get(p -> p.lastName).set((Person p, String n) -> p.lastName = n);
+        type.property("firstName").column("firstName").field("firstName")
+            .property("lastName").column("lastName").get(p -> p.lastName).set((Person p, String n) -> p.lastName = n);
         PeopleDao2 query = new PeopleDao2(TestDB.getMiConnection(), type);
         Person p = query
                 .selectFirstAndLast()
@@ -82,20 +85,25 @@ public class SqlTest {
     public void test_copy_composer() throws InterruptedException, ExecutionException, MiException {
         Code<SelectBuilder> stmt = MiSqlParser.parsePartialSelect("FROM People WHERE id = 1");
         MappedSqlType<Person> type = new MappedSqlType<>(Person.class);
-        type.attribute("firstName")
+        type
+//                .property("firstName")
+//                .
+//                .column("firstName")
+                .attribute("firstName")
             .selectSnippet("q", s -> s.include(stmt))
-            .column("firstName").field("firstName");
+            .property("lastName").column("lastName").field("lastName");
         
         MappedSelectRequest<Person> req = type.newMappedSelectComposer();
-        req.getFetchedProperties().add("firstName");
+//        req.getFetchedProperties().add("firstName");
+        req.getSelectComposer().getSelectedAttributes().add("firstName");
         MappedSelectRequest<Person> req2 = req.copy();
         req2.getSelectComposer().getMainView().addSnippet("q");
         
         MappedQuery<Person, SelectQuery> query1 = new MappedQuery(TestDB.getMiConnection(), SqlDQML.select());
-        query1.query(req);
+        query1.apply(req);
         
         MappedQuery<Person, SelectQuery> query2 = new MappedQuery(TestDB.getMiConnection(), SqlDQML.select());
-        query2.query(req2);
+        query2.apply(req2);
         
         assertThat(query1.getStatement()).hasToString("SELECT firstName");
         assertThat(query2.getStatement()).hasToString("SELECT firstName FROM People WHERE id = 1");

@@ -1,7 +1,7 @@
 package org.cthul.miro.db.syntax;
 
 import java.util.function.Consumer;
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
 
 /**
  * Interface for a statement builder that allows to create

@@ -9,8 +9,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
-import org.cthul.miro.db.stmt.MiQueryString;
-import org.cthul.miro.db.stmt.MiUpdateString;
+import org.cthul.miro.db.request.MiQueryString;
+import org.cthul.miro.db.request.MiUpdateString;
 import org.cthul.miro.db.syntax.RequestType;
 import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.futures.MiAction;
@@ -18,6 +18,7 @@ import org.cthul.miro.function.MiFunction;
 import org.cthul.miro.function.MiSupplier;
 import org.cthul.miro.futures.MiFutures;
 import org.cthul.miro.util.Closeables;
+import org.cthul.miro.db.request.MiRequest;
 
 /**
  *
@@ -25,7 +26,7 @@ import org.cthul.miro.util.Closeables;
 public class JdbcConnection implements MiConnection {
     
     private final MiFunction<MiSupplier<PreparedStatement>, ResultSet> fExecuteQuery = this::executeQuery;
-    private final MiFunction<MiSupplier<PreparedStatement>, Long> fExecuteStmt = this::executeStatement;
+    private final MiFunction<MiSupplier<PreparedStatement>, Long> fExecuteUpdate = this::executeUpdate;
     private final ConnectionProvider connectionSupplier;
     private final Syntax syntax;
 
@@ -57,8 +58,8 @@ public class JdbcConnection implements MiConnection {
     }
 
     @Override
-    public <Stmt> Stmt newStatement(RequestType<Stmt> type) {
-        return syntax.newStatement(this, type);
+    public <Req extends MiRequest<?>> Req newRequest(RequestType<Req> type) {
+        return syntax.newRequest(this, type);
     }
 
     public PreparedStatement prepareStatement(String sql) throws MiException {
@@ -88,7 +89,7 @@ public class JdbcConnection implements MiConnection {
         }
     }
 
-    public MiAction<ResultSet> queryAction(MiSupplier<PreparedStatement> stmt) {
+    MiAction<ResultSet> queryAction(MiSupplier<PreparedStatement> stmt) {
         return MiFutures.build()
                 .notResettable()
                 .executor(QUERY_EXECUTOR)
@@ -96,7 +97,7 @@ public class JdbcConnection implements MiConnection {
                 .action(fExecuteQuery, stmt);
     }
     
-    public long executeStatement(PreparedStatement stmt) throws MiException {
+    long executeStatement(PreparedStatement stmt) throws MiException {
         try {
             return stmt.executeUpdate();
         } catch (SQLException e) {
@@ -104,7 +105,7 @@ public class JdbcConnection implements MiConnection {
         }
     }
     
-    private long executeStatement(MiSupplier<PreparedStatement> stmt) throws MiException {
+    private long executeUpdate(MiSupplier<PreparedStatement> stmt) throws MiException {
         try {
             return executeStatement(stmt.call());
         } catch (Throwable t) {
@@ -117,7 +118,7 @@ public class JdbcConnection implements MiConnection {
                 .notResettable()
                 .executor(QUERY_EXECUTOR)
                 .defaultExecutor(MiFutures.defaultExecutor())
-                .action(fExecuteStmt, stmt);
+                .action(fExecuteUpdate, stmt);
     }
     
     public static interface ConnectionProvider {

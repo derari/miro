@@ -34,3 +34,6 @@ dependency-reduced-pom.xml
 /sql/composer/target/
 /db/composer/target/
 /map/set/target/
+.classpath
+.project
+.settings/

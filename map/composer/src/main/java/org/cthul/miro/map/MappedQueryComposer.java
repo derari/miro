@@ -3,9 +3,10 @@ package org.cthul.miro.map;
 import java.util.Map;
 import java.util.function.Supplier;
 import org.cthul.miro.entity.*;
-import org.cthul.miro.graph.Graph;
 import org.cthul.miro.composer.node.KeyValueNode;
 import org.cthul.miro.composer.node.ListNode;
+import org.cthul.miro.domain.Repository;
+import org.cthul.miro.domain.EntitySet;
 
 /**
  *
@@ -45,18 +46,18 @@ public interface MappedQueryComposer<Entity> extends PropertyFilterComposer {
     
     static interface Type<Entity> {
         
-        void setGraph(Graph graph);
+        void setRepository(Repository repository);
         
-        void setType(EntityType<? extends Entity> type);
+        void setTemplate(EntityTemplate<? extends Entity> type);
         
-        Graph getGraph();
+        EntitySet<Entity> getEntitySet();
     }
     
     static interface Configuration<Entity> {
         void configureWith(EntityConfiguration<? super Entity> config);
 
         default void initializeWith(EntityInitializer<? super Entity> init) {
-            configureWith(EntityTypes.asConfiguration(init));
+            configureWith(Entities.asConfiguration(init));
         }
     }
 

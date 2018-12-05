@@ -6,15 +6,15 @@ import org.cthul.miro.db.MiResultSet;
 import org.cthul.miro.db.impl.MiDBStringBuilder;
 import org.cthul.miro.db.impl.MiDBStringDelegator;
 import org.cthul.miro.sql.syntax.AnsiSqlSyntax;
-import org.cthul.miro.db.stmt.MiDBString;
-import org.cthul.miro.db.stmt.MiQueryString;
-import org.cthul.miro.db.stmt.MiStatement;
-import org.cthul.miro.db.stmt.MiUpdateString;
+import org.cthul.miro.db.request.MiDBString;
+import org.cthul.miro.db.request.MiQueryString;
+import org.cthul.miro.db.request.MiUpdateString;
 import org.cthul.miro.db.syntax.ClauseType;
 import org.cthul.miro.db.syntax.RequestType;
 import org.cthul.miro.db.syntax.StatementBuilder;
 import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.futures.MiAction;
+import org.cthul.miro.db.request.MiRequest;
 
 /**
  *
@@ -28,14 +28,14 @@ class TestConnection implements MiConnection {
 
     @Override
     public MiQueryString newQuery() {
-        class Query extends Stmt<MiResultSet, Query> implements MiQueryString {
+        class Query extends Req<MiResultSet, Query> implements MiQueryString {
         }
         return new Query();
     }
 
     @Override
     public MiUpdateString newUpdate() {
-        class Update extends Stmt<Long, Update> implements MiUpdateString {
+        class Update extends Req<Long, Update> implements MiUpdateString {
             @Override
             public void addBatch() { }
         }
@@ -43,15 +43,15 @@ class TestConnection implements MiConnection {
     }
 
     @Override
-    public <Stmt> Stmt newStatement(RequestType<Stmt> type) {
-        return syntax.newStatement(this, type);
+    public <Req extends MiRequest<?>> Req newRequest(RequestType<Req> type) {
+        return syntax.newRequest(this, type);
     }
 
     @Override
     public void close() throws MiException {
     }
     
-    class Stmt<R, This extends Stmt<R, This>> extends MiDBStringDelegator<This> implements MiStatement<R>, StatementBuilder {
+    class Req<R, This extends Req<R, This>> extends MiDBStringDelegator<This> implements MiRequest<R>, StatementBuilder {
         MiDBStringBuilder string = new MiDBStringBuilder();
         @Override
         protected MiDBString getDelegate() {

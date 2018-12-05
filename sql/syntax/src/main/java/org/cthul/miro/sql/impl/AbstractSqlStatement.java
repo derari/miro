@@ -5,7 +5,7 @@ import org.cthul.miro.db.impl.AbstractStatement;
 import org.cthul.miro.db.impl.MiDBStringBuilder;
 import org.cthul.miro.db.impl.QlBuilderDelegator;
 import org.cthul.miro.sql.SqlJoinableClause;
-import org.cthul.miro.db.stmt.MiDBString;
+import org.cthul.miro.db.request.MiDBString;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.sql.SelectBuilder;
