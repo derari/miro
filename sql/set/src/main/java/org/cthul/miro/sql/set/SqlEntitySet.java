@@ -3,14 +3,13 @@ package org.cthul.miro.sql.set;
 import org.cthul.miro.composer.snippets.SnippetComposer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import org.cthul.miro.composer.AbstractComposer;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.sql.SelectQuery;
 import org.cthul.miro.sql.SqlDQML;
 import org.cthul.miro.entity.EntityConfiguration;
 import org.cthul.miro.entity.EntityInitializer;
 import org.cthul.miro.map.*;
-import org.cthul.miro.composer.ComposerState;
-import org.cthul.miro.composer.ComposerState.Behavior;
 import org.cthul.miro.composer.snippets.SnippetSet;
 import org.cthul.miro.set.base.AbstractQuerySet;
 import org.cthul.miro.composer.node.BatchNode;
@@ -91,12 +90,7 @@ public abstract class SqlEntitySet<Entity, This extends SqlEntitySet<Entity, Thi
         SnippetSet<MappedQuery<Entity, SelectQuery>> snippetSet = new SnippetSet<>();
         intializeSnippetSet(snippetSet);
         MappedSelectRequest<Entity> baseComposer = composerPrototype.copy();
-        return ComposerState.builder()
-                .setImpl(new WithSnippetsImpl<>())
-                .addComposerInterface(baseComposer)
-                .put("getMappedSelectComposerDelegate", baseComposer)
-                .put("getSnippets", snippetSet.newSnippetsPart())
-                .create(MappedSelectRequest.class);
+        return new WithSnippets<>(baseComposer, snippetSet);
     }
     
     private Snippets<MappedQuery<Entity, SelectQuery>> snippets(MappedSelectRequest<?> req) {
@@ -110,17 +104,8 @@ public abstract class SqlEntitySet<Entity, This extends SqlEntitySet<Entity, Thi
     protected static interface MappedSelectComposerWithSnippets<Entity> extends 
             MappedSelectComposer.Delegator<Entity>, SnippetComposer<MappedQuery<Entity, SelectQuery>> {
         
-        MappedSelectComposer<Entity> getMappedSelectComposerDelegate();
-
         @Override
-        default PropertyFilterComposer getPropertyFilterComposerDelegate() {
-            return getMappedSelectComposerDelegate();
-        }
-//
-//        @Override
-//        default SelectComposer getSelectComposerDelegate() {
-//            return getMappedSelectComposerDelegate();
-//        }
+        MappedSelectComposer<Entity> getMappedSelectComposerDelegate();
 
         @Override
         default MappedQueryComposer<Entity> getMappedQueryComposerDelegate() {
@@ -133,29 +118,43 @@ public abstract class SqlEntitySet<Entity, This extends SqlEntitySet<Entity, Thi
         }
     }
     
-    protected static class WithSnippetsImpl<Entity> implements Behavior<MappedSelectComposerWithSnippets<Entity>>, 
-            MappedSelectComposerWithSnippets<Entity> {
-
-        private MappedSelectComposerWithSnippets<Entity> actual;
+    protected static class WithSnippets<Entity> 
+            extends AbstractComposer<MappedQuery<Entity, SelectQuery>, MappedQuery<Entity, SelectQuery>, MappedSelectComposerWithSnippets<Entity>>
+            implements MappedSelectComposerWithSnippets<Entity>, MappedSelectRequest<Entity> {
         
-        @Override
-        public MappedSelectComposerWithSnippets<Entity> copy() {
-            return new WithSnippetsImpl<>();
+        protected static final KeyIndex INDEX = AbstractComposer.index();
+        protected static final NodeKey MAPPED_SELECT = INDEX.key();
+        protected static final NodeKey SNIPPETS = INDEX.key();
+
+        public WithSnippets(MappedSelectRequest<Entity> baseComposer, SnippetSet<MappedQuery<Entity, SelectQuery>> snippetSet) {
+            super(INDEX, null, Function.identity());
+            putAll(
+                MAPPED_SELECT, baseComposer,
+                SNIPPETS, snippetSet.newSnippetsPart());
+        }
+
+        protected WithSnippets(WithSnippets<Entity> src, Function<? super MappedQuery<Entity, SelectQuery>, ? extends MappedQuery<Entity, SelectQuery>> builderAdapter) {
+            super(src, builderAdapter);
         }
 
         @Override
-        public void initialize(MappedSelectComposerWithSnippets<Entity> composer) {
-            actual = composer;
+        protected Object copy(Function<?, ? extends MappedQuery<Entity, SelectQuery>> builderAdapter) {
+            return new WithSnippets<>(this, (Function) builderAdapter);
         }
-        
+
+        @Override
+        public MappedSelectRequest<Entity> copy() {
+            return _copy();
+        }
+
         @Override
         public MappedSelectComposer<Entity> getMappedSelectComposerDelegate() {
-            return actual.getMappedSelectComposerDelegate();
+            return getNode(MAPPED_SELECT);
         }
 
         @Override
         public Snippets<MappedQuery<Entity, SelectQuery>> getSnippets() {
-            return actual.getSnippets();
+            return getNode(SNIPPETS);
         }
     }
 }

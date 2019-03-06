@@ -2,7 +2,6 @@ package org.cthul.miro.map.node;
 
 import java.util.*;
 import org.cthul.miro.composer.node.StatementPart;
-import org.cthul.miro.composer.ComposerState;
 import org.cthul.miro.composer.node.Initializable;
 import org.cthul.miro.composer.ComposerInternal;
 import org.cthul.miro.composer.node.CopyInitializable;
@@ -27,7 +26,7 @@ import org.cthul.miro.entity.*;
  *
  * @param <Entity>
  */
-public class MappedQueryNodeFactory<Entity> implements MappedQueryComposer, ComposerInternal {
+public class MappedQueryNodeFactory<Entity> implements MappedQueryComposer {
     
     private final AbstractQueryableType<Entity,?> owner;
     private final Object typeKey;
@@ -42,20 +41,9 @@ public class MappedQueryNodeFactory<Entity> implements MappedQueryComposer, Comp
         this.typeKey = typeKey;
         this.defaultType = defaultType;
     }
-    
-    public MappedQueryComposer newComposer() {
-        return ComposerState.fromFactory(this);
-    }
 
     protected AbstractQueryableType<Entity, ?> getOwner() {
         return owner;
-    }
-
-    @Override
-    public Initializable<MappedQueryComposer> getAlways() {
-        return cmp -> {
-            cmp.getType();
-        };
     }
 
     @Override

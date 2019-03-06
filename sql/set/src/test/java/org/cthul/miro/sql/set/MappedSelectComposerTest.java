@@ -2,8 +2,6 @@ package org.cthul.miro.sql.set;
 
 import java.util.List;
 import org.cthul.miro.map.MappedQuery;
-import org.cthul.miro.composer.ComposerState;
-import org.cthul.miro.domain.impl.SimpleRepository;
 import org.cthul.miro.result.Results.Action;
 import org.cthul.miro.sql.SelectQuery;
 import org.cthul.miro.sql.SqlDQML;
@@ -45,6 +43,6 @@ public class MappedSelectComposerTest {
     
     private Action<Person> getQueryString() {
         MappedQuery<Person,SelectQuery> qry = new MappedQuery<>(TestDB.getMiConnection(), SqlDQML.select());
-        return qry.apply(ComposerState.asRequestComposer(cmp)).result();
+        return qry.apply(cmp).result();
     }
 }

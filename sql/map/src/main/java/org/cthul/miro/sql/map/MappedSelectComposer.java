@@ -26,5 +26,17 @@ public interface MappedSelectComposer<Entity> extends MappedQueryComposer<Entity
     }
 
     interface Delegator<Entity> extends MappedSelectComposer.Internal<Entity>, MappedQueryComposer.Delegator<Entity> {
+
+        MappedSelectComposer<Entity> getMappedSelectComposerDelegate();
+        
+        @Override
+        default SelectComposer getSelectComposer() {
+            return getMappedSelectComposerDelegate().getSelectComposer();
+        }
+
+        @Override
+        public default MappedQueryComposer<Entity> getMappedQueryComposerDelegate() {
+            return getMappedSelectComposerDelegate();
+        }
     }
 }

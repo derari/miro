@@ -79,6 +79,11 @@ public interface MappedQueryComposer<Entity> extends PropertyFilterComposer {
         MappedQueryComposer<Entity> getMappedQueryComposerDelegate();
 
         @Override
+        default PropertyFilterComposer getPropertyFilterComposerDelegate() {
+            return getMappedQueryComposerDelegate();
+        }
+
+        @Override
         default Type<Entity> getType() {
             return getMappedQueryComposerDelegate().getType();
         }

@@ -2,13 +2,10 @@ package org.cthul.miro.sql.composer;
 
 import java.util.Arrays;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
-import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.util.ValueKey;
 import org.cthul.miro.composer.node.ListNode;
 import org.cthul.miro.composer.node.MultiKeyValueNode;
-import org.cthul.miro.sql.composer.Comparison.Op;
 
 /**
  *

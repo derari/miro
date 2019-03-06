@@ -2,8 +2,6 @@ package org.cthul.miro.map;
 
 import java.util.Collection;
 import java.util.List;
-import org.cthul.miro.map.node.MappedQueryNodeFactory;
-import org.cthul.miro.composer.ComposerState;
 import org.cthul.miro.composer.RequestComposer;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
@@ -11,6 +9,7 @@ import org.cthul.miro.db.request.MiQuery;
 import org.cthul.miro.domain.Repository;
 import org.cthul.miro.domain.impl.AbstractTypeBuilder;
 import org.cthul.miro.entity.EntityTemplate;
+import org.cthul.miro.map.node.DefaultMappedQueryComposer;
 
 /**
  *
@@ -30,7 +29,7 @@ public abstract class AbstractQueryableType<Entity, This extends AbstractQueryab
     }
     
     protected MappedQueryComposer<Entity> newMappedQueryComposer() {
-        return new MappedQueryNodeFactory(this, entityClass(), () -> newEntityTemplate(null)).newComposer();
+        return DefaultMappedQueryComposer.create(this, entityClass(), () -> newEntityTemplate(null));
     }
     
     protected abstract MappedQueryComposer<Entity> newBatchComposer();
@@ -41,7 +40,7 @@ public abstract class AbstractQueryableType<Entity, This extends AbstractQueryab
         if (batchComposer == null) {
             batchComposer = newBatchComposer();
         }
-        MappedQueryComposer<Entity> batch = ComposerState.copy(batchComposer);
+        MappedQueryComposer<Entity> batch = RequestComposer.copyRequest(batchComposer);
         batch.getType().setRepository(repository);
         batch.getIncludedProperties().addAll(getKeys());
         batch.getFetchedProperties().addAll(flattenStr(attributes));
@@ -60,7 +59,7 @@ public abstract class AbstractQueryableType<Entity, This extends AbstractQueryab
                     batch = AbstractQueryableType.this.newBatchComposer(repository, connection, properties);
                     batch.getType().setTemplate(template);
                 }
-                MappedQueryComposer<Entity> cmp = ComposerState.copy(batch);
+                MappedQueryComposer<Entity> cmp = RequestComposer.copyRequest(batch);
                 cmp.getPropertyFilter().forProperties(keyArray).addAll(keys);
                 MappedQuery<Entity, MiQuery> query = new MappedQuery<>(newBatchQuery(connection));
                 query.apply((RequestComposer<MappedQuery<Entity,MiQuery>>) cmp)

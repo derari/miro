@@ -1,6 +1,5 @@
 package org.cthul.miro.sql.composer.model;
 
-import org.cthul.miro.sql.composer.node.SelectNodeFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,6 +13,7 @@ import org.cthul.miro.sql.SelectBuilder;
 import org.cthul.miro.sql.composer.Comparison;
 import org.cthul.miro.sql.composer.SelectRequest;
 import org.cthul.miro.sql.composer.SqlTemplatesBuilder;
+import org.cthul.miro.sql.composer.node.DefaultSelectComposer;
 import org.cthul.miro.sql.syntax.MiSqlParser;
 import org.cthul.miro.util.Key;
 
@@ -35,7 +35,7 @@ public class SqlTemplates
     }
     
     public SelectRequest newSelectComposer() {
-        return new SelectNodeFactory(this).newComposer();
+        return DefaultSelectComposer.createRequest(this);
     }
 
     public Map<String, SqlAttribute> getAttributes() {

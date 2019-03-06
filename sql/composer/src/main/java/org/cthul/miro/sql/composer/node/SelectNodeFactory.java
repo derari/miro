@@ -4,8 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import org.cthul.miro.composer.node.CopyInitializable;
-import org.cthul.miro.composer.ComposerState;
-import org.cthul.miro.composer.ComposerState.Behavior;
 import org.cthul.miro.composer.CopyableNodeSet;
 import org.cthul.miro.composer.node.*;
 import org.cthul.miro.sql.SelectBuilder;
@@ -21,13 +19,6 @@ public class SelectNodeFactory implements SelectComposer {
 
     public SelectNodeFactory(SqlTemplates owner) {
         this.owner = owner;
-    }
-    
-    public SelectRequest newComposer() {
-        return ComposerState.builder()
-                .setImpl(new Impl())
-                .setFactory(this)
-                .create(SelectRequest.class);
     }
 
     protected SqlTemplates getOwner() {
@@ -155,24 +146,6 @@ public class SelectNodeFactory implements SelectComposer {
         @Override
         public void addTo(SelectBuilder builder) {
             addPartsTo(builder);
-        }
-    }
-    
-    protected static class Impl implements Behavior<SelectComposer> {
-        SelectComposer actual;
-
-        @Override
-        public Object copy() {
-            return new Impl();
-        }
-
-        @Override
-        public void initialize(SelectComposer composer) {
-            this.actual = composer;
-        }
-        
-        public VirtualView getMainView() {
-            return actual.getViews().get("");
         }
     }
 }

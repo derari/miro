@@ -1,14 +1,11 @@
 package org.cthul.miro.sql.request;
 
+import org.cthul.miro.composer.RequestComposer;
 import org.cthul.miro.sql.composer.model.SqlTemplates;
-import org.cthul.miro.sql.composer.node.SelectNodeFactory;
 import org.cthul.miro.sql.composer.SelectComposer;
-import java.util.function.Function;
 import org.cthul.miro.db.impl.MiDBStringBuilder;
-import org.cthul.miro.composer.ComposerState;
-import org.cthul.miro.composer.node.StatementPart;
-import org.cthul.miro.sql.SelectBuilder;
 import org.cthul.miro.sql.SqlDQML;
+import org.cthul.miro.sql.composer.node.DefaultSelectComposer;
 import org.cthul.miro.sql.syntax.AnsiSqlSyntax;
 import org.cthul.miro.sql.syntax.SqlSyntax;
 import org.junit.Before;
@@ -19,7 +16,7 @@ import static org.junit.Assert.assertThat;
 /**
  *
  */
-public class SelectComposerTest {
+public class DefaultSelectComposerTest {
     
     SqlSyntax syntax = new AnsiSqlSyntax();
     
@@ -31,7 +28,7 @@ public class SelectComposerTest {
     
     @Before
     public void setUp() {
-        cmp = new SelectNodeFactory(people).newComposer();
+        cmp = DefaultSelectComposer.create(people);
     }
     
     @Test
@@ -43,7 +40,7 @@ public class SelectComposerTest {
     
     private String getQueryString() {
         MiDBStringBuilder qryString = new MiDBStringBuilder();
-        ComposerState.asRequestComposer(cmp).build(qryString.as(syntax, SqlDQML.select()));
+        ((RequestComposer) cmp).build(qryString.as(syntax, SqlDQML.select()));
         qryString.close();
         return qryString.toString();
     }

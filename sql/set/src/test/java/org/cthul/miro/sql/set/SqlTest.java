@@ -8,7 +8,6 @@ import org.cthul.miro.sql.SelectBuilder;
 import org.cthul.miro.sql.SelectQuery;
 import org.cthul.miro.sql.SqlBuilder.Code;
 import org.cthul.miro.sql.SqlDQML;
-import org.cthul.miro.sql.composer.SelectComposer;
 import org.cthul.miro.sql.map.MappedSelectRequest;
 import org.cthul.miro.sql.map.MappedSqlType;
 import org.cthul.miro.sql.syntax.MiSqlParser;

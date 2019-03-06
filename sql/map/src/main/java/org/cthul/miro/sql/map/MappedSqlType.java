@@ -84,7 +84,9 @@ public class MappedSqlType<Entity>
     
     public MappedSelectRequest<Entity> newMappedSelectComposer() {
         if (selectComposer == null) {
-            selectComposer =  MappedSelectComposerImpl.newComposer(newMappedQueryComposer(), sqlTemplates.newSelectComposer());
+            selectComposer = DefaultMappedSelectComposer.createRequest(
+                    newMappedQueryComposer(), 
+                    sqlTemplates.newSelectComposer());
         }
         return selectComposer.copy();
     }
