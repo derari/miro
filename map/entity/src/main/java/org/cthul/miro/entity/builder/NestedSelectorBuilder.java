@@ -45,7 +45,7 @@ public class NestedSelectorBuilder<Entity> extends NestedInitializationtBuilderB
             if (cf.selectorName != null) {
                 addName(selectorName);
             }
-            return setSelector(cf.selector).add(cf.setup);
+            return this.<E>setSelector(cf.selector).add(cf.setup);
         } else {
             addName(selector);
             addCompleteAndClose(selector);

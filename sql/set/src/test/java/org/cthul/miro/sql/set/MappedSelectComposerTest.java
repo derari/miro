@@ -28,7 +28,7 @@ public class MappedSelectComposerTest {
                 .property("firstName").column("firstName").field("firstName")
                 .property("lastLame").column("lastLame").field("lastName");
         
-        cmp = type.newMappedSelectComposer();
+        cmp = type.newMappedQueryRequest();
     }
     
     @Test

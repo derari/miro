@@ -5,14 +5,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
 import org.cthul.miro.db.MiException;
-import org.cthul.miro.db.impl.AbstractStatement;
-import org.cthul.miro.db.impl.MiDBStringBuilder;
-import org.cthul.miro.db.impl.QlBuilderDelegator;
+import org.cthul.miro.db.request.MiUpdateBuilder;
 import org.cthul.miro.sql.InsertStatement;
 import org.cthul.miro.sql.SqlDQML;
-import org.cthul.miro.db.request.MiDBString;
-import org.cthul.miro.db.request.MiUpdateString;
+import org.cthul.miro.db.request.StatementBuilder;
+import org.cthul.miro.db.string.AbstractStatement;
+import org.cthul.miro.db.string.MiDBString;
+import org.cthul.miro.db.string.SyntaxStringBuilder;
 import org.cthul.miro.db.syntax.QlBuilder;
+import org.cthul.miro.db.syntax.QlBuilderDelegator;
 import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.futures.MiAction;
 import org.cthul.miro.sql.SelectBuilder;
@@ -30,31 +31,31 @@ import org.cthul.miro.sql.InsertValuesBuilder;
  *
  */
 public class StandardInsertStatement 
-                extends AbstractStatement<MiUpdateString> 
+                extends AbstractStatement<MiUpdateBuilder> 
                 implements InsertStatement {
     
-    private final MiDBStringBuilder intoString;
-    private final MiDBStringBuilder defString;
+    private final SyntaxStringBuilder intoString;
+    private final SyntaxStringBuilder defString;
     private final Into into;
     private SelectBuilder query = null;
     private Columns columns = null;
     private Values values = null;
 
-    public StandardInsertStatement(Syntax syntax, Supplier<MiUpdateString> requestFactory) {
+    public StandardInsertStatement(Syntax syntax, Supplier<MiUpdateBuilder> requestFactory) {
         super(syntax, requestFactory);
     }
 
-    public StandardInsertStatement(Syntax syntax, MiUpdateString request) {
+    public StandardInsertStatement(Syntax syntax, MiUpdateBuilder request) {
         super(syntax, request);
     }
 
-    public StandardInsertStatement(Syntax syntax, MiDBString dbString, MiUpdateString request) {
+    public StandardInsertStatement(Syntax syntax, StatementBuilder dbString, MiUpdateBuilder request) {
         super(syntax, dbString, request);
     }
     
     {
-        intoString = new MiDBStringBuilder();
-        defString = new MiDBStringBuilder();
+        intoString = new SyntaxStringBuilder(getSyntax());
+        defString = new SyntaxStringBuilder(getSyntax());
         into = intoString.as(Into::new);
     }
 
@@ -69,7 +70,7 @@ public class StandardInsertStatement
             throw new IllegalStateException("This is an INSERT VALUES statement");
         }
         if (query == null) {
-            query = defString.as(getSyntax(), SqlDQML.select());
+            query = defString.begin(SqlDQML.select());
             values = new Values();
         }
         return this;
@@ -90,18 +91,24 @@ public class StandardInsertStatement
     }
 
     @Override
-    protected void buildStatement(MiDBString stmt) {
-        stmt.append("INSERT INTO ");
-        intoString.addTo(stmt);
+    protected void buildStatement(StatementBuilder stmt) {
+        QlBuilder<?> ql = getSyntax().newClause(stmt, QlBuilder.TYPE);
+        ql.append("INSERT INTO ");
+        intoString.addTo(ql);
         if (isInsertValues()) {
-            stmt.append(" (");
-            defString.addTo(stmt);
-            stmt.append(")");
-            values.writeTo(stmt);
+            ql.append(" (");
+            defString.addTo(ql);
+            ql.append(")");
+            values.writeTo(ql);
         } else {
-            stmt.append(" ");
-            defString.addTo(stmt);
+            ql.append(" ");
+            defString.addTo(ql);
         }
+    }
+
+    @Override
+    protected StatementBuilder newToStringBuilder() {
+        return new SyntaxStringBuilder(getSyntax());
     }
 
     @Override
@@ -140,14 +147,10 @@ public class StandardInsertStatement
     protected class Into extends QlBuilderDelegator<InsertStatement.Into> implements InsertStatement.Into {
 
         private final QlBuilder<?> builder;
-
-        public Into(MiDBString dbString) {
-            this(dbString, StandardInsertStatement.this.getSyntax());
-        }
         
-        public Into(MiDBString dbString, Syntax syntax) {
-            super(syntax);
-            this.builder = QlBuilder.create(syntax, dbString);
+        public Into(StatementBuilder parent) {
+            super(StandardInsertStatement.this.getSyntax());
+            this.builder = parent.begin(QlBuilder.TYPE);
         }
         
         @Override
@@ -212,13 +215,9 @@ public class StandardInsertStatement
         private boolean empty = true;
         private boolean nextColumn = true;
         
-        public Columns(MiDBString dbString) {
-            this(dbString, StandardInsertStatement.this.getSyntax());
-        }
-        
-        public Columns(MiDBString dbString, Syntax syntax) {
-            super(syntax);
-            this.builder = QlBuilder.create(syntax, dbString);
+        public Columns(StatementBuilder parent) {
+            super(StandardInsertStatement.this.getSyntax());
+            this.builder = parent.begin(QlBuilder.TYPE);
         }
         
         @Override
@@ -306,9 +305,9 @@ public class StandardInsertStatement
             stmt.append(")");
         }
         
-        protected void addData(MiUpdateString stmt) {
+        protected void addData(MiUpdateBuilder stmt) {
             values.forEach(batch -> {
-                stmt.pushArguments(batch);
+                stmt.begin(MiDBString.TYPE).pushArguments(batch);
                 stmt.addBatch();
             });
         }

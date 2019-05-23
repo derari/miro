@@ -25,8 +25,7 @@ public class DefaultSelectComposer<Builder>
         return new Request(create(owner));
     }
     
-    @SuppressWarnings("FieldNameHidesFieldInSuperclass")
-    protected static final KeyIndex INDEX = AbstractComposer.index();
+    protected static final KeyIndex INDEX = newIndex();
     protected static final NodeKey SELECTED_ATTRIBUTES = INDEX.factory(SelectComposer::getSelectedAttributes);
     protected static final NodeKey VIEWS = INDEX.factory(SelectComposer::getViews);
     protected static final NodeKey ATTRIBUTE_FILTER = INDEX.factory(SelectComposer::getAttributeFilter);
@@ -66,13 +65,17 @@ public class DefaultSelectComposer<Builder>
 
     protected static class Request 
             extends AbstractRequest<SelectQuery, Object> 
-            implements SelectRequest, RequestComposer.Delegator<SelectQuery>, SelectComposer.Delegator {
+            implements SelectRequest, SelectComposer.Delegator {
         
         final DefaultSelectComposer<SelectBuilder> composer;
 
         public Request(DefaultSelectComposer<SelectBuilder> composer) {
-            super(composer);
             this.composer = composer;
+        }
+
+        @Override
+        protected RequestComposer<? super SelectQuery> getComposer() {
+            return composer;
         }
         
         @Override

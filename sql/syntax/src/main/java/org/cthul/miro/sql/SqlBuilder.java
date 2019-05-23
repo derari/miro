@@ -21,11 +21,11 @@ public interface SqlBuilder<This extends SqlBuilder<This>> extends QlBuilder<Thi
     }
     
     default In<This> in() {
-        return (In) begin(SqlClause.in());
+        return (In) begin(SqlClause.openIn());
     }
     
     default This in(Consumer<? super In<?>> action) {
-        return clause(SqlClause.in(), action);
+        return clause(SqlClause.openIn(), newIn -> action.accept(newIn.open(null)));
     }
     
     default This in(int length) {
@@ -41,11 +41,11 @@ public interface SqlBuilder<This extends SqlBuilder<This>> extends QlBuilder<Thi
     }
     
     default IsNull<This> isNull() {
-        return (IsNull) begin(SqlClause.isNull());
+        return (IsNull) begin(SqlClause.openIsNull());
     }
     
     default This isNull(Consumer<? super IsNull<?>> action) {
-        return clause(SqlClause.isNull(), action);
+        return clause(SqlClause.openIsNull(), newIsNull -> action.accept(newIsNull.open(null)));
     }
     
     default This eq(Object value) {

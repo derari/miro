@@ -22,7 +22,7 @@ public class DefaultMappedQueryComposer<Entity, Builder>
         return new DefaultMappedQueryComposer<>(owner, typeKey, defaultType, Function.identity());
     }
 
-    protected static final KeyIndex INDEX = AbstractComposer.index();
+    protected static final KeyIndex INDEX = AbstractComposer.newIndex();
     protected static final NodeKey TYPE = INDEX.factory(MappedQueryComposer<?>::getType);
     protected static final NodeKey CONFIGURATION = INDEX.factory(MappedQueryComposer<?>::getConfiguration);
     protected static final NodeKey LOADED_PROPERTIES = INDEX.factory(MappedQueryComposer<?>::getLoadedProperties);

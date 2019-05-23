@@ -7,12 +7,12 @@ import java.util.Map;
 import java.util.function.Function;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
-import org.cthul.miro.db.request.MiQueryString;
 import org.cthul.miro.db.request.MiRequest;
-import org.cthul.miro.db.request.MiUpdateString;
 import org.cthul.miro.db.syntax.RequestType;
 import org.cthul.miro.domain.*;
 import org.cthul.miro.entity.*;
+import org.cthul.miro.db.request.MiQueryBuilder;
+import org.cthul.miro.db.request.MiUpdateBuilder;
 
 /**
  *
@@ -54,12 +54,12 @@ public class SimpleRepository implements Repository, MiConnection {
     }
 
     @Override
-    public MiQueryString newQuery() {
+    public MiQueryBuilder newQuery() {
         return connection.newQuery();
     }
 
     @Override
-    public MiUpdateString newUpdate() {
+    public MiUpdateBuilder newUpdate() {
         return connection.newUpdate();
     }
 

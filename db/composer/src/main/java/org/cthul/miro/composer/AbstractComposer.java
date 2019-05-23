@@ -15,10 +15,8 @@ public abstract class AbstractComposer<Builder,Adapted,Composer>
             implements RequestComposer<Builder>, StatementPart<Builder>, Extensible,
                         Initializable<Composer>, Copyable<Composer> {
     
-    private static final KeyIndex INDEX = new KeyIndex();
-    
-    protected static KeyIndex index() {
-        return INDEX.extend();
+    protected static KeyIndex newIndex() {
+        return new KeyIndex();
     }
     
     private final AbstractComposer<?,?,?> parent;
@@ -41,13 +39,6 @@ public abstract class AbstractComposer<Builder,Adapted,Composer>
         this(indexBuilder.count, factory, builderAdapter);
     }
     
-//    protected AbstractComposer(AbstractComposer<? super Builder, ? extends Adapted> src) {
-//        this.parent = src;
-//        this.nodes = new Object[src.nodes.length];
-//        this.factory = src.factory;
-//        this.builderAdapter = src.builderAdapter;
-//    }
-//    
     protected AbstractComposer(AbstractComposer<?, Adapted, ?> src, Function<? super Builder, ? extends Adapted> builderAdapter) {
         this.parent = src.nodes != null ? src : src.parent;
         this.count = src.count;
@@ -124,7 +115,6 @@ public abstract class AbstractComposer<Builder,Adapted,Composer>
         AbstractComposer ancestor = parent;
         Object node = null;
         while (ancestor != null) {
-            if (ancestor.nodes == null) continue;
             node = ancestor.nodes[index];
             if (node != null) break;
             ancestor = ancestor.parent;
@@ -172,7 +162,7 @@ public abstract class AbstractComposer<Builder,Adapted,Composer>
 
     @Override
     public <Builder2> RequestComposer<Builder2> adapt(Function<? super Builder2, ? extends Builder> builderAdapter) {
-        if (builderAdapter == Function.identity()) {
+        if (this.builderAdapter == Function.identity()) {
             return (RequestComposer) copy((Function) builderAdapter);
         }
         Function<? super Builder2, Adapted> adapter = builderAdapter.andThen(this.builderAdapter);
@@ -186,9 +176,9 @@ public abstract class AbstractComposer<Builder,Adapted,Composer>
 
     @Override
     public void build(Builder builder) {
+        nodes();
         beforeBuild();
         Adapted actual = builderAdapter.apply(builder);
-        nodes();
         for (int i = 0; i < nodes.length; i++) {
             Object n = nodes[i];
             if (n == null) {
@@ -256,19 +246,10 @@ public abstract class AbstractComposer<Builder,Adapted,Composer>
     }
     
     protected static abstract class AbstractRequest<Builder, Composer> 
-            implements RequestComposer.Delegator<Builder>, StatementPart<Builder>,
+            implements RequestComposer<Builder>, StatementPart<Builder>,
                        Copyable<Composer>, Initializable<Composer> {
 
-        private final RequestComposer<? super Builder> composer;
-
-        public AbstractRequest(RequestComposer<? super Builder> composer) {
-            this.composer = composer;
-        }
-        
-        @Override
-        public RequestComposer<? super Builder> getRequestComposerDelegate() {
-            return composer;
-        }
+        protected abstract RequestComposer<? super Builder> getComposer();
 
         @Override
         public Object copy(Composer composer) {
@@ -279,14 +260,25 @@ public abstract class AbstractComposer<Builder,Adapted,Composer>
 
         @Override
         public void initialize(Composer composer) {
-            if (this.composer instanceof Initializable) {
-                ((Initializable) this.composer).initialize(composer);
+            RequestComposer<? super Builder> delegate = getComposer();
+            if (delegate instanceof Initializable) {
+                ((Initializable) delegate).initialize(composer);
             }
         }
         
         @Override
         public void addTo(Builder builder) {
             build(builder);
+        }
+
+        @Override
+        public void build(Builder builder) {
+            getComposer().build(builder);
+        }
+
+        @Override
+        public <Builder2> RequestComposer<Builder2> adapt(Function<? super Builder2, ? extends Builder> builderAdapter) {
+            return getComposer().adapt(builderAdapter);
         }
     }
 }

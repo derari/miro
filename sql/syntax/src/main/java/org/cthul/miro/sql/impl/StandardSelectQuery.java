@@ -2,12 +2,14 @@ package org.cthul.miro.sql.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import org.cthul.miro.db.*;
 import org.cthul.miro.sql.SelectBuilder;
 import org.cthul.miro.sql.SelectQuery;
 import org.cthul.miro.sql.SelectBuilder.Join;
-import org.cthul.miro.db.request.MiDBString;
-import org.cthul.miro.db.request.MiQueryString;
+import org.cthul.miro.db.request.MiQueryBuilder;
+import org.cthul.miro.db.request.StatementBuilder;
+import org.cthul.miro.db.string.MiDBString;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.futures.MiAction;
@@ -15,7 +17,7 @@ import org.cthul.miro.futures.MiAction;
 /**
  *
  */
-public class StandardSelectQuery extends AbstractSqlStatement<MiQueryString> implements SelectQuery {
+public class StandardSelectQuery extends AbstractSqlStatement<MiQueryBuilder> implements SelectQuery {
     
     private SelectClBuilder select = null;
     private FromBuilder from = null;
@@ -25,16 +27,16 @@ public class StandardSelectQuery extends AbstractSqlStatement<MiQueryString> imp
     private HavingBuilder having = null;
     private OrderByBuilder orderBy = null;
 
-    public StandardSelectQuery(Syntax syntax, MiConnection connection) {
-        super(syntax, connection::newQuery);
+    public StandardSelectQuery(Syntax syntax, Supplier<MiQueryBuilder> requestFactory) {
+        super(syntax, requestFactory);
     }
 
-    public StandardSelectQuery(Syntax syntax, MiQueryString dbString) {
+    public StandardSelectQuery(Syntax syntax, MiQueryBuilder dbString) {
         super(syntax, dbString);
     }
 
-    public StandardSelectQuery(Syntax syntax, MiDBString dbString, MiQueryString request) {
-        super(syntax, dbString, request);
+    public StandardSelectQuery(Syntax syntax, StatementBuilder dbString, MiQueryBuilder query) {
+        super(syntax, dbString, query);
     }
     
     @Override
@@ -47,18 +49,27 @@ public class StandardSelectQuery extends AbstractSqlStatement<MiQueryString> imp
         if (having != null) having.close();
         if (orderBy != null) orderBy.close();
     }
+    
+    private static final SubClause<MiDBString> CLAUSE_SELECT = str -> str.append("SELECT ");
+    private static final SubClause<MiDBString> CLAUSE_FROM = str -> str.append(" FROM ");
+    private static final SubClause<MiDBString> CLAUSE_WHERE = str -> str.append(" WHERE ");
+    private static final SubClause<MiDBString> CLAUSE_GROUP_BY = str -> str.append(" GROUP BY ");
+    private static final SubClause<MiDBString> CLAUSE_HAVING = str -> str.append(" HAVING ");
+    private static final SubClause<MiDBString> CLAUSE_ORDER_BY = str -> str.append(" ORDER BY ");
+    private static final SubClause<MiDBString> SPACE = str -> str.append(" ");
 
     @Override
-    protected void buildStatement(MiDBString stmt) {
-        append(stmt, "SELECT ", select);
-        append(stmt, " FROM ", from);
-        joins.forEach(j -> append(stmt, " ", j));
-        append(stmt, " WHERE ", where);
-        append(stmt, " GROUP BY ", groupBy);
-        append(stmt, " HAVING ", having);
-        append(stmt, " ORDER BY ", orderBy);
+    protected void buildStatement(StatementBuilder stmt) {
+        MiDBString dbString = stmt.begin(MiDBString.TYPE);
+        append(dbString, CLAUSE_SELECT, select);
+        append(dbString, CLAUSE_FROM, from);
+        joins.forEach(j -> append(dbString, SPACE, j));
+        append(dbString,CLAUSE_WHERE, where);
+        append(dbString, CLAUSE_GROUP_BY, groupBy);
+        append(dbString, CLAUSE_HAVING, having);
+        append(dbString, CLAUSE_ORDER_BY, orderBy);
     }
-    
+
     @Override
     public MiResultSet execute() throws MiException {
         return request().execute();
@@ -150,7 +161,7 @@ public class StandardSelectQuery extends AbstractSqlStatement<MiQueryString> imp
         return new OrderByBuilder();
     }
     
-    protected class ClauseBuilder<This extends QlBuilder<This>> extends AbstractSqlStatement<MiQueryString>.ClauseBuilder<This> implements SelectBuilder {
+    protected class ClauseBuilder<This extends QlBuilder<This>> extends AbstractSqlStatement<MiQueryBuilder>.ClauseBuilder<This> implements SelectBuilder {
 
         public ClauseBuilder() {
         }
@@ -209,7 +220,7 @@ public class StandardSelectQuery extends AbstractSqlStatement<MiQueryString> imp
     protected class FromBuilder extends ClauseBuilder<From> implements From {
     }
     
-    protected class JoinBuilder extends AbstractSqlStatement<MiQueryString>.JoinBuilder<Join, WhereBuilder> implements Join {
+    protected class JoinBuilder extends AbstractSqlStatement<MiQueryBuilder>.JoinBuilder<Join, WhereBuilder> implements Join {
 
         @Override
         protected WhereBuilder newOnCondition() {

@@ -3,10 +3,10 @@ package org.cthul.miro.sql;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.syntax.ClauseType;
 import org.cthul.miro.db.syntax.RequestType;
-import org.cthul.miro.db.syntax.StatementBuilder;
 import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.util.Key;
 import org.cthul.miro.db.request.MiRequest;
+import org.cthul.miro.db.request.StatementBuilder;
 
 /**
  *
@@ -37,7 +37,7 @@ public interface SqlDDL<Req extends MiRequest<?>> extends RequestType<Req>, Clau
 
         @Override
         public MiRequest<?> createDefaultRequest(Syntax syntax, MiConnection cnn) {
-            return (MiRequest) newStmt(cnn).begin(this);
+            return (MiRequest) syntax.newClause(newStmt(cnn), this);
         }
     }
 }

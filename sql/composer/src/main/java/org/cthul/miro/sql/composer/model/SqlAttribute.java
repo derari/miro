@@ -2,6 +2,8 @@ package org.cthul.miro.sql.composer.model;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
+import org.cthul.miro.db.request.StatementBuilder;
 import org.cthul.miro.sql.SelectBuilder;
 import org.cthul.miro.sql.syntax.MiSqlParser;
 import org.cthul.miro.db.syntax.ClauseType;
@@ -119,6 +121,11 @@ public class SqlAttribute {
         }
         @Override
         public <Clause> Clause begin(ClauseType<Clause> type) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <Clause> Clause as(Function<StatementBuilder, Clause> factory) {
             throw new UnsupportedOperationException();
         }
         @Override

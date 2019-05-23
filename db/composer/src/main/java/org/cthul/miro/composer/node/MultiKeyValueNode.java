@@ -44,24 +44,24 @@ public interface MultiKeyValueNode<K, V> extends BatchNode<Object> {
 //        }
 //        return (E[]) result;
 //    }
-    
-    static <K, V> MultiKeyValueNode<K, V> dummy() {
-        class Dummy implements MultiKeyValueNode<K, V>, ListNode<Object> {
-            @Override
-            public ListNode<V[]> forKeys(K... keys) {
-                return (ListNode) this;
-            }
-            @Override
-            public void put(K key, V value) { }
-            @Override
-            public void put(Map<? extends K, ? extends V> map) { }
-            @Override
-            public void add(Object entry) { }
-            @Override
-            public void batch(Object... values) { }
-            @Override
-            public void batch(Collection<? extends Object> values) { }
-        }
-        return new Dummy();
-    }
+//    
+//    static <K, V> MultiKeyValueNode<K, V> dummy() {
+//        class Dummy implements MultiKeyValueNode<K, V>, ListNode<Object> {
+//            @Override
+//            public ListNode<V[]> forKeys(K... keys) {
+//                return (ListNode) this;
+//            }
+//            @Override
+//            public void put(K key, V value) { }
+//            @Override
+//            public void put(Map<? extends K, ? extends V> map) { }
+//            @Override
+//            public void add(Object entry) { }
+//            @Override
+//            public void batch(Object... values) { }
+//            @Override
+//            public void batch(Collection<? extends Object> values) { }
+//        }
+//        return new Dummy();
+//    }
 }

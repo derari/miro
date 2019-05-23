@@ -25,4 +25,9 @@ public class Person {
     public transient Address address;
     
     public transient List<Person> friends;
+
+    @Override
+    public String toString() {
+        return id + "/" + firstName + " " + lastName;
+    }
 }

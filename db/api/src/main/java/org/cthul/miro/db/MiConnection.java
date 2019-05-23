@@ -1,9 +1,9 @@
 package org.cthul.miro.db;
 
-import org.cthul.miro.db.request.MiQueryString;
-import org.cthul.miro.db.request.MiUpdateString;
 import org.cthul.miro.db.syntax.RequestType;
 import org.cthul.miro.db.request.MiRequest;
+import org.cthul.miro.db.request.MiQueryBuilder;
+import org.cthul.miro.db.request.MiUpdateBuilder;
 
 /**
  * Represents a database connection.
@@ -11,9 +11,9 @@ import org.cthul.miro.db.request.MiRequest;
  */
 public interface MiConnection extends AutoCloseable {
     
-    MiQueryString newQuery();
+    MiQueryBuilder newQuery();
     
-    MiUpdateString newUpdate();
+    MiUpdateBuilder newUpdate();
     
     <Req extends MiRequest<?>> Req newRequest(RequestType<Req> type);
 

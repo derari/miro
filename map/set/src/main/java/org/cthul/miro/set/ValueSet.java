@@ -1,18 +1,36 @@
 package org.cthul.miro.set;
 
-import java.util.Iterator;
-import org.cthul.miro.result.Results;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
 /**
  *
- * @param <Value>
+ * @param <Entity>
+ * @param <This>
  */
-public interface ValueSet<Value> extends Iterable<Value> {
+public class ValueSet<Entity, This extends ValueSet<Entity, This>> extends AbstractImmutable<This> {
+
+    private final List<Entity> values = new ArrayList<>();
     
-    Results.Action<Value> result();
+    public ValueSet() {
+    }
+
+    public ValueSet(ValueSet<Entity, This> source) {
+        super(source);
+        values.addAll(source.values);
+    }
     
-    @Override
-    default Iterator<Value> iterator() {
-        return result()._asList().iterator();
+    public This values(Entity... values) {
+        return values(Arrays.asList(values));
+    }
+    
+    public This values(Collection<? extends Entity> values) {
+        return doSafe(self -> ((ValueSet) self).values.addAll(values));
+    }
+
+    protected List<Entity> getValues() {
+        return values;
     }
 }

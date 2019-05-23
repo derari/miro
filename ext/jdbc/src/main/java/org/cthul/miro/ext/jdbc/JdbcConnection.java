@@ -9,8 +9,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
-import org.cthul.miro.db.request.MiQueryString;
-import org.cthul.miro.db.request.MiUpdateString;
 import org.cthul.miro.db.syntax.RequestType;
 import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.futures.MiAction;
@@ -19,6 +17,8 @@ import org.cthul.miro.function.MiSupplier;
 import org.cthul.miro.futures.MiFutures;
 import org.cthul.miro.util.Closeables;
 import org.cthul.miro.db.request.MiRequest;
+import org.cthul.miro.db.request.MiQueryBuilder;
+import org.cthul.miro.db.request.MiUpdateBuilder;
 
 /**
  *
@@ -44,12 +44,12 @@ public class JdbcConnection implements MiConnection {
     }
 
     @Override
-    public MiQueryString newQuery() {
+    public MiQueryBuilder newQuery() {
         return new JdbcQuery(this);
     }
 
     @Override
-    public MiUpdateString newUpdate() {
+    public MiUpdateBuilder newUpdate() {
         return new JdbcUpdate(this);
     }
 

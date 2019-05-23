@@ -6,17 +6,16 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import org.cthul.miro.db.*;
-import org.cthul.miro.db.impl.MiDBStringBuilder;
-import org.cthul.miro.db.impl.MiDBStringDelegator;
-import org.cthul.miro.db.request.MiDBString;
+import org.cthul.miro.db.request.StatementBuilder;
+import org.cthul.miro.db.string.MiDBString;
+import org.cthul.miro.db.string.MiDBStringBuilder;
 import org.cthul.miro.db.syntax.ClauseType;
-import org.cthul.miro.db.syntax.StatementBuilder;
+import org.cthul.miro.db.string.NestableStatementBuilder;
 
 /**
  *
- * @param <This>
  */
-public abstract class JdbcStatement<This extends MiDBString> extends MiDBStringDelegator<This> implements StatementBuilder {
+public abstract class JdbcStatement extends NestableStatementBuilder {
     
     protected final JdbcConnection connection;
     private final MiDBStringBuilder coreBuilder = new MiDBStringBuilder();
@@ -27,13 +26,16 @@ public abstract class JdbcStatement<This extends MiDBString> extends MiDBStringD
     }
 
     @Override
-    public <Clause> Clause begin(ClauseType<Clause> type) {
-        return newNestedClause(str -> connection.getSyntax().newClause(str, this, type));
+    protected <Clause> Clause newNestedClause(StatementBuilder parent, ClauseType<Clause> type) {
+        if (type == MiDBString.TYPE) {
+            return type.cast(coreBuilder);
+        }
+        return connection.getSyntax().newClause(parent, type);
     }
 
     @Override
-    protected MiDBStringBuilder getDelegate() {
-        return coreBuilder;
+    public String toString() {
+        return coreBuilder.toString();
     }
 
     protected List<Object> getArguments() {

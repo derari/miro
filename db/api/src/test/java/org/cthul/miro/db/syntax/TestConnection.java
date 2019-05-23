@@ -1,13 +1,16 @@
 package org.cthul.miro.db.syntax;
 
+import java.util.function.Function;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;
-import org.cthul.miro.db.impl.MiDBStringBuilder;
-import org.cthul.miro.db.request.MiQueryString;
-import org.cthul.miro.db.request.MiUpdateString;
+import org.cthul.miro.db.string.MiDBStringBuilder;
 import org.cthul.miro.futures.MiAction;
 import org.cthul.miro.db.request.MiRequest;
+import org.cthul.miro.db.request.MiQueryBuilder;
+import org.cthul.miro.db.request.MiUpdateBuilder;
+import org.cthul.miro.db.request.StatementBuilder;
+import org.cthul.miro.db.string.MiDBString;
 
 /**
  *
@@ -30,12 +33,12 @@ public class TestConnection implements MiConnection {
     }
 
     @Override
-    public MiQueryString newQuery() {
+    public MiQueryBuilder newQuery() {
         return new Query();
     }
 
     @Override
-    public MiUpdateString newUpdate() {
+    public MiUpdateBuilder newUpdate() {
         throw new UnsupportedOperationException();
     }
 
@@ -48,7 +51,7 @@ public class TestConnection implements MiConnection {
     public void close() throws MiException {
     }
     
-    class Query extends MiDBStringBuilder implements MiQueryString {
+    class Query extends MiDBStringBuilder implements MiQueryBuilder {
 
         @Override
         public MiResultSet execute() throws MiException {
@@ -69,7 +72,13 @@ public class TestConnection implements MiConnection {
 
         @Override
         public <Clause> Clause begin(ClauseType<Clause> type) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            if (type == MiDBString.TYPE) return type.cast(this);
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <Clause> Clause as(Function<StatementBuilder, Clause> factory) {
+            throw new UnsupportedOperationException();
         }
 
         @Override

@@ -31,7 +31,7 @@ public interface ColumnMapping {
     Object[] writeColumns(Object value, int index, Object[] target);
     
     /**
-     * Return true if a {@linkplain #newValueReader(org.cthul.miro.db.MiResultSet, Cnn) value reader}
+     * Return true if a {@linkplain #newValueReader(org.cthul.miro.domain.Repository, org.cthul.miro.db.MiResultSet, org.cthul.miro.entity.FactoryBuilder)  value reader}
      * can be created for this result set.
      * @param resultSet
      * @return whether result set can be accepted

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import org.cthul.miro.db.request.StatementBuilder;
 
 /**
  * A piece of code that can be appended to a {@link QlBuilder}.
@@ -312,6 +314,11 @@ public interface QlCode extends Consumer<QlBuilder<?>> {
 
         @Override
         default <Clause> Clause begin(ClauseType<Clause> type) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public default <Clause> Clause as(Function<StatementBuilder, Clause> factory) {
             throw new UnsupportedOperationException();
         }
     }

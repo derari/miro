@@ -46,7 +46,7 @@ public class NestedFactoryBuilder<Entity> extends NestedInitializationtBuilderBa
             if (cf.factoryName != null) {
                 addName(factoryName);
             }
-            return setFactory(cf.supplier).add(cf.setup);
+            return this.<E>setFactory(cf.supplier).add(cf.setup);
         } else {
             addName(factory);
             addCompleteAndClose(factory);

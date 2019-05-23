@@ -1,6 +1,5 @@
 package org.cthul.miro.sql.composer.model;
 
-import org.cthul.miro.composer.CopyableNodeSet;
 import org.cthul.miro.composer.node.StatementPart;
 import java.util.LinkedHashMap;
 import java.util.Map;

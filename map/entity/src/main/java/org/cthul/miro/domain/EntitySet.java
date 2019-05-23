@@ -2,7 +2,6 @@ package org.cthul.miro.domain;
 
 import java.util.Collection;
 import org.cthul.miro.entity.*;
-import static java.util.Arrays.asList;
 
 /**
  *

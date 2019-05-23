@@ -28,6 +28,8 @@ public abstract class AbstractQueryableType<Entity, This extends AbstractQueryab
         super(clazz, shortString);
     }
     
+    public abstract MappedQueryRequest<Entity, ? extends MiQuery> newMappedQueryRequest();
+    
     protected MappedQueryComposer<Entity> newMappedQueryComposer() {
         return DefaultMappedQueryComposer.create(this, entityClass(), () -> newEntityTemplate(null));
     }

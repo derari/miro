@@ -28,7 +28,7 @@ public class Entities {
      */
     @SafeVarargs
     public static <Entity> EntityConfiguration<Entity> multiConfiguration(EntityConfiguration<? super Entity>... configurations) {
-        return multiConfiguration(Arrays.asList(configurations));
+        return Entities.<Entity>multiConfiguration(Arrays.asList(configurations));
     }
     
     /**

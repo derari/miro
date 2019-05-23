@@ -3,7 +3,9 @@ package org.cthul.miro.sql.request;
 import org.cthul.miro.sql.composer.model.SqlTemplates;
 import org.cthul.miro.sql.composer.SelectRequest;
 import static org.cthul.matchers.fluent8.FluentAssert.assertThat;
-import org.cthul.miro.db.impl.MiDBStringBuilder;
+import org.cthul.miro.composer.RequestComposer;
+import org.cthul.miro.db.string.MiDBStringBuilder;
+import org.cthul.miro.db.string.SyntaxStringBuilder;
 import org.cthul.miro.sql.syntax.AnsiSqlSyntax;
 import org.cthul.miro.sql.syntax.SqlSyntax;
 import org.junit.Test;
@@ -33,12 +35,12 @@ public class SqlTemplatesTest {
     
     @Test
     public void basic_table() {
-        MiDBStringBuilder qryString = new MiDBStringBuilder();
         
         SelectRequest c = people.newSelectComposer();
         
         c.getSelectedAttributes().addAll("id", "firstName");
-        c.build(qryString.as(syntax, SqlDQML.select()));
+        SyntaxStringBuilder qryString = new SyntaxStringBuilder(syntax);
+        c.build(qryString.begin(SqlDQML.select()));
         
         qryString.close();
         assertThat(qryString).hasToString(
@@ -48,12 +50,11 @@ public class SqlTemplatesTest {
     
     @Test
     public void join_and_group() {
-        MiDBStringBuilder qryString = new MiDBStringBuilder();
-        
         SelectRequest c = addresses.newSelectComposer();
         
         c.getSelectedAttributes().addAll("id", "inhabitantCount");
-        c.build(qryString.as(syntax, SqlDQML.select()));
+        SyntaxStringBuilder qryString = new SyntaxStringBuilder(syntax);
+        c.build(qryString.begin(SqlDQML.select()));
         
         qryString.close();
         assertThat(qryString).hasToString(
@@ -65,12 +66,11 @@ public class SqlTemplatesTest {
     
     @Test
     public void joined_view() {
-        MiDBStringBuilder qryString = new MiDBStringBuilder();
-        
         SelectRequest c = addresses.newSelectComposer();
         
         c.getSelectedAttributes().addAll("id", "people.id");
-        c.build(qryString.as(syntax, SqlDQML.select()));
+        SyntaxStringBuilder qryString = new SyntaxStringBuilder(syntax);
+        c.build(qryString.begin(SqlDQML.select()));
         
         qryString.close();
         assertThat(qryString).hasToString(
@@ -81,13 +81,12 @@ public class SqlTemplatesTest {
     
     @Test
     public void attributes_in() {
-        MiDBStringBuilder qryString = new MiDBStringBuilder();
-        
         SelectRequest c = addresses.newSelectComposer();
         
         c.getSelectedAttributes().addAll("id", "street");
         c.getAttributeFilter().forAttribute("people.firstName").add("John");
-        c.build(qryString.as(syntax, SqlDQML.select()));
+        SyntaxStringBuilder qryString = new SyntaxStringBuilder(syntax);
+        c.build(qryString.begin(SqlDQML.select()));
         
         
         qryString.close();
@@ -107,14 +106,15 @@ public class SqlTemplatesTest {
         SelectRequest c = instance.newSelectComposer();
         c.getMainView().get("b").batch(1);
         
-        MiDBStringBuilder qryString = new MiDBStringBuilder();
-        c.build(qryString.as(syntax, SqlDQML.select()));
+        MiDBStringBuilder dbString = new MiDBStringBuilder();
+        SyntaxStringBuilder qryString = new SyntaxStringBuilder(syntax, dbString);
+        c.build(qryString.begin(SqlDQML.select()));
         qryString.close();
         
         assertThat(qryString).hasToString(
                 "SELECT f FROM Foo WHERE b = ?");
-        assertThat(qryString.getArguments()).hasSize(1);
-        assertThat(qryString.getArguments()).contains(1);
+        assertThat(dbString.getArguments()).hasSize(1);
+        assertThat(dbString.getArguments()).contains(1);
     }
     
     @Test
@@ -125,8 +125,8 @@ public class SqlTemplatesTest {
         SelectRequest c = instance.newSelectComposer();
         c.getSelectedAttributes().add("x");
         
-        MiDBStringBuilder qryString = new MiDBStringBuilder();
-        c.build(qryString.as(syntax, SqlDQML.select()));
+        SyntaxStringBuilder qryString = new SyntaxStringBuilder(syntax);
+        c.build(qryString.begin(SqlDQML.select()));
         qryString.close();
         
         assertThat(qryString).hasToString(

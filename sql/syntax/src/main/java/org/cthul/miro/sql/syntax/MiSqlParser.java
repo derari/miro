@@ -483,7 +483,7 @@ public class MiSqlParser {
         }
     }
     
-    protected boolean expression_macro_ql(ClauseType<? extends QlBuilder<?>> ct, List<ObjectRef> columns, QlCode.Builder code) {
+    protected boolean expression_macro_ql(ClauseType<? extends QlBuilder> ct, List<ObjectRef> columns, QlCode.Builder code) {
         int start = cIndex;
         if (!next().isSpecial("{")) return true;
         next();
@@ -498,7 +498,7 @@ public class MiSqlParser {
             return false;
         }
         next();
-        code.clause(ct, nested);
+        code.clause(ct, nested::accept);
         return true;
     }
     

@@ -1,9 +1,9 @@
 package org.cthul.miro.sql;
 
 import org.cthul.miro.db.MiException;
+import org.cthul.miro.db.request.MiQueryBuilder;
 import org.cthul.miro.sql.impl.StandardSelectQuery;
 import org.cthul.miro.sql.syntax.AnsiSqlSyntax;
-import org.cthul.miro.db.request.MiQueryString;
 import org.junit.Test;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -13,7 +13,7 @@ import static org.junit.Assert.assertThat;
  */
 public class StandardSelectQueryTest {
     
-    SelectQuery sql = new StandardSelectQuery(new AnsiSqlSyntax(), (MiQueryString) null);
+    SelectQuery sql = new StandardSelectQuery(new AnsiSqlSyntax(), (MiQueryBuilder) null);
     
     @Test
     public void test_select_from() {
@@ -97,5 +97,13 @@ public class StandardSelectQueryTest {
         qry.select().ql("foo");
         qry.execute();
         assertThat(TestConnection.lastQuery, is("SELECT foo"));
+    }
+    
+    @Test
+    public void test_empty_select_clause() {
+        sql.from().ql("Foo")
+            .join().ql("Baz").on().and().ql("f = b")
+            .where().ql("foo = 1");
+        assertThat(sql.toString(), is(" FROM Foo JOIN Baz ON f = b WHERE foo = 1"));
     }
 }

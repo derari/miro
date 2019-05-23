@@ -4,9 +4,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import org.cthul.miro.db.impl.AbstractNestedBuilder;
+import org.cthul.miro.db.request.StatementBuilder;
 import org.cthul.miro.sql.SqlClause;
-import org.cthul.miro.db.request.MiDBString;
+import org.cthul.miro.db.string.AbstractNestedBuilder;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.db.syntax.Syntax;
@@ -41,26 +41,38 @@ public class AnsiSqlSyntax implements SqlSyntax {
     }
 
     @Override
-    public QlBuilder<?> newQlBuilder(MiDBString dbString) {
-        return new AnsiSqlBuilder(this, dbString);
+    public QlBuilder<?> newQlBuilder(StatementBuilder stmt) {
+        return new AnsiSqlBuilder(this, stmt);
     }
 
     @Override
-    public <O> SqlClause.IsNull<O> newIsNull(MiDBString dbString, O owner) {
-        return new IsNull<>(owner, dbString, this);
+    @SuppressWarnings("Convert2Lambda")
+    public SqlClause.OpenIsNull newIsNull(StatementBuilder stmt) {
+        return new SqlClause.OpenIsNull() {
+            @Override
+            public <T> SqlClause.IsNull<T> open(T parent) {
+                return stmt.as(nested -> new IsNull<>(parent, nested, AnsiSqlSyntax.this));
+            }
+        };
     }
 
     @Override
-    public <O> SqlClause.In<O> newIn(MiDBString dbString, O owner) {
-        return new In(owner, dbString, this);
+    @SuppressWarnings("Convert2Lambda")
+    public SqlClause.OpenIn newIn(StatementBuilder stmt) {
+        return new SqlClause.OpenIn() {
+            @Override
+            public <T> SqlClause.In<T> open(T parent) {
+                return stmt.as(nested -> new In<>(parent, nested, AnsiSqlSyntax.this));
+            }
+        };
     }
     
     public static class In<Owner> extends AbstractNestedBuilder<Owner, In<Owner>> implements SqlClause.In<Owner> {
 
         private int length = 0;
         
-        public In(Owner owner, MiDBString dbString, SqlSyntax syntax) {
-            super(owner, syntax.asQlBuilder(dbString), syntax);
+        public In(Owner owner, StatementBuilder stmt, SqlSyntax syntax) {
+            super(owner, stmt, syntax);
         }
 
         @Override
@@ -99,8 +111,8 @@ public class AnsiSqlSyntax implements SqlSyntax {
     
     public static class IsNull<Owner> extends AbstractNestedBuilder<Owner, SqlClause.IsNull<Owner>> implements SqlClause.IsNull<Owner> {
 
-        public IsNull(Owner owner, MiDBString dbString, SqlSyntax syntax) {
-            super(owner, syntax.asQlBuilder(dbString), syntax);
+        public IsNull(Owner owner, StatementBuilder stmt, SqlSyntax syntax) {
+            super(owner, stmt, syntax);
         }
 
         public IsNull(Owner owner, QlBuilder<?> builder, Syntax syntax) {

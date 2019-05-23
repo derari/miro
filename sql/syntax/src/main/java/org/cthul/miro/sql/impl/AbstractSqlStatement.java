@@ -1,36 +1,44 @@
 package org.cthul.miro.sql.impl;
 
 import java.util.function.Supplier;
-import org.cthul.miro.db.impl.AbstractStatement;
-import org.cthul.miro.db.impl.MiDBStringBuilder;
-import org.cthul.miro.db.impl.QlBuilderDelegator;
+import org.cthul.miro.db.request.StatementBuilder;
 import org.cthul.miro.sql.SqlJoinableClause;
-import org.cthul.miro.db.request.MiDBString;
+import org.cthul.miro.db.string.AbstractStatement;
+import org.cthul.miro.db.string.MiDBString;
+import org.cthul.miro.db.string.MiDBStringBuilder;
+import org.cthul.miro.db.string.SyntaxStringBuilder;
+import org.cthul.miro.db.syntax.ClauseType;
 import org.cthul.miro.db.syntax.QlBuilder;
+import org.cthul.miro.db.syntax.QlBuilderDelegator;
 import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.sql.SelectBuilder;
 
 /**
  *
- * @param <Request>
+ * @param <Builder>
  */
-public abstract class AbstractSqlStatement<Request extends MiDBString> extends AbstractStatement<Request> {
+public abstract class AbstractSqlStatement<Builder extends StatementBuilder> extends AbstractStatement<Builder> {
 
-    public AbstractSqlStatement(Syntax syntax, Supplier<Request> requestFactory) {
+    public AbstractSqlStatement(Syntax syntax, Supplier<? extends Builder> requestFactory) {
         super(syntax, requestFactory);
     }
 
-    public AbstractSqlStatement(Syntax syntax, Request dbString) {
+    public AbstractSqlStatement(Syntax syntax, Builder dbString) {
         super(syntax, dbString);
     }
 
-    public AbstractSqlStatement(Syntax syntax, MiDBString dbString, Request request) {
+    public AbstractSqlStatement(Syntax syntax, StatementBuilder dbString, Builder request) {
         super(syntax, dbString, request);
     }
-    
+
+    @Override
+    protected StatementBuilder newToStringBuilder() {
+        return new SyntaxStringBuilder(getSyntax());
+    }
+
     protected class ClauseBuilder<This extends QlBuilder<This>> 
                     extends QlBuilderDelegator<This> 
-                    implements SubClause {
+                    implements SubClause<MiDBString> {
 
         private final MiDBStringBuilder coreBuilder = new MiDBStringBuilder();
         protected final QlBuilder<?> qlBuilder;
@@ -73,8 +81,7 @@ public abstract class AbstractSqlStatement<Request extends MiDBString> extends A
         }
 
         @Override
-        protected QlBuilder<?> getWriteDelegate() {
-            closeNestedClause();
+        protected QlBuilder<?> getNestedWriteDelegate() {
             if (!open) {
                 open = true;
                 if (!empty && sep != null) {
@@ -85,7 +92,7 @@ public abstract class AbstractSqlStatement<Request extends MiDBString> extends A
                     append(prefix);
                 }
             }
-            return getDelegate();
+            return super.getNestedWriteDelegate();
         }
 
         public boolean isOpen() {
@@ -98,17 +105,18 @@ public abstract class AbstractSqlStatement<Request extends MiDBString> extends A
         }
         
         @Override
-        public void addTo(MiDBString target) {
-            coreBuilder.addTo(target);
-            if (open && postfix != null) target.append(postfix);
+        public void addTo(MiDBString dbString) {
+            coreBuilder.addTo(dbString);
+            if (open && postfix != null) dbString.append(postfix);
         }
     }
     
     protected abstract class JoinBuilder<This extends SqlJoinableClause.Join<This>, W extends SqlJoinableClause.Where<?> & SubClause> extends ClauseBuilder<This> implements SqlJoinableClause.Join<This> {
         
+        
         private JoinType joinType = JoinType.INNER;
         private W on = null;
-
+        
         public JoinBuilder() {
         }
 
@@ -141,15 +149,16 @@ public abstract class AbstractSqlStatement<Request extends MiDBString> extends A
 
         @Override
         public void addTo(MiDBString target) {
-            if (!isEmpty()) {
-                if (joinType != JoinType.INNER) {
-                    target.append(joinType.toString());
-                    target.append(" ");
-                }
-                target.append("JOIN ");
-                super.addTo(target);
-                AbstractSqlStatement.this.append(target, " ON ", on);
+            if (isEmpty()) return;
+            if (joinType != JoinType.INNER) {
+                target.append(joinType.toString());
+                target.append(" ");
             }
+            target.append("JOIN ");
+            super.addTo(target);
+            AbstractSqlStatement.append(target, JOIN_ON, on);
         }
     }
+    
+    private static final SubClause<MiDBString> JOIN_ON = str -> str.append(" ON ");
 }

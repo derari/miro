@@ -1,8 +1,8 @@
 package org.cthul.miro.db.syntax;
 
 import org.cthul.miro.db.MiConnection;
-import org.cthul.miro.db.request.MiDBString;
 import org.cthul.miro.db.request.MiRequest;
+import org.cthul.miro.db.request.StatementBuilder;
 
 /**
  * Defines a query language.
@@ -17,16 +17,12 @@ public interface Syntax {
         return onDefault.createDefaultRequest(this, cnn);
     }
     
-    default <Cls> Cls newClause(MiDBString stmt, ClauseType<Cls> type) {
-        return newClause(stmt, null, type);
+    default <Cls> Cls newClause(StatementBuilder stmt, ClauseType<Cls> type) {
+        return newClause(stmt, type, type);
     }
     
-    default <Cls> Cls newClause(MiDBString stmt, Object owner, ClauseType<Cls> type) {
-        return newClause(stmt, owner, type, type);
-    }
-    
-    default <Cls> Cls newClause(MiDBString stmt, Object owner, ClauseType<Cls> type, ClauseType<Cls> onDefault) {
-        return onDefault.createDefaultClause(this, stmt, owner);
+    default <Cls> Cls newClause(StatementBuilder stmt, ClauseType<Cls> type, ClauseType<Cls> onDefault) {
+        return onDefault.createDefaultClause(this, stmt);
     }
     
     default void appendConstant(Object key, QlBuilder<?> query) {

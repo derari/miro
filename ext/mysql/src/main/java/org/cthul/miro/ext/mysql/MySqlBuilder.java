@@ -1,7 +1,7 @@
 package org.cthul.miro.ext.mysql;
 
-import org.cthul.miro.db.impl.AbstractQlBuilder;
-import org.cthul.miro.db.request.MiDBString;
+import org.cthul.miro.db.request.StatementBuilder;
+import org.cthul.miro.db.string.AbstractQlBuilder;
 import org.cthul.miro.db.syntax.Syntax;
 
 /**
@@ -9,8 +9,8 @@ import org.cthul.miro.db.syntax.Syntax;
  */
 public class MySqlBuilder extends AbstractQlBuilder<MySqlBuilder> {
 
-    public MySqlBuilder(Syntax syntax, MiDBString dbString) {
-        super(syntax, dbString);
+    public MySqlBuilder(Syntax syntax, StatementBuilder stmt) {
+        super(syntax, stmt);
     }
 
     @Override

@@ -3,18 +3,16 @@ package org.cthul.miro.sql;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
 import org.cthul.miro.db.MiResultSet;
-import org.cthul.miro.db.impl.MiDBStringBuilder;
-import org.cthul.miro.db.impl.MiDBStringDelegator;
+import org.cthul.miro.db.request.MiQueryBuilder;
 import org.cthul.miro.sql.syntax.AnsiSqlSyntax;
-import org.cthul.miro.db.request.MiDBString;
-import org.cthul.miro.db.request.MiQueryString;
-import org.cthul.miro.db.request.MiUpdateString;
-import org.cthul.miro.db.syntax.ClauseType;
 import org.cthul.miro.db.syntax.RequestType;
-import org.cthul.miro.db.syntax.StatementBuilder;
 import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.futures.MiAction;
 import org.cthul.miro.db.request.MiRequest;
+import org.cthul.miro.db.request.MiUpdateBuilder;
+import org.cthul.miro.db.request.StatementBuilder;
+import org.cthul.miro.db.string.SyntaxStringBuilder;
+import org.cthul.miro.db.syntax.ClauseType;
 
 /**
  *
@@ -27,15 +25,25 @@ class TestConnection implements MiConnection {
     Syntax syntax = new AnsiSqlSyntax();
 
     @Override
-    public MiQueryString newQuery() {
-        class Query extends Req<MiResultSet, Query> implements MiQueryString {
+    public MiQueryBuilder newQuery() {
+        class Query extends Req<MiResultSet> implements MiQueryBuilder {
+            @Override
+            protected <Clause> Clause newNestedClause(StatementBuilder parent, ClauseType<Clause> type) {
+                if (type == MiQueryBuilder.TYPE) return type.cast(this);
+                return super.newNestedClause(parent, type);
+            }
         }
         return new Query();
     }
 
     @Override
-    public MiUpdateString newUpdate() {
-        class Update extends Req<Long, Update> implements MiUpdateString {
+    public MiUpdateBuilder newUpdate() {
+        class Update extends Req<Long> implements MiUpdateBuilder {
+            @Override
+            protected <Clause> Clause newNestedClause(StatementBuilder parent, ClauseType<Clause> type) {
+                if (type == MiUpdateBuilder.TYPE) return type.cast(this);
+                return super.newNestedClause(parent, type);
+            }
             @Override
             public void addBatch() { }
         }
@@ -51,22 +59,16 @@ class TestConnection implements MiConnection {
     public void close() throws MiException {
     }
     
-    class Req<R, This extends Req<R, This>> extends MiDBStringDelegator<This> implements MiRequest<R>, StatementBuilder {
-        MiDBStringBuilder string = new MiDBStringBuilder();
-        @Override
-        protected MiDBString getDelegate() {
-            return string;
-        }
+    class Req<R> extends SyntaxStringBuilder implements MiRequest<R>, StatementBuilder {
 
-        @Override
-        public <Clause> Clause begin(ClauseType<Clause> type) {
-            return newNestedClause((str) -> syntax.newClause(str, this, type));
+        public Req() {
+            super(syntax);
         }
 
         @Override
         public R execute() throws MiException {
             close();
-            lastQuery = string.toString();
+            lastQuery = toString();
             return null;
         }
 

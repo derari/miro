@@ -5,9 +5,10 @@ import java.util.List;
 import java.util.Map;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
-import org.cthul.miro.db.impl.AbstractQlBuilder;
-import org.cthul.miro.db.impl.MiDBStringBuilder;
-import org.cthul.miro.db.request.MiDBString;
+import org.cthul.miro.db.request.StatementBuilder;
+import org.cthul.miro.db.string.AbstractQlBuilder;
+import org.cthul.miro.db.string.MiDBString;
+import org.cthul.miro.db.string.SyntaxStringBuilder;
 import org.cthul.miro.db.syntax.ClauseType;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.db.syntax.QlCode;
@@ -66,12 +67,12 @@ public class SqlDB {
     
     
     static String toString(QlCode code) {
-        return new MiDBStringBuilder().asQlBuilder(TO_STRING_SYNTAX)
+        return new SyntaxStringBuilder(TO_STRING_SYNTAX).begin(QlBuilder.TYPE)
                 .append(code).toString();
     }
     
     protected static final Syntax TO_STRING_SYNTAX = new Syntax() {
-        public QlBuilder<?> newQlBuilder(MiDBString stmt) {
+        public QlBuilder<?> newQlBuilder(StatementBuilder stmt) {
             class Ql extends AbstractQlBuilder<Ql> {
                 public Ql(Syntax syntax, MiDBString coreBuilder) {
                     super(syntax, coreBuilder);
@@ -85,14 +86,15 @@ public class SqlDB {
                     return append("'").append(string).append("'");
                 }
             }
-            return new Ql(this, stmt);
+            return new Ql(this, stmt.begin(MiDBString.TYPE));
         }
+
         @Override
-        public <Cls> Cls newClause(MiDBString stmt, Object owner, ClauseType<Cls> type, ClauseType<Cls> onDefault) {
+        public <Cls> Cls newClause(StatementBuilder stmt, ClauseType<Cls> type, ClauseType<Cls> onDefault) {
             if (type == QlBuilder.TYPE) {
                 return type.cast(newQlBuilder(stmt));
             }
-            return Syntax.super.newClause(stmt, owner, type, onDefault);
+            return Syntax.super.newClause(stmt, type, onDefault); //To change body of generated methods, choose Tools | Templates.
         }
     };
 }

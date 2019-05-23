@@ -4,37 +4,40 @@ import java.util.ArrayList;
 import java.util.List;
 import org.cthul.miro.db.MiConnection;
 import org.cthul.miro.db.MiException;
-import org.cthul.miro.db.impl.AbstractStatement;
+import org.cthul.miro.db.request.AutocloseableBuilder;
+import org.cthul.miro.db.request.MiUpdateBuilder;
 import org.cthul.miro.sql.CreateStatement;
-import org.cthul.miro.db.request.MiDBString;
-import org.cthul.miro.db.request.MiUpdateString;
+import org.cthul.miro.db.request.StatementBuilder;
+import org.cthul.miro.db.string.AbstractStatement;
+import org.cthul.miro.db.string.SyntaxStringBuilder;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.db.syntax.Syntax;
 import org.cthul.miro.futures.MiAction;
 import org.cthul.miro.sql.CreateTableBuilder;
-import org.cthul.miro.db.syntax.AutocloseableBuilder;
 
 /**
  *
  */
-public class StandardCreateStatement extends AbstractStatement<MiUpdateString> implements CreateStatement, AutocloseableBuilder {
+public class StandardCreateStatement extends AbstractStatement<MiUpdateBuilder> implements CreateStatement, AutocloseableBuilder {
     
-//    private final MiConnection cnn;
-//    private final MiUpdateString dbString;
-//    private final Syntax syntax;
     private Table table = null;
 
     public StandardCreateStatement(MiConnection cnn, Syntax syntax) {
         super(syntax, cnn::newUpdate);
     }
 
-    public StandardCreateStatement(Syntax syntax, MiUpdateString request) {
+    public StandardCreateStatement(Syntax syntax, MiUpdateBuilder request) {
         super(syntax, request);
     }
 
-    public StandardCreateStatement(Syntax syntax, MiDBString dbString, MiUpdateString request) {
+    public StandardCreateStatement(Syntax syntax, StatementBuilder dbString, MiUpdateBuilder request) {
         super(syntax, dbString, request);
+    }
+
+    @Override
+    protected StatementBuilder newToStringBuilder() {
+        return new SyntaxStringBuilder(getSyntax());
     }
 
     @Override
@@ -57,7 +60,7 @@ public class StandardCreateStatement extends AbstractStatement<MiUpdateString> i
     }
 
     @Override
-    protected void buildStatement(MiDBString stmt) {
+    protected void buildStatement(StatementBuilder stmt) {
         if (table != null) {
             getTable().buildStatement(stmt);
         }
@@ -95,8 +98,8 @@ public class StandardCreateStatement extends AbstractStatement<MiUpdateString> i
             return new StandardCreateStatement.Column(this, name);
         }
 
-        protected void buildStatement(MiDBString stmt) {
-            QlBuilder<?> ql = QlBuilder.create(getSyntax(), stmt);
+        protected void buildStatement(StatementBuilder stmt) {
+            QlBuilder<?> ql = getSyntax().newClause(stmt, QlBuilder.TYPE);
             begin(ql);
             body(ql);
             end(ql);

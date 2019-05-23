@@ -1,7 +1,7 @@
 package org.cthul.miro.ext.hana;
 
-import org.cthul.miro.db.impl.AbstractQlBuilder;
-import org.cthul.miro.db.request.MiDBString;
+import org.cthul.miro.db.request.StatementBuilder;
+import org.cthul.miro.db.string.AbstractQlBuilder;
 import org.cthul.miro.db.syntax.Syntax;
 
 /**
@@ -9,7 +9,7 @@ import org.cthul.miro.db.syntax.Syntax;
  */
 public class HanaSqlBuilder extends AbstractQlBuilder<HanaSqlBuilder> {
 
-    public HanaSqlBuilder(Syntax syntax, MiDBString dbString) {
+    public HanaSqlBuilder(Syntax syntax, StatementBuilder dbString) {
         super(syntax, dbString);
     }
 

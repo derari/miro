@@ -1,13 +1,13 @@
 package org.cthul.miro.ext.jdbc;
 
 import org.cthul.miro.db.*;
-import org.cthul.miro.db.request.MiUpdateString;
 import org.cthul.miro.futures.MiAction;
+import org.cthul.miro.db.request.MiUpdateBuilder;
 
 /**
  *
  */
-public class JdbcUpdate extends JdbcStatement<JdbcUpdate> implements MiUpdateString {
+public class JdbcUpdate extends JdbcStatement implements MiUpdateBuilder {
 
     public JdbcUpdate(JdbcConnection connection) {
         super(connection);

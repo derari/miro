@@ -82,7 +82,8 @@ public class MappedSqlType<Entity>
         return sqlTemplates;
     }
     
-    public MappedSelectRequest<Entity> newMappedSelectComposer() {
+    @Override
+    public MappedSelectRequest<Entity> newMappedQueryRequest() {
         if (selectComposer == null) {
             selectComposer = DefaultMappedSelectComposer.createRequest(
                     newMappedQueryComposer(), 
@@ -93,7 +94,7 @@ public class MappedSqlType<Entity>
 
     @Override
     protected MappedQueryComposer<Entity> newBatchComposer() {
-        return newMappedSelectComposer();
+        return newMappedQueryRequest();
     }
 
     @Override

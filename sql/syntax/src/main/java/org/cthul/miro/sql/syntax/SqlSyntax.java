@@ -1,6 +1,8 @@
 package org.cthul.miro.sql.syntax;
 
-import org.cthul.miro.db.impl.AbstractNestedBuilder;
+import org.cthul.miro.db.request.MiQueryBuilder;
+import org.cthul.miro.db.request.MiUpdateBuilder;
+import org.cthul.miro.db.request.StatementBuilder;
 import org.cthul.miro.sql.CreateStatement;
 import org.cthul.miro.sql.InsertStatement;
 import org.cthul.miro.sql.SelectQuery;
@@ -12,9 +14,7 @@ import org.cthul.miro.sql.impl.StandardSelectQuery;
 import org.cthul.miro.sql.SqlDQML;
 import org.cthul.miro.sql.impl.StandardCreateStatement;
 import org.cthul.miro.sql.impl.StandardInsertStatement;
-import org.cthul.miro.db.request.MiDBString;
-import org.cthul.miro.db.request.MiQueryString;
-import org.cthul.miro.db.request.MiUpdateString;
+import org.cthul.miro.db.string.AbstractNestedBuilder;
 import org.cthul.miro.db.syntax.ClauseType;
 import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.db.syntax.Syntax;
@@ -24,76 +24,81 @@ import org.cthul.miro.db.syntax.Syntax;
  */
 public interface SqlSyntax extends Syntax {
     
-    default SelectQuery newSelectQuery(MiDBString dbString, MiQueryString owner) {
-        return new StandardSelectQuery(this, dbString, owner);
+    default SelectQuery newSelectQuery(StatementBuilder parent) {
+        MiQueryBuilder query = (parent instanceof MiQueryBuilder) ? (MiQueryBuilder) parent : null;
+        return new StandardSelectQuery(this, parent, query);
     }
 
-    default InsertStatement newInsertStatement(MiDBString dbString, MiUpdateString owner) {
-        return new StandardInsertStatement(this, dbString, owner);
+    default InsertStatement newInsertStatement(StatementBuilder parent) {
+        MiUpdateBuilder update = (parent instanceof MiUpdateBuilder) ? (MiUpdateBuilder) parent : null;
+        return new StandardInsertStatement(this, parent, update);
     }
     
-    default CreateStatement newCreateStatement(MiDBString dbString, MiUpdateString  owner) {
-        return new StandardCreateStatement(this, dbString, owner);
+    default CreateStatement newCreateStatement(StatementBuilder parent) {
+        MiUpdateBuilder update = (parent instanceof MiUpdateBuilder) ? (MiUpdateBuilder) parent : null;
+        return new StandardCreateStatement(this, parent, update);
+    }
+    
+    QlBuilder<?> newQlBuilder(StatementBuilder stmt);
+    
+    SqlClause.OpenIsNull newIsNull(StatementBuilder stmt);
+    
+    SqlClause.OpenIn newIn(StatementBuilder stmt);
+    
+    @SuppressWarnings("Convert2Lambda")
+    default SqlClause.OpenJunction newJunction(StatementBuilder stmt) {
+        return new SqlClause.OpenJunction() {
+            @Override
+            public <T> Junction<T> open(T parent) {
+                return stmt.as(nested -> new StandardJunction<>(parent, nested, SqlSyntax.this));
+            }
+        };
+    }
+    
+    @SuppressWarnings("Convert2Lambda")
+    default SqlClause.OpenConjunction newConjunction(StatementBuilder stmt) {
+        return new SqlClause.OpenConjunction() {
+            @Override
+            public <T> Conjunction<T> open(T parent) {
+                return stmt.as(nested -> new StandardConjunction<>(parent, nested, SqlSyntax.this));
+            }
+        };
     }
 
-    default QlBuilder<?> asQlBuilder(MiDBString dbString) {
-        if (dbString instanceof QlBuilder) {
-            return (QlBuilder) dbString;
-        } else {
-            return newQlBuilder(dbString);
-        }
-    }
-    
-    QlBuilder<?> newQlBuilder(MiDBString dbString);
-    
-    <O> SqlClause.IsNull<O> newIsNull(MiDBString dbString, O owner);
-    
-    <O> SqlClause.In<O> newIn(MiDBString dbString, O owner);
-    
-    default <O> SqlClause.Junction<O> newJunction(MiDBString dbString, O owner) {
-        return new StandardJunction<>(owner, dbString, this);
-    }
-    
-    default <O> SqlClause.Conjunction<O> newConjunction(MiDBString dbString, O owner) {
-        return new StandardConjunction<>(owner, dbString, this);
-    }
-    
     @Override
-    default <Cls> Cls newClause(MiDBString dbString, Object owner, ClauseType<Cls> type, ClauseType<Cls> onDefault) {
+    default <Cls> Cls newClause(StatementBuilder stmt, ClauseType<Cls> type, ClauseType<Cls> onDefault) {
         if (type == QlBuilder.TYPE) {
-            return type.cast(newQlBuilder(dbString));
+            return type.cast(newQlBuilder(stmt));
         }
-        MiQueryString qry = owner instanceof MiQueryString ? (MiQueryString) owner : null;
-        MiUpdateString stmt = owner instanceof MiUpdateString ? (MiUpdateString) owner : null;
         switch (SqlDQML.type(type)) {
             case SELECT:
-                return type.cast(newSelectQuery(dbString, qry));
+                return type.cast(newSelectQuery(stmt));
             case UPDATE:
-                return type.cast(newInsertStatement(dbString, stmt));
+                return type.cast(newInsertStatement(stmt));
         }
         switch (SqlClause.type(type)) {
             case IN:
-                return type.cast(newIn(dbString, owner));
+                return type.cast(newIn(stmt));
             case IS_NULL:
-                return type.cast(newIsNull(dbString, owner));
+                return type.cast(newIsNull(stmt));
             case CONJUNCTION:
-                return type.cast(newConjunction(dbString, owner));
+                return type.cast(newConjunction(stmt));
             case JUNCTION:
-                return type.cast(newJunction(dbString, owner));
+                return type.cast(newJunction(stmt));
         }
         switch (SqlDDL.type(type)) {
             case CREATE_TABLE:
-                return type.cast(newCreateStatement(dbString, stmt));
+                return type.cast(newCreateStatement(stmt));
         }
-        return Syntax.super.newClause(dbString, owner, type, onDefault);
+        return Syntax.super.newClause(stmt, type, onDefault);
     }
     
     abstract class SimpleComposite<Owner, This extends QlBuilder<This>> extends AbstractNestedBuilder<Owner, This> {
         
         private boolean writeOP = true;
 
-        public SimpleComposite(Owner owner, MiDBString dbString, SqlSyntax syntax) {
-            this(owner, syntax.asQlBuilder(dbString), (Syntax) syntax);
+        public SimpleComposite(Owner owner, StatementBuilder stmt, SqlSyntax syntax) {
+            this(owner, stmt.begin(QlBuilder.TYPE), (Syntax) syntax);
         }
 
         public SimpleComposite(Owner owner, QlBuilder<?> builder, Syntax syntax) {
@@ -136,8 +141,8 @@ public interface SqlSyntax extends Syntax {
     
     class StandardConjunction<Owner> extends SimpleComposite<Owner, Conjunction<Owner>> implements Conjunction<Owner> {
 
-        public StandardConjunction(Owner owner, MiDBString dbString, SqlSyntax syntax) {
-            super(owner, dbString, syntax);
+        public StandardConjunction(Owner owner, StatementBuilder stmt, SqlSyntax syntax) {
+            super(owner, stmt, syntax);
         }
 
         public StandardConjunction(Owner owner, QlBuilder<?> builder, Syntax syntax) {
@@ -157,8 +162,8 @@ public interface SqlSyntax extends Syntax {
     
     class StandardJunction<Owner> extends SimpleComposite<Owner, Junction<Owner>> implements Junction<Owner> {
 
-        public StandardJunction(Owner owner, MiDBString dbString, SqlSyntax syntax) {
-            super(owner, dbString, syntax);
+        public StandardJunction(Owner owner, StatementBuilder stmt, SqlSyntax syntax) {
+            super(owner, stmt, syntax);
         }
 
         public StandardJunction(Owner owner, QlBuilder<?> builder, Syntax syntax) {

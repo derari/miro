@@ -2,8 +2,9 @@ package org.cthul.miro.sql.syntax;
 
 import java.util.Collections;
 import java.util.Map;
-import org.cthul.miro.db.impl.AbstractQlBuilder;
-import org.cthul.miro.db.request.MiDBString;
+import org.cthul.miro.db.request.StatementBuilder;
+import org.cthul.miro.db.string.AbstractQlBuilder;
+import org.cthul.miro.db.string.MiDBString;
 import org.cthul.miro.db.syntax.Syntax;
 
 /**
@@ -19,6 +20,15 @@ public class AnsiSqlBuilder extends AbstractQlBuilder<AnsiSqlBuilder> {
 
     public AnsiSqlBuilder(Syntax syntax, Map<String, String> tableSchemas, MiDBString dbString) {
         super(syntax, dbString);
+        this.tableSchemas = tableSchemas;
+    }
+
+    public AnsiSqlBuilder(Syntax syntax, StatementBuilder stmt) {
+        this(syntax, Collections.emptyMap(), stmt);
+    }
+
+    public AnsiSqlBuilder(Syntax syntax, Map<String, String> tableSchemas, StatementBuilder stmt) {
+        super(syntax, stmt);
         this.tableSchemas = tableSchemas;
     }
 

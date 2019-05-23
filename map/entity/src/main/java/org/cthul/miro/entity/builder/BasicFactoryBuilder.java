@@ -4,6 +4,7 @@ import org.cthul.miro.util.CompleteAndClose;
 
 /**
  *
+ * @param <Entity>
  */
 public class BasicFactoryBuilder<Entity> extends NestedFactoryBuilder<Entity> {
     

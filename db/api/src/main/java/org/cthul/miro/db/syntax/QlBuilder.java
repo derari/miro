@@ -1,7 +1,8 @@
 package org.cthul.miro.db.syntax;
 
+import org.cthul.miro.db.request.StatementBuilder;
 import java.util.function.Consumer;
-import org.cthul.miro.db.request.MiDBString;
+import org.cthul.miro.db.string.MiDBString;
 
 /**
  * Interface for building queries from identifiers, string literals,
@@ -91,13 +92,15 @@ public interface QlBuilder<This extends QlBuilder<This>> extends MiDBString, Sta
         return (This) MiDBString.super.pushArguments(args);
     }
     
+    interface Open extends OpenClause {
+
+        @Override
+        <T> QlBuilder<?> open(T parent);
+    }
+    
     final ClauseType<QlBuilder<?>> TYPE = new ClauseType<QlBuilder<?>>() {};
     
     static QlBuilder<?> create(StatementBuilder stmt) {
         return stmt.begin(TYPE);
-    }
-    
-    static QlBuilder<?> create(Syntax syntax, MiDBString dbString) {
-        return syntax.newClause(dbString, TYPE);
     }
 }

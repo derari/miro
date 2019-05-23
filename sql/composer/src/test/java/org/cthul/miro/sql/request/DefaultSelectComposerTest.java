@@ -3,7 +3,8 @@ package org.cthul.miro.sql.request;
 import org.cthul.miro.composer.RequestComposer;
 import org.cthul.miro.sql.composer.model.SqlTemplates;
 import org.cthul.miro.sql.composer.SelectComposer;
-import org.cthul.miro.db.impl.MiDBStringBuilder;
+import org.cthul.miro.db.string.MiDBStringBuilder;
+import org.cthul.miro.db.string.SyntaxStringBuilder;
 import org.cthul.miro.sql.SqlDQML;
 import org.cthul.miro.sql.composer.node.DefaultSelectComposer;
 import org.cthul.miro.sql.syntax.AnsiSqlSyntax;
@@ -32,15 +33,22 @@ public class DefaultSelectComposerTest {
     }
     
     @Test
-    public void test() {
+    public void test_selectedAttributes() {
         cmp.getSelectedAttributes().addAll("id", "firstName");
         String qry = getQueryString();
         assertThat(qry, is("SELECT p.\"id\", p.first_name AS firstName FROM People p"));
     }
     
+    @Test
+    public void test_attributeFilter() {
+        cmp.getAttributeFilter().put("firstName", "Bob");
+        String qry = getQueryString();
+        assertThat(qry, is(" FROM People p WHERE p.first_name = ?"));
+    }
+    
     private String getQueryString() {
-        MiDBStringBuilder qryString = new MiDBStringBuilder();
-        ((RequestComposer) cmp).build(qryString.as(syntax, SqlDQML.select()));
+        SyntaxStringBuilder qryString = new SyntaxStringBuilder(syntax);
+        ((RequestComposer) cmp).build(qryString.begin(SqlDQML.select()));
         qryString.close();
         return qryString.toString();
     }

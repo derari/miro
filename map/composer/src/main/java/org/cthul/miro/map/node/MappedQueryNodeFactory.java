@@ -97,7 +97,7 @@ public class MappedQueryNodeFactory<Entity> implements MappedQueryComposer {
     protected class TypePart implements Type<Entity>, StatementPart<Mapping<? extends Entity>>, Copyable<Object> {
 
         private Repository repository = null;
-        private EntitySet<Entity> entitySet;
+        private EntitySet<? extends Entity> entitySet;
         private boolean useRepository = false;
 
         public TypePart() {
@@ -137,7 +137,7 @@ public class MappedQueryNodeFactory<Entity> implements MappedQueryComposer {
         }
 
         @Override
-        public EntitySet<Entity> getEntitySet() {
+        public EntitySet<? extends Entity> getEntitySet() {
             if (useRepository) {
                 if (repository == null) {
                     throw new IllegalStateException("Graph or entity type required");
@@ -165,6 +165,17 @@ public class MappedQueryNodeFactory<Entity> implements MappedQueryComposer {
                 useRepository = true;
             } else {
                 this.entitySet = templateAsSet(template);
+                this.useRepository = false;
+            }
+        }
+
+        @Override
+        public void setEntitySet(EntitySet<? extends Entity> set) {
+            if (set == null) {
+                this.entitySet = null;
+                useRepository = true;
+            } else {
+                this.entitySet = set;
                 this.useRepository = false;
             }
         }

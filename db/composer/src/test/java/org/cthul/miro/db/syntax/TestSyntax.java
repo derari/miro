@@ -1,8 +1,9 @@
 package org.cthul.miro.db.syntax;
 
-import org.cthul.miro.db.impl.AbstractNestedBuilder;
-import org.cthul.miro.db.impl.AbstractQlBuilder;
-import org.cthul.miro.db.request.MiDBString;
+import org.cthul.miro.db.request.StatementBuilder;
+import org.cthul.miro.db.string.AbstractNestedBuilder;
+import org.cthul.miro.db.string.AbstractQlBuilder;
+import org.cthul.miro.db.string.MiDBString;
 
 /**
  *
@@ -10,14 +11,14 @@ import org.cthul.miro.db.request.MiDBString;
 public class TestSyntax implements Syntax {
 
     @Override
-    public <Cls> Cls newClause(MiDBString stmt, Object owner, ClauseType<Cls> type, ClauseType<Cls> onDefault) {
+    public <Cls> Cls newClause(StatementBuilder stmt, ClauseType<Cls> type, ClauseType<Cls> onDefault) {
         Object cls = null;
         if (type == QlBuilder.TYPE) {
             cls = new Ql(this, stmt);
         } else if (type == IN_PARENTHESES) {
-            cls = new InParenImpl(owner, stmt, this);
+            cls = new InParenImpl(stmt, this);
         }
-        return cls != null ? type.cast(cls) : onDefault.createDefaultClause(this, stmt, owner);
+        return cls != null ? type.cast(cls) : onDefault.createDefaultClause(this, stmt);
     }
     
     public static ClauseType<InParentheses> IN_PARENTHESES = new ClauseType<InParentheses>() { };
@@ -28,8 +29,8 @@ public class TestSyntax implements Syntax {
     
     static class InParenImpl extends AbstractNestedBuilder<Object, InParentheses> implements InParentheses {
 
-        public InParenImpl(Object owner, MiDBString dbString, Syntax syntax) {
-            super(owner, dbString, syntax);
+        public InParenImpl(StatementBuilder parent, Syntax syntax) {
+            super(null, parent, syntax);
         }
 
         @Override
@@ -47,8 +48,8 @@ public class TestSyntax implements Syntax {
     
     static class Ql extends AbstractQlBuilder<Ql> {
 
-        public Ql(Syntax syntax, MiDBString coreBuilder) {
-            super(syntax, coreBuilder);
+        public Ql(Syntax syntax, StatementBuilder stmt) {
+            super(syntax, stmt);
         }
 
         @Override

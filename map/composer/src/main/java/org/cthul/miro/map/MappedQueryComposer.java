@@ -50,7 +50,9 @@ public interface MappedQueryComposer<Entity> extends PropertyFilterComposer {
         
         void setTemplate(EntityTemplate<? extends Entity> type);
         
-        EntitySet<Entity> getEntitySet();
+        void setEntitySet(EntitySet<? extends Entity> set);
+        
+        EntitySet<? extends Entity> getEntitySet();
     }
     
     static interface Configuration<Entity> {

@@ -48,6 +48,10 @@ public class MappedSqlDomain extends DomainBuilder {
     public <N> MappedSqlBuilder<N, ?> newMapping(Object key, Class<N> entityClass) {
         return (MappedSqlBuilder) put(key, entityClass).getEntityType(key);
     }
+    
+    public <N> MappedSqlType<N> getMappedSqlType(Object key) {
+        return (MappedSqlType<N>) getEntityType(key);
+    }
 
 //    @Override
 //    public <N> NodeType<N> nodeType(Object key) {
@@ -59,7 +63,7 @@ public class MappedSqlDomain extends DomainBuilder {
 //    }
     
     @Override
-    protected  EntityType<?> addMissingType(Object key) {
+    protected EntityType<?> addMissingType(Object key) {
         put(key, (Class) key);
         return getEntityType(key);
     }
@@ -75,7 +79,7 @@ public class MappedSqlDomain extends DomainBuilder {
     
     public <N> MappedSelectRequest<N> newMappedSelectRequest(Object key) {
         MappedSqlType<N> type = (MappedSqlType<N>) getEntityType(key);
-        return type.newMappedSelectComposer();
+        return type.newMappedQueryRequest();
     }
     
     protected String defaultColumnName(String propertyName) {

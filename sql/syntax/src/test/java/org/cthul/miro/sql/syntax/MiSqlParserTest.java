@@ -3,7 +3,9 @@ package org.cthul.miro.sql.syntax;
 import java.util.Arrays;
 import java.util.List;
 import static org.cthul.matchers.fluent8.FluentAssert.assertThat;
-import org.cthul.miro.db.impl.MiDBStringBuilder;
+import org.cthul.miro.db.string.MiDBStringBuilder;
+import org.cthul.miro.db.string.SyntaxStringBuilder;
+import org.cthul.miro.db.syntax.QlBuilder;
 import org.cthul.miro.db.syntax.QlCode;
 import org.cthul.miro.sql.syntax.MiSqlParser.Attribute;
 import org.cthul.miro.sql.syntax.MiSqlParser.SelectStmt;
@@ -100,8 +102,8 @@ public class MiSqlParserTest {
     @Test
     public void macro_is_null() {
         QlCode c = MiSqlParser.parseCode("@IS_NULL{`foo`}");
-        MiDBStringBuilder string = new MiDBStringBuilder();
-        string.asQlBuilder(new AnsiSqlSyntax()).append(c);
+        SyntaxStringBuilder string = new SyntaxStringBuilder(new AnsiSqlSyntax());
+        string.begin(QlBuilder.TYPE).append(c);
         string.close();
         assertThat(string.toString()).is("(\"foo\" IS NULL)");
     }
@@ -109,11 +111,12 @@ public class MiSqlParserTest {
     @Test
     public void macro_in() {
         QlCode c = MiSqlParser.parseCode("`foo` @IN{?}", Arrays.asList(1, 2));
-        MiDBStringBuilder string = new MiDBStringBuilder();
-        string.asQlBuilder(new AnsiSqlSyntax()).append(c);
+        MiDBStringBuilder dbString = new MiDBStringBuilder();
+        SyntaxStringBuilder string = new SyntaxStringBuilder(new AnsiSqlSyntax(), dbString);
+        string.begin(QlBuilder.TYPE).append(c);
         string.close();
-        assertThat(string.toString()).is("\"foo\" IN (?,?)");
-        assertThat(string.getArguments()).contains(1, 2);
+        assertThat(dbString.toString()).is("\"foo\" IN (?,?)");
+        assertThat(dbString.getArguments()).contains(1, 2);
     }
     
     static class TestBuilder extends QlCode.Builder {

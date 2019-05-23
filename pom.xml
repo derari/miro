@@ -20,7 +20,6 @@
         <module>db/composer</module>
         
         <module>map/entity</module>
-        <module>map/graph</module>
         <module>map/composer</module>
         <module>map/set</module>
 
